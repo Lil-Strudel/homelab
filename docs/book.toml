@@ -1,0 +1,11 @@
+[book]
+authors = ["Aaron Santo"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Strudel Homelab"
+
+[output.html]
+no-section-label = true
+git-repository-url = "https://github.com/Lil-Strudel/homelab"
+git-repository-icon = "fa-github"
