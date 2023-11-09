@@ -7,6 +7,7 @@
 - Copy initialize script into terminal line by line
 - Disconnect and sign in with new user and ip
 - Run terraform init
+- Change terraform cloud execution to local
 - Run terraform import script
 - Run terraform apply
 - Congrats! Your MikroTik is now managed by terraform

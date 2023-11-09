@@ -1,4 +1,10 @@
 terraform {
+  backend "remote" {
+    organization = "LilStrudel"
+    workspaces {
+      name = "homelab"
+    }
+  }
   required_providers {
     routeros = {
       source  = "terraform-routeros/routeros"
@@ -9,9 +15,9 @@ terraform {
 
 provider "routeros" {
   hosturl  = "10.69.100.1:6729" # env ROS_HOSTURL or MIKROTIK_HOST
-  username = "terraform"   # env ROS_USERNAME or MIKROTIK_USER
-  password = "12345"       # env ROS_PASSWORD or MIKROTIK_PASSWORD
-  insecure = true          # env ROS_INSECURE or MIKROTIK_INSECURE
+  username = "terraform"        # env ROS_USERNAME or MIKROTIK_USER
+  password = "12345"            # env ROS_PASSWORD or MIKROTIK_PASSWORD
+  insecure = true               # env ROS_INSECURE or MIKROTIK_INSECURE
 }
 
 resource "routeros_interface_bridge" "bridge" {
@@ -109,11 +115,11 @@ resource "routeros_ip_service" "enabled_services" {
 }
 
 resource "routeros_system_user" "strudel_user" {
-  name     = "strudel"
-  group    = "full"
+  name  = "strudel"
+  group = "full"
 }
 
 resource "routeros_system_user" "terraform_user" {
-  name     = "terraform"
-  group    = "full"
+  name  = "terraform"
+  group = "full"
 }
