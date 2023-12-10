@@ -1,4 +1,4 @@
-terraform import routeros_interface_bridge.bridge local
+terraform import routeros_interface_bridge.bridge bridge
 terraform import routeros_interface_bridge_port.bridge_port "*0"
 terraform import routeros_ip_address.address "*1" 
 terraform import routeros_ip_pool.mgmt_pool mgmt_dhcp_pool

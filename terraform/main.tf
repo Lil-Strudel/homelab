@@ -14,27 +14,22 @@ terraform {
 }
 
 provider "routeros" {
-  hosturl  = "10.69.100.1:6729"
-  username = "terraform"
-  password = "12345"
+  hosturl  = "192.168.1.21:6729"
+  username = "admin"
+  password = "1234"
   insecure = true
-}
-
-provider "routeros" {
-  hosturl  = "10.69.100.20:6729"
-  username = "terraform"
-  password = "12345"
-  insecure = true
-  alias    = "AccessPoint1"
 }
 
 module "router" {
-  source = "./modules/router"
+  source             = "./modules/router"
+  base_ip            = var.base_ip
+  management_vlan_id = var.management_vlan_id
+  vlans              = var.vlans
+  wan_interface      = "ether1"
+  trunk_ports        = ["ether2"]
+  access_ports = [{
+    interface = "ether3"
+    vlan      = "100"
+  }]
 }
 
-module "ap1" {
-  source = "./modules/access_point"
-  providers = {
-    routeros = routeros.ap1
-  }
-}
