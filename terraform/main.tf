@@ -8,7 +8,7 @@ terraform {
   required_providers {
     routeros = {
       source  = "terraform-routeros/routeros"
-      version = "1.20.1"
+      version = "1.27.2"
     }
   }
 }
@@ -25,7 +25,7 @@ provider "routeros" {
   username = "terraform"
   password = "12345"
   insecure = true
-  alias    = "ap1"
+  alias    = "AccessPoint1"
 }
 
 module "router" {
