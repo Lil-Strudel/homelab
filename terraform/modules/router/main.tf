@@ -7,20 +7,32 @@ terraform {
   }
 }
 
-locals {
-  bridge_vlans = flatten([
-    for vlan_key, vlan in var.vlans : [
-      for trunk_port in var.trunk_ports : {
-        vlan       = vlan
-        trunk_port = trunk_port
-      }
-    ]
-  ])
-}
+###############
+# Router Config
+###############
 
 resource "routeros_system_identity" "identity" {
   name = "Router"
 }
+
+resource "routeros_dns" "dns-server" {
+  allow_remote_requests = true
+  servers               = "9.9.9.9,149.112.112.112"
+}
+
+resource "routeros_ip_dhcp_client" "dhcp_client" {
+  interface = var.wan_interface
+}
+
+resource "routeros_ip_firewall_nat" "nat_rule" {
+  action             = "masquerade"
+  chain              = "srcnat"
+  out_interface_list = routeros_interface_list.wan_list.name
+}
+
+###########################
+# Creating Bridge and VLANS
+###########################
 
 resource "routeros_interface_bridge" "bridge" {
   name           = "bridge"
@@ -28,17 +40,6 @@ resource "routeros_interface_bridge" "bridge" {
   frame_types    = "admit-only-vlan-tagged"
 }
 
-resource "routeros_interface_list" "wan_list" {
-  name = "WAN"
-}
-
-resource "routeros_interface_list" "vlan_list" {
-  name = "VLAN"
-}
-
-resource "routeros_interface_list" "management_list" {
-  name = "Management"
-}
 
 module "vlan" {
   source   = "../vlan"
@@ -51,8 +52,21 @@ module "vlan" {
   dns_server = "${var.base_ip}.${var.management_vlan_id}.1"
 }
 
-module "firewall_rules" {
-  source = "../router_firewall_rules"
+
+#####################
+# Grouping Into Lists
+#####################
+
+resource "routeros_interface_list" "wan_list" {
+  name = "WAN"
+}
+
+resource "routeros_interface_list" "vlan_list" {
+  name = "VLAN"
+}
+
+resource "routeros_interface_list" "management_list" {
+  name = "Management"
 }
 
 resource "routeros_interface_list_member" "wan_list_member" {
@@ -72,39 +86,76 @@ resource "routeros_interface_list_member" "vlan_list_member" {
   list      = routeros_interface_list.vlan_list.name
 }
 
+###################
+# Configuring Ports
+###################
+
 resource "routeros_interface_bridge_port" "trunk_bridge_port" {
   for_each = var.trunk_ports
 
-  pvid        = 1
-  bridge      = routeros_interface_bridge.bridge.name
-  interface   = each.value
-  frame_types = "admit-only-vlan-tagged"
+  pvid              = 1
+  bridge            = routeros_interface_bridge.bridge.name
+  interface         = each.value
+  frame_types       = "admit-only-vlan-tagged"
+  ingress_filtering = true
 }
 
 resource "routeros_interface_bridge_vlan" "bridge_vlan" {
-  for_each = {
-    for bridge_vlan in local.bridge_vlans : "${bridge_vlan.vlan.name}_VLAN.${bridge_vlan.trunk_port}" => bridge_vlan
-  }
+  for_each = var.vlans
 
-  vlan_ids = each.value.vlan.id
+  vlan_ids = each.value.id
   bridge   = routeros_interface_bridge.bridge.name
-  tagged = [
-    routeros_interface_bridge.bridge.name,
-    each.value.trunk_port
-  ]
+  tagged   = concat(tolist(var.trunk_ports), [routeros_interface_bridge.bridge.name])
 }
 
-resource "routeros_dns" "dns-server" {
-  allow_remote_requests = true
-  servers               = "9.9.9.9,149.112.112.112"
+################
+# Firewall Rules
+################
+
+resource "routeros_ip_firewall_filter" "rule_1" {
+  action           = "accept"
+  chain            = "input"
+  connection_state = "established,related"
+  comment          = "Allow Established & Related"
+  place_before     = routeros_ip_firewall_filter.rule_2.id
 }
 
-resource "routeros_ip_dhcp_client" "dhcp_client" {
-  interface = var.wan_interface
+resource "routeros_ip_firewall_filter" "rule_2" {
+  action       = "accept"
+  chain        = "input"
+  in_interface = "Management_VLAN"
+  comment      = "Allow Management VLAN"
+  place_before = routeros_ip_firewall_filter.rule_3.id
 }
 
-resource "routeros_ip_firewall_nat" "nat_rule" {
-  action             = "masquerade"
-  chain              = "srcnat"
-  out_interface_list = routeros_interface_list.wan_list.name
+resource "routeros_ip_firewall_filter" "rule_3" {
+  action       = "drop"
+  chain        = "input"
+  comment      = "Drop"
+  disabled     = true
+  place_before = routeros_ip_firewall_filter.rule_4.id
+}
+
+resource "routeros_ip_firewall_filter" "rule_4" {
+  action           = "accept"
+  chain            = "forward"
+  connection_state = "established,related"
+  comment          = "Allow Established & Related"
+  place_before     = routeros_ip_firewall_filter.rule_5.id
+}
+
+resource "routeros_ip_firewall_filter" "rule_5" {
+  action             = "accept"
+  chain              = "forward"
+  in_interface_list  = "VLAN"
+  out_interface_list = "WAN"
+  comment            = "VLAN Internet Access"
+  place_before       = routeros_ip_firewall_filter.rule_6.id
+}
+
+resource "routeros_ip_firewall_filter" "rule_6" {
+  action   = "drop"
+  chain    = "forward"
+  disabled = true
+  comment  = "Drop"
 }
