@@ -108,6 +108,16 @@ resource "routeros_interface_bridge_vlan" "bridge_vlan" {
   tagged   = concat(tolist(var.trunk_ports), [routeros_interface_bridge.bridge.name])
 }
 
+resource "routeros_interface_bridge_port" "access_bridge_port" {
+  for_each = var.access_ports
+
+  pvid              = each.value.vlan
+  bridge            = routeros_interface_bridge.bridge.name
+  interface         = each.value.interface
+  frame_types       = "admit-only-untagged-and-priority-tagged"
+  ingress_filtering = true
+}
+
 ################
 # Firewall Rules
 ################

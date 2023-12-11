@@ -22,7 +22,7 @@ variable "trunk_ports" {
 }
 
 variable "access_ports" {
-  type = list(object({
+  type = map(object({
     interface = string
     vlan      = string
   }))
