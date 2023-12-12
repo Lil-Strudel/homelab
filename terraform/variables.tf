@@ -42,6 +42,10 @@ variable "vlans" {
       id   = 100
       name = "Management"
     },
+    Dad = {
+      id   = 200
+      name = "Dad"
+    },
   }
 }
 

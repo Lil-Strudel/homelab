@@ -38,8 +38,17 @@ module "router" {
   access_ports = {
     ether3 = {
       interface = "ether3"
+      vlan      = "200"
+    }
+    ether4 = {
+      interface = "ether4"
+      vlan      = "50"
+    }
+    ether16 = {
+      interface = "ether16"
       vlan      = "100"
-  } }
+    }
+  }
 }
 
 module "access_point_1" {
@@ -48,7 +57,7 @@ module "access_point_1" {
     routeros = routeros.access_point_1
   }
 
-  name = "Access_Point_1"
+  name               = "Access_Point_1"
   base_ip            = var.base_ip
   management_vlan_id = var.management_vlan_id
   ip                 = "20"
