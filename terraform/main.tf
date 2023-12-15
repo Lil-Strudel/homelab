@@ -16,14 +16,14 @@ terraform {
 provider "routeros" {
   hosturl  = "10.69.100.1:6729"
   username = "admin"
-  password = "1234"
+  password = ""
   insecure = true
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.20:6729"
   username = "admin"
-  password = "1234"
+  password = ""
   insecure = true
   alias    = "access_point_1"
 }
@@ -67,5 +67,10 @@ module "access_point_1" {
     ether2 = {
       interface = "ether2"
       vlan      = "100"
-  } }
+    }
+    wifi1 = {
+      interface = "wifi1"
+      vlan      = "10"
+    }
+  }
 }
