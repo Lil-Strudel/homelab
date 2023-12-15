@@ -122,50 +122,58 @@ resource "routeros_interface_bridge_port" "access_bridge_port" {
 # Firewall Rules
 ################
 
-resource "routeros_ip_firewall_filter" "rule_1" {
+resource "routeros_ip_firewall_filter" "input_established" {
   action           = "accept"
   chain            = "input"
   connection_state = "established,related"
   comment          = "Allow Established & Related"
-  place_before     = routeros_ip_firewall_filter.rule_2.id
+  place_before     = routeros_ip_firewall_filter.input_vlan.id
 }
 
-resource "routeros_ip_firewall_filter" "rule_2" {
+resource "routeros_ip_firewall_filter" "input_vlan" {
+  action            = "accept"
+  chain             = "input"
+  in_interface_list = routeros_interface_list.vlan_list.name
+  comment           = "Allow VLAN"
+  place_before      = routeros_ip_firewall_filter.input_management.id
+}
+
+resource "routeros_ip_firewall_filter" "input_management" {
   action       = "accept"
   chain        = "input"
   in_interface = "Management_VLAN"
   comment      = "Allow Management VLAN"
-  place_before = routeros_ip_firewall_filter.rule_3.id
+  place_before = routeros_ip_firewall_filter.input_drop.id
 }
 
-resource "routeros_ip_firewall_filter" "rule_3" {
+resource "routeros_ip_firewall_filter" "input_drop" {
   action       = "drop"
   chain        = "input"
   comment      = "Drop"
-  disabled     = true
-  place_before = routeros_ip_firewall_filter.rule_4.id
+  disabled     = false
+  place_before = routeros_ip_firewall_filter.forward_established.id
 }
 
-resource "routeros_ip_firewall_filter" "rule_4" {
+resource "routeros_ip_firewall_filter" "forward_established" {
   action           = "accept"
   chain            = "forward"
   connection_state = "established,related"
   comment          = "Allow Established & Related"
-  place_before     = routeros_ip_firewall_filter.rule_5.id
+  place_before     = routeros_ip_firewall_filter.forward_vlan_wan.id
 }
 
-resource "routeros_ip_firewall_filter" "rule_5" {
+resource "routeros_ip_firewall_filter" "forward_vlan_wan" {
   action             = "accept"
   chain              = "forward"
   in_interface_list  = "VLAN"
   out_interface_list = "WAN"
   comment            = "VLAN Internet Access"
-  place_before       = routeros_ip_firewall_filter.rule_6.id
+  place_before       = routeros_ip_firewall_filter.forward_drop.id
 }
 
-resource "routeros_ip_firewall_filter" "rule_6" {
+resource "routeros_ip_firewall_filter" "forward_drop" {
   action   = "drop"
   chain    = "forward"
-  disabled = true
+  disabled = false
   comment  = "Drop"
 }
