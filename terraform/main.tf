@@ -42,7 +42,7 @@ module "router" {
     }
     ether4 = {
       interface = "ether4"
-      vlan      = "50"
+      vlan      = "100"
     }
     ether16 = {
       interface = "ether16"
