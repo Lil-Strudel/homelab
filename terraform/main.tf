@@ -37,16 +37,19 @@ module "router" {
   trunk_ports        = ["ether2"]
   access_ports = {
     ether3 = {
-      interface = "ether3"
-      vlan      = "200"
+      interface            = "ether3"
+      default_vlan         = "200"
+      allowed_tagged_vlans = []
     }
     ether4 = {
-      interface = "ether4"
-      vlan      = "100"
+      interface            = "ether4"
+      default_vlan         = "100"
+      allowed_tagged_vlans = ["50", "60"]
     }
     ether16 = {
-      interface = "ether16"
-      vlan      = "100"
+      interface            = "ether16"
+      default_vlan         = "100"
+      allowed_tagged_vlans = []
     }
   }
 }

@@ -23,7 +23,8 @@ variable "trunk_ports" {
 
 variable "access_ports" {
   type = map(object({
-    interface = string
-    vlan      = string
+    interface            = string
+    default_vlan         = string
+    allowed_tagged_vlans = set(string)
   }))
 }

@@ -105,16 +105,23 @@ resource "routeros_interface_bridge_vlan" "bridge_vlan" {
 
   vlan_ids = each.value.id
   bridge   = routeros_interface_bridge.bridge.name
-  tagged   = concat(tolist(var.trunk_ports), [routeros_interface_bridge.bridge.name])
+  tagged = compact(concat(
+    tolist(var.trunk_ports),
+    [routeros_interface_bridge.bridge.name],
+    [
+      for port, details in var.access_ports :
+      contains(details.allowed_tagged_vlans, each.value.id) ? port : null
+    ]
+  ))
 }
 
 resource "routeros_interface_bridge_port" "access_bridge_port" {
   for_each = var.access_ports
 
-  pvid              = each.value.vlan
+  pvid              = each.value.default_vlan
   bridge            = routeros_interface_bridge.bridge.name
   interface         = each.value.interface
-  frame_types       = "admit-only-untagged-and-priority-tagged"
+  frame_types       = length(each.value.allowed_tagged_vlans) > 0 ? "admit-all" : "admit-only-untagged-and-priority-tagged"
   ingress_filtering = true
 }
 
@@ -165,10 +172,19 @@ resource "routeros_ip_firewall_filter" "forward_established" {
 resource "routeros_ip_firewall_filter" "forward_vlan_wan" {
   action             = "accept"
   chain              = "forward"
-  in_interface_list  = "VLAN"
+  in_interface_list  = routeros_interface_list.vlan_list.name
   out_interface_list = "WAN"
   comment            = "VLAN Internet Access"
-  place_before       = routeros_ip_firewall_filter.forward_drop.id
+  place_before       = routeros_ip_firewall_filter.forward_vlans_dmz.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_vlans_dmz" {
+  action            = "accept"
+  chain             = "forward"
+  in_interface_list = routeros_interface_list.vlan_list.name
+  out_interface     = "DMZ_VLAN"
+  comment           = "Allow VLANs to access DMZ"
+  place_before      = routeros_ip_firewall_filter.forward_drop.id
 }
 
 resource "routeros_ip_firewall_filter" "forward_drop" {
