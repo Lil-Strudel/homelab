@@ -1,8 +1,7 @@
 terraform {
   required_providers {
     routeros = {
-      source  = "terraform-routeros/routeros"
-      version = "1.27.2"
+      source = "terraform-routeros/routeros"
     }
   }
 }
@@ -27,6 +26,7 @@ resource "routeros_ip_dhcp_client" "dhcp_client" {
 resource "routeros_ip_firewall_nat" "nat_rule" {
   action             = "masquerade"
   chain              = "srcnat"
+  comment            = "Masquerade internal traffic"
   out_interface_list = routeros_interface_list.wan_list.name
 }
 

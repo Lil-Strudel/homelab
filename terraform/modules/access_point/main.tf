@@ -1,8 +1,7 @@
 terraform {
   required_providers {
     routeros = {
-      source  = "terraform-routeros/routeros"
-      version = "1.27.2"
+      source = "terraform-routeros/routeros"
     }
   }
 }
@@ -13,6 +12,16 @@ terraform {
 
 resource "routeros_system_identity" "identity" {
   name = var.name
+}
+
+#################
+# Creating Bridge
+#################
+
+resource "routeros_interface_bridge" "bridge" {
+  name           = "bridge"
+  vlan_filtering = true
+  frame_types    = "admit-only-vlan-tagged"
 }
 
 ##############
@@ -36,15 +45,6 @@ resource "routeros_ip_route" "route" {
   gateway  = "${var.base_ip}.${var.management_vlan_id}.1"
 }
 
-#################
-# Creating Bridge
-#################
-
-resource "routeros_interface_bridge" "bridge" {
-  name           = "bridge"
-  vlan_filtering = true
-  frame_types    = "admit-only-vlan-tagged"
-}
 
 ###################
 # Configuring Ports
