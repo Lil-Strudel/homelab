@@ -17,14 +17,13 @@ resource "routeros_interface_vlan" "vlan" {
 }
 
 resource "routeros_ip_address" "address" {
-  address   = "${local.start_ip}.1/24"
   interface = routeros_interface_vlan.vlan.name
-  network   = "${local.start_ip}.0"
+  address   = "${local.start_ip}.1/24"
 }
 
 resource "routeros_ip_pool" "pool" {
   name   = "${var.name}_DHCP_Pool"
-  ranges = ["${local.start_ip}.2-${local.start_ip}.254"]
+  ranges = ["${local.start_ip}.60-${local.start_ip}.254"]
 }
 
 resource "routeros_ip_dhcp_server" "dhcp_server" {
@@ -36,5 +35,5 @@ resource "routeros_ip_dhcp_server" "dhcp_server" {
 resource "routeros_ip_dhcp_server_network" "dhcp_server_network" {
   address    = "${local.start_ip}.0/24"
   gateway    = "${local.start_ip}.1"
-  dns_server = var.dns_server
+  dns_server = ["${local.start_ip}.1", "9.9.9.9", "8.8.8.8"]
 }

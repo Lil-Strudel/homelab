@@ -13,112 +13,146 @@ terraform {
   }
 }
 
+locals {
+  envs = { for tuple in regexall("(.*)=(.*)", file(".env")) : tuple[0] => sensitive(tuple[1]) }
+  vlans = {
+    Home       = 10,
+    Guest      = 20,
+    Security   = 30,
+    IoT        = 40,
+    DMZ        = 50,
+    Trusted    = 60,
+    Management = 100,
+    Dad        = 200,
+  }
+  base_ip = "10.69"
+}
+
 provider "routeros" {
   hosturl  = "10.69.100.1:6729"
-  username = "admin"
-  password = "1234"
+  username = local.envs["ROUTEROS_USERNAME"]
+  password = local.envs["ROUTEROS_PASSWORD"]
   insecure = true
+  alias    = "ccr2004"
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.10:6729"
-  username = "admin"
-  password = "1234"
+  username = local.envs["ROUTEROS_USERNAME"]
+  password = local.envs["ROUTEROS_PASSWORD"]
   insecure = true
-  alias    = "switch_1"
+  alias    = "crs326"
+}
+
+provider "routeros" {
+  hosturl  = "10.69.100.11:6729"
+  username = local.envs["ROUTEROS_USERNAME"]
+  password = local.envs["ROUTEROS_PASSWORD"]
+  insecure = true
+  alias    = "crs312"
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.20:6729"
-  username = "admin"
-  password = "1234"
+  username = local.envs["ROUTEROS_USERNAME"]
+  password = local.envs["ROUTEROS_PASSWORD"]
   insecure = true
-  alias    = "access_point_1"
+  alias    = "cAPax-1"
 }
-
 
 module "router" {
-  source             = "./modules/router"
-  base_ip            = var.base_ip
-  management_vlan_id = var.management_vlan_id
-  vlans              = var.vlans
-  wan_interface      = "ether1"
-  trunk_ports        = ["ether2", "ether4"]
+  source = "./modules/router"
+  providers = {
+    routeros = routeros.ccr2004
+  }
+
+  identity      = "router"
+  wan_interface = "ether1"
+
+  base_ip = local.base_ip
+
+  vlans = local.vlans
+
+  trunk_ports = ["ether2", "ether3", "ether4"]
   access_ports = {
-    ether3 = {
-      interface            = "ether3"
-      default_vlan         = "200"
-      allowed_tagged_vlans = []
-    }
-    ether16 = {
-      interface            = "ether16"
-      default_vlan         = "100"
-      allowed_tagged_vlans = []
-    }
+    "ether5"  = local.vlans["Management"]
+    "ether6"  = local.vlans["Management"]
+    "ether7"  = local.vlans["Management"]
+    "ether8"  = local.vlans["Management"]
+    "ether9"  = local.vlans["Dad"]
+    "ether10" = local.vlans["Dad"]
+    "ether11" = local.vlans["Dad"]
+    "ether12" = local.vlans["Dad"]
   }
 }
 
-module "switch_1" {
-  source = "./modules/access_point"
+module "core_switch" {
+  source = "./modules/switch"
   providers = {
-    routeros = routeros.switch_1
+    routeros = routeros.crs326
   }
 
-  name               = "Switch_1"
-  base_ip            = var.base_ip
-  management_vlan_id = var.management_vlan_id
-  ip                 = "10"
-  vlans              = var.vlans
-  trunk_ports        = ["ether8"]
+  identity = "core_switch"
+
+  base_ip    = local.base_ip
+  ip_address = "10"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+
+  trunk_ports = ["sfp-sfpplus24"]
   access_ports = {
-    ether1 = {
-      interface = "ether1"
-      vlan      = "60"
-    }
-    ether2 = {
-      interface = "ether2"
-      vlan      = "60"
-    }
-    ether3 = {
-      interface = "ether3"
-      vlan      = "60"
-    }
-    ether4 = {
-      interface = "ether4"
-      vlan      = "60"
-    }
-    ether5 = {
-      interface = "ether5"
-      vlan      = "60"
-    }
-    ether6 = {
-      interface = "ether6"
-      vlan      = "60"
-    }
+    sfp-sfpplus1  = local.vlans["Trusted"]
+    sfp-sfpplus3  = local.vlans["Trusted"]
+    sfp-sfpplus9  = local.vlans["Trusted"]
+    sfp-sfpplus11 = local.vlans["Trusted"]
+    sfp-sfpplus17 = local.vlans["Trusted"]
+    sfp-sfpplus19 = local.vlans["Trusted"]
+  }
+}
+
+module "ethernet_switch" {
+  source = "./modules/switch"
+  providers = {
+    routeros = routeros.crs312
+  }
+
+  identity = "ethernet_switch"
+
+  base_ip    = local.base_ip
+  ip_address = "11"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+
+  trunk_ports = ["ether1", "combo1"]
+  access_ports = {
+    ether2 = local.vlans["Management"]
+    ether3 = local.vlans["Management"]
+    ether4 = local.vlans["Management"]
+    ether5 = local.vlans["Trusted"]
+    ether6 = local.vlans["Trusted"]
+    ether7 = local.vlans["Trusted"]
+    ether8 = local.vlans["Trusted"]
   }
 }
 
 module "access_point_1" {
   source = "./modules/access_point"
   providers = {
-    routeros = routeros.access_point_1
+    routeros = routeros.cAPax-1
   }
 
-  name               = "Access_Point_1"
-  base_ip            = var.base_ip
-  management_vlan_id = var.management_vlan_id
-  ip                 = "20"
-  vlans              = var.vlans
-  trunk_ports        = ["ether1"]
+  identity = "access_point_1"
+
+  base_ip    = local.base_ip
+  ip_address = "20"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+
+  trunk_ports = ["ether1"]
   access_ports = {
-    ether2 = {
-      interface = "ether2"
-      vlan      = "100"
-    }
-    wifi1 = {
-      interface = "wifi1"
-      vlan      = "10"
-    }
+    ether2 = local.vlans["Management"]
   }
 }
-
