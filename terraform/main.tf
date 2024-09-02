@@ -60,6 +60,14 @@ provider "routeros" {
   alias    = "cAPax-1"
 }
 
+provider "routeros" {
+  hosturl  = "10.69.100.21:6729"
+  username = local.envs["ROUTEROS_USERNAME"]
+  password = local.envs["ROUTEROS_PASSWORD"]
+  insecure = true
+  alias    = "cAPax-2"
+}
+
 module "router" {
   source = "./modules/router"
   providers = {
@@ -155,4 +163,22 @@ module "access_point_1" {
   access_ports = {
     ether2 = local.vlans["Management"]
   }
+}
+
+module "access_point_2" {
+  source = "./modules/access_point"
+  providers = {
+    routeros = routeros.cAPax-2
+  }
+
+  identity = "access_point_2"
+
+  base_ip    = local.base_ip
+  ip_address = "21"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+
+  trunk_ports  = ["ether1"]
+  access_ports = {}
 }
