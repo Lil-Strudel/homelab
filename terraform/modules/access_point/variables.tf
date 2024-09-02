@@ -25,3 +25,11 @@ variable "trunk_ports" {
 variable "access_ports" {
   type = map(number)
 }
+
+variable "capsman_role" {
+  type = string
+  validation {
+    condition     = contains(["manager", "client"], var.capsman_role)
+    error_message = "Allowed values for input_parameter are \"manager\" or \"client\"."
+  }
+}

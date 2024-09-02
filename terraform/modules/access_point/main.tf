@@ -6,9 +6,9 @@ terraform {
   }
 }
 
-###############
-# Switch Config
-###############
+###########
+# AP Config
+###########
 resource "routeros_system_identity" "identity" {
   name = var.identity
 }
@@ -57,3 +57,45 @@ module "access_ports" {
   bridge       = routeros_interface_bridge.bridge.name
   access_ports = var.access_ports
 }
+
+
+
+###################
+# Manager Resources
+###################
+resource "routeros_wifi_capsman" "capsman" {
+  count = var.capsman_role == "manager" ? 1 : 0
+
+  enabled        = true
+  interfaces     = [routeros_interface_vlan.management_vlan.name]
+  upgrade_policy = "require-same-version"
+}
+
+###################
+# Client Resources
+###################
+resource "routeros_wifi_cap" "cap" {
+  count = var.capsman_role == "client" ? 1 : 0
+
+  enabled              = true
+  discovery_interfaces = [routeros_interface_vlan.management_vlan.name]
+}
+
+resource "routeros_wifi" "wifi1_client" {
+  count = var.capsman_role == "client" ? 1 : 0
+
+  configuration = {
+    manager = "capsman"
+  }
+  name = "wifi1"
+}
+
+resource "routeros_wifi" "wifi2_client" {
+  count = var.capsman_role == "client" ? 1 : 0
+
+  configuration = {
+    manager = "capsman"
+  }
+  name = "wifi2"
+}
+

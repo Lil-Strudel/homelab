@@ -8,7 +8,7 @@ terraform {
   required_providers {
     routeros = {
       source  = "terraform-routeros/routeros"
-      version = "1.59.4"
+      version = "1.61.2"
     }
   }
 }
@@ -145,11 +145,23 @@ module "ethernet_switch" {
   }
 }
 
+module "wifi_config" {
+  source = "./modules/wifi_config"
+  providers = {
+    routeros = routeros.cAPax-1
+  }
+
+  ssid       = "Strudel"
+  passphrase = local.envs["WIFI1_PASSWORD"]
+}
+
 module "access_point_1" {
   source = "./modules/access_point"
   providers = {
     routeros = routeros.cAPax-1
   }
+
+  capsman_role = "manager"
 
   identity = "access_point_1"
 
@@ -162,6 +174,8 @@ module "access_point_1" {
   trunk_ports = ["ether1"]
   access_ports = {
     ether2 = local.vlans["Management"]
+    wifi1  = local.vlans["Management"]
+    wifi2  = local.vlans["Management"]
   }
 }
 
@@ -171,6 +185,9 @@ module "access_point_2" {
     routeros = routeros.cAPax-2
   }
 
+  depends_on   = [module.access_point_1]
+  capsman_role = "client"
+
   identity = "access_point_2"
 
   base_ip    = local.base_ip
@@ -179,6 +196,9 @@ module "access_point_2" {
   vlans           = local.vlans
   management_vlan = local.vlans["Management"]
 
-  trunk_ports  = ["ether1"]
-  access_ports = {}
+  trunk_ports = ["ether1"]
+  access_ports = {
+    wifi1 = local.vlans["Management"]
+    wifi2 = local.vlans["Management"]
+  }
 }
