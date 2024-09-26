@@ -114,6 +114,7 @@ kube-vip manifest pod \
     --interface $INTERFACE \
     --vip $VIP \
     --controlplane \
+    --services \
     --arp \
     --leaderElection | tee /etc/kubernetes/manifests/kube-vip.yaml
 
@@ -159,7 +160,7 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 Install cilium
 
 ```
-cilium install --version 1.16.1
+cilium install --version 1.16.1 --set kubeProxyReplacement=true --set ingressController.enabled=true --set ingressController.loadbalancerMode=dedicated --set ingressController.default=true
 ```
 
 Join the server on the rest of the control nodes using the command provided by the kubeadm init
