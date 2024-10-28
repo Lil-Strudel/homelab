@@ -29,9 +29,9 @@ sudo sysctl net.ipv4.ip_forward
 ```
 # Modify for latest version
 cd /tmp
-sudo curl -L -O https://github.com/containerd/containerd/releases/download/v1.7.22/containerd-1.7.22-linux-amd64.tar.gz
-sudo tar Cxzvf /usr/local containerd-1.7.22-linux-amd64.tar.gz
-sudo sudo rm containerd-1.7.22-linux-amd64.tar.gz
+sudo curl -L -O https://github.com/containerd/containerd/releases/download/v1.7.23/containerd-1.7.23-linux-amd64.tar.gz
+sudo tar Cxzvf /usr/local containerd-1.7.23-linux-amd64.tar.gz
+sudo sudo rm containerd-1.7.23-linux-amd64.tar.gz
 ```
 
 - Setup containerd to use systemd as per [containerd docs](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#systemd)
@@ -49,7 +49,7 @@ sudo systemctl enable --now containerd
 
 ```
 cd /tmp
-sudo curl -L -O https://github.com/opencontainers/runc/releases/download/v1.1.14/runc.amd64
+sudo curl -L -O https://github.com/opencontainers/runc/releases/download/v1.2.0/runc.amd64
 sudo install -m 755 runc.amd64 /usr/local/sbin/runc
 sudo rm runc.amd64
 ```
@@ -60,9 +60,9 @@ sudo rm runc.amd64
 sudo mkdir -p /opt/cni/bin
 cd /tmp
 
-sudo curl -L -O https://github.com/containernetworking/plugins/releases/download/v1.5.1/cni-plugins-linux-amd64-v1.5.1.tgz
-sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.5.1.tgz
-sudo rm cni-plugins-linux-amd64-v1.5.1.tgz
+sudo curl -L -O https://github.com/containernetworking/plugins/releases/download/v1.6.0/cni-plugins-linux-amd64-v1.6.0.tgz
+sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.6.0.tgz
+sudo rm cni-plugins-linux-amd64-v1.6.0.tgz
 
 sudo chown -R root:root /opt/cni/bin
 ```
@@ -101,15 +101,16 @@ sudo systemctl enable --now kubelet
 
 Next we gotta setup kube-vip (Only on control nodes!)
 
+ARP
+
 ```
 sudo -s
 
 export VIP=10.69.60.10
 export INTERFACE=enp2s0
-export KVVERSION=v0.8.3
+export KVVERSION=v0.8.4
 
-alias kube-vip="ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip"
-ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION
+alias kube-vip="ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION; ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip"
 kube-vip manifest pod \
     --interface $INTERFACE \
     --vip $VIP \
@@ -117,6 +118,34 @@ kube-vip manifest pod \
     --services \
     --arp \
     --leaderElection | tee /etc/kubernetes/manifests/kube-vip.yaml
+
+exit
+
+sudo vim /etc/kubernetes/manifests/kube-vip.yaml
+# ONLY ON FIRST NODE due to issue 684 edit admin.conf to super-admin.conf, but just the bottom one https://github.com/kube-vip/kube-vip/issues/684
+```
+
+BGP
+
+```
+sudo -s
+
+export VIP=10.69.60.10
+export INTERFACE=lo
+export KVVERSION=v0.8.4
+
+alias kube-vip="ctr image pull ghcr.io/kube-vip/kube-vip:$KVVERSION; ctr run --rm --net-host ghcr.io/kube-vip/kube-vip:$KVVERSION vip /kube-vip"
+
+kube-vip manifest pod \
+    --interface $INTERFACE \
+    --address $VIP \
+    --controlplane \
+    --services \
+    --bgp \
+    --localAS 65000 \
+    --bgpRouterID 10.69.60.11 \
+    --peerAddress 10.69.60.1 \
+    --peerAS 65100 | tee /etc/kubernetes/manifests/kube-vip.yaml
 
 exit
 
@@ -160,7 +189,7 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 Install cilium
 
 ```
-cilium install --version 1.16.1 --set kubeProxyReplacement=true --set ingressController.enabled=true --set ingressController.loadbalancerMode=dedicated --set ingressController.default=true
+cilium install --version 1.16.3 --set kubeProxyReplacement=true --set ingressController.enabled=true --set ingressController.loadbalancerMode=dedicated --set ingressController.default=true
 ```
 
 Join the server on the rest of the control nodes using the command provided by the kubeadm init
