@@ -5,16 +5,15 @@ metadata:
   namespace: flux-system
   annotations:
     ingress.cilium.io/ingress-class: "cilium"
-spec:
-  ingressClassName: "cilium"
+    spec:
+  ingressClassName: cilium
   rules:
-    - host: podinfo.lilstrudel.io
-      http:
+    - http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
+          - backend:
               service:
                 name: podinfo
                 port:
                   number: 9898
+            path: /
+            pathType: Prefix
