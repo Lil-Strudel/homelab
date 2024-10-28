@@ -206,3 +206,8 @@ Join the worker nodes using the command from kubeadm init
 sudo kubeadm join 10.69.60.10:6443 --token fake.fake \
     --discovery-token-ca-cert-hash sha256:fake
 ```
+
+HOLY FUCK DON'T FORGET TO CONFIGURE THE ON PREM CLOUD-CONTROLLER
+https://kube-vip.io/docs/usage/cloud-provider/
+
+IM TILTED
