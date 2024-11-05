@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server-2
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-2
+  template:
+    metadata:
+      labels:
+        app: minecraft-2
+    spec:
+      containers:
+        - name: minecraft-2
+          image: itzg/minecraft-server:latest
+          ports:
+            - containerPort: 25565
+          env:
+            - name: EULA
+              value: "TRUE"
