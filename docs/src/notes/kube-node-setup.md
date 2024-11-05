@@ -6,7 +6,13 @@
 - Assigned static ip address in mikrotik
 
 ```
-sudo apt install vim tmux curl
+sudo apt install vim tmux curl lvm2 ntp
+```
+
+- Restart the ntp service
+
+```
+sudo systemctl restart ntp
 ```
 
 - Set ip forward to 1 as per [k8s docs](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#prerequisite-ipv4-forwarding-optional)
@@ -211,3 +217,10 @@ HOLY FUCK DON'T FORGET TO CONFIGURE THE ON PREM CLOUD-CONTROLLER
 https://kube-vip.io/docs/usage/cloud-provider/
 
 IM TILTED
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
+kubectl create configmap -n kube-system kubevip --from-literal range-global=10.69.60.100-10.69.60.110
+```
+
+Install Rook (https://rook.io/docs/rook/latest-release/Getting-Started/quickstart/)
