@@ -15,6 +15,12 @@ sudo apt install vim tmux curl lvm2 ntp
 sudo systemctl restart ntp
 ```
 
+- RDB for rook
+
+```
+sudo modprobe rbd
+```
+
 - Set ip forward to 1 as per [k8s docs](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#prerequisite-ipv4-forwarding-optional)
 
 ```
