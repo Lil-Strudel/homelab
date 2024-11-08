@@ -1,8 +1,8 @@
 machine:
   install:
+    image: factory.talos.dev/installer-secureboot/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.8.2
     disk:
       $patch: delete
-    wipe: true
     diskSelector:
       model: Samsung SSD 870
 cluster:
