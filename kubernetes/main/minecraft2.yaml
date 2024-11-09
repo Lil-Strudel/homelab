@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server2
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-2
+  template:
+    metadata:
+      labels:
+        app: minecraft-2
+    spec:
+      containers:
+        - name: minecraft-2
+          image: itzg/minecraft-server:latest
+          ports:
+            - containerPort: 25565
+          env:
+            - name: EULA
+              value: "TRUE"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-service-2
+  namespace: default
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 25565
+      targetPort: 25565
+  selector:
+    app: minecraft-2
