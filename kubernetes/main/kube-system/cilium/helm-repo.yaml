@@ -4,5 +4,5 @@ metadata:
   name: cilium
   namespace: kube-system
 spec:
-  interval: 5m
+  interval: 6h
   url: https://helm.cilium.io/
