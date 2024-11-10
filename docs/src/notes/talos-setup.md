@@ -37,6 +37,10 @@ once that is done doing its thing
 talosctl bootstrap -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 ```
 
+```
+talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
+```
+
 Install cilium with helm
 
 ```
