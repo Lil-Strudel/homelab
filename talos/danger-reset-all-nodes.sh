@@ -1,0 +1,1 @@
+talosctl reset -n 10.69.60.11 -n 10.69.60.12 -n 10.69.60.13 -n 10.69.60.21 -n 10.69.60.22 -n 10.69.60.23 -e 10.69.60.11 --graceful=false --system-labels-to-wipe EPHEMERAL --system-labels-to-wipe STATE --system-labels-to-wipe META --user-disks-to-wipe /dev/nvme0n1 --reboot --talosconfig=talos/talosconfig
