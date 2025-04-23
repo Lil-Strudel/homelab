@@ -113,7 +113,16 @@ resource "routeros_ip_firewall_filter" "input_established" {
 
   connection_state = "established,related"
   comment          = "Allow Established & Related"
-  place_before     = routeros_ip_firewall_filter.input_vlan.id
+  place_before     = routeros_ip_firewall_filter.input_dads.id
+}
+
+resource "routeros_ip_firewall_filter" "input_dads" {
+  chain  = "input"
+  action = "drop"
+
+  in_interface = "Dad_VLAN"
+  comment      = "Drop Input Dads VLAN"
+  place_before = routeros_ip_firewall_filter.input_vlan.id
 }
 
 resource "routeros_ip_firewall_filter" "input_vlan" {
@@ -162,6 +171,16 @@ resource "routeros_ip_firewall_filter" "forward_vlan_wan" {
   in_interface_list  = routeros_interface_list.vlan_list.name
   out_interface_list = routeros_interface_list.wan_list.name
   comment            = "VLAN Internet Access"
+  place_before       = routeros_ip_firewall_filter.forward_dad_vlan.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_dad_vlan" {
+  chain  = "forward"
+  action = "drop"
+
+  in_interface       = "Dad_VLAN"
+  out_interface_list = routeros_interface_list.vlan_list.name
+  comment            = "Block Dads Vlan"
   place_before       = routeros_ip_firewall_filter.forward_vlan_vlan.id
 }
 
