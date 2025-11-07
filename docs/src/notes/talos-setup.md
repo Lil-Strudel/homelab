@@ -26,7 +26,7 @@ Boot into the talos iso again.
 from the Talos directory run
 
 ```
-talosctl apply-config --insecure -n 10.69.60.11 --file machine-configs/mai-1.yaml
+talosctl apply-config --insecure -n 10.69.60.11 --file machine-configs/makima-1.yaml
 ```
 
 on every machine. Or if talos is already installed on all machines and are all in maintanence mode
