@@ -15,3 +15,16 @@ spec:
         namespace: rook-ceph
       interval: 1h
   values:
+    crds:
+      enabled: true
+    admissionController:
+      enabled: true
+    csi:
+      enableRbdDriver: true
+      enableCephfsDriver: true
+      enableVolumeReplication: false
+      enableCephfsSnapshotter: true
+      enableRBDSnapshotter: true
+      enableCSIHostNetwork: true
+    discovery:
+      enabled: true

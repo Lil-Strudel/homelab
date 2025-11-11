@@ -1,0 +1,43 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: rook-ceph-cluster
+  namespace: rook-ceph
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: rook-ceph-cluster
+      version: "1.18.6"
+      sourceRef:
+        kind: HelmRepository
+        name: rook-release
+        namespace: rook-ceph
+      interval: 1h
+  install:
+    createNamespace: false
+  values:
+    operatorNamespace: rook-ceph
+    clusterName: strudel-ceph
+    cephClusterSpec:
+      mon:
+        count: 3
+        allowMultiplePerNode: false
+      mgr:
+        count: 2
+        allowMultiplePerNode: false
+      dashboard:
+        enabled: true
+      storage:
+        useAllNodes: true
+        useAllDevices: false
+        deviceFilter: "^nvme0n1$"
+    cephBlockPools:
+      - name: ceph-blockpool
+        spec:
+          replicated:
+            size: 3
+          storageClass:
+            enabled: true
+            isDefault: true
+            name: ceph-block
