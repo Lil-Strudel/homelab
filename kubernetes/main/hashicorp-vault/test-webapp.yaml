@@ -22,7 +22,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: VAULT_ADDR
-              value: "http://vault:8200"
+              value: "http://vault-active:8200"
             - name: JWT_PATH
               value: "/var/run/secrets/kubernetes.io/serviceaccount/token"
             - name: SERVICE_PORT
