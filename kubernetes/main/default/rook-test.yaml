@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-block-pvc-1
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ceph-block
+  resources:
+    requests:
+      storage: 128Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-block-pvc-2
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ceph-block
+  resources:
+    requests:
+      storage: 128Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ceph-filesystem-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ceph-filesystem
+  resources:
+    requests:
+      storage: 128Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ceph-test-1
+  namespace: default
+spec:
+  containers:
+    - name: volume-test
+      image: nginx:stable-alpine
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - name: ceph-block-is-rwo
+          mountPath: /rwo
+        - name: ceph-filesystem-is-rwx
+          mountPath: /rwx
+      ports:
+        - containerPort: 80
+  volumes:
+    - name: ceph-block-is-rwo
+      persistentVolumeClaim:
+        claimName: ceph-block-pvc-1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ceph-test-2
+  namespace: default
+spec:
+  containers:
+    - name: volume-test
+      image: nginx:stable-alpine
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - name: ceph-block-is-rwo
+          mountPath: /rwo
+        - name: ceph-filesystem-is-rwx
+          mountPath: /rwx
+      ports:
+        - containerPort: 80
+  volumes:
+    - name: ceph-block-is-rwo
+      persistentVolumeClaim:
+        claimName: ceph-block-pvc-2
+    - name: ceph-filesystem-is-rwx
+      persistentVolumeClaim:
+        claimName: ceph-filesystem-pvc
