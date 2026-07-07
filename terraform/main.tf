@@ -151,9 +151,6 @@ module "router" {
   # VLANs with internet access. Security (30) + IoT (40) are omitted on purpose.
   internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 
-  # Set to the NVR/video service address once known to allow Security -> Trusted.
-  security_video_target = ""
-
   trunk_ports = ["ether2", "ether3", "ether4"]
   access_ports = {
     "ether5"  = local.vlans["Management"]

@@ -58,7 +58,7 @@ The router runs a **default-deny** inter-VLAN policy — isolation comes from th
 | --- | --- | --- | --- |
 | Home (10) | ✅ | Trusted, DMZ | |
 | Guest (20) | ✅ | — | fully isolated (also wants AP client isolation) |
-| Security (30) | ❌ | video service in Trusted | set `security_video_target` in Terraform |
+| Security (30) | ❌ | — | fully isolated |
 | IoT (40) | ❌ | — | fully isolated |
 | DMZ (50) | ✅ | — | inbound port-forwards added later |
 | Trusted (60) | ✅ | — | intra-cluster traffic is same-VLAN |
