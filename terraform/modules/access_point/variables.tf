@@ -33,3 +33,20 @@ variable "capsman_role" {
     error_message = "Allowed values for input_parameter are \"manager\" or \"client\"."
   }
 }
+
+variable "manager_wifi_config" {
+  description = "Wifi configuration name to bind to this AP's own radios (manager role only)."
+  type        = string
+  default     = ""
+}
+
+variable "virtual_aps" {
+  description = "Extra virtual AP interfaces to create, keyed by interface name."
+  type = map(object({
+    master_interface = string
+    mac_address      = string
+    configuration    = string
+    pvid             = number
+  }))
+  default = {}
+}

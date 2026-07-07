@@ -99,3 +99,51 @@ resource "routeros_wifi" "wifi2_client" {
   name = "wifi2"
 }
 
+###################################
+# Manager Radios (bind local config)
+###################################
+resource "routeros_wifi" "wifi1_manager" {
+  count = var.capsman_role == "manager" ? 1 : 0
+
+  name = "wifi1"
+  configuration = {
+    config = var.manager_wifi_config
+    mode   = "ap"
+  }
+}
+
+resource "routeros_wifi" "wifi2_manager" {
+  count = var.capsman_role == "manager" ? 1 : 0
+
+  name = "wifi2"
+  configuration = {
+    config = var.manager_wifi_config
+    mode   = "ap"
+  }
+}
+
+###################################
+# Virtual Access Points
+###################################
+resource "routeros_wifi" "virtual_ap" {
+  for_each = var.virtual_aps
+
+  name             = each.key
+  master_interface = each.value.master_interface
+  mac_address      = each.value.mac_address
+  configuration = {
+    config = each.value.configuration
+    mode   = "ap"
+  }
+}
+
+resource "routeros_interface_bridge_port" "virtual_ap_port" {
+  for_each = var.virtual_aps
+
+  bridge            = routeros_interface_bridge.bridge.name
+  interface         = routeros_wifi.virtual_ap[each.key].name
+  pvid              = each.value.pvid
+  ingress_filtering = true
+  frame_types       = "admit-only-untagged-and-priority-tagged"
+}
+

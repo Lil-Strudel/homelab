@@ -99,6 +99,24 @@ module "router" {
     "ether11" = local.vlans["Dad"]
     "ether12" = local.vlans["Dad"]
   }
+
+  bgp_peers = {
+    "Makima-1 Peer" = "10.69.60.11"
+    "Makima-2 Peer" = "10.69.60.12"
+    "Makima-3 Peer" = "10.69.60.13"
+  }
+
+  dhcp_leases = {
+    makima-1   = { address = "10.69.60.11", mac_address = "6C:B3:11:87:36:A8", server = "Trusted_DHCP_Server" }
+    makima-2   = { address = "10.69.60.12", mac_address = "6C:B3:11:86:A5:32", server = "Trusted_DHCP_Server" }
+    makima-3   = { address = "10.69.60.13", mac_address = "6C:B3:11:87:3A:C6", server = "Trusted_DHCP_Server" }
+    trusted-21 = { address = "10.69.60.21", mac_address = "6C:B3:11:87:38:AC", server = "Trusted_DHCP_Server" }
+    trusted-22 = { address = "10.69.60.22", mac_address = "6C:B3:11:87:3A:5C", server = "Trusted_DHCP_Server" }
+    trusted-23 = { address = "10.69.60.23", mac_address = "6C:B3:11:74:89:C0", server = "Trusted_DHCP_Server" }
+    trusted-30 = { address = "10.69.60.30", mac_address = "D8:3A:DD:F8:00:79", server = "Trusted_DHCP_Server", client_id = "1:d8:3a:dd:f8:0:79" }
+    mgmt-30    = { address = "10.69.100.30", mac_address = "D8:3A:DD:68:92:7C", server = "Management_DHCP_Server", client_id = "1:d8:3a:dd:68:92:7c" }
+    mgmt-32    = { address = "10.69.100.32", mac_address = "90:B1:1C:00:E4:0F", server = "Management_DHCP_Server" }
+  }
 }
 
 module "core_switch" {
@@ -162,13 +180,37 @@ module "wifi_config" {
   passphrase = data.sops_file.secrets.data["wifi1_password"]
 }
 
+# SprinklerAct is a self-contained (inline security/channel) config on AP1,
+# unlike the shared Strudel network which uses separate channel/security objects.
+resource "routeros_wifi_configuration" "sprinkleract" {
+  provider = routeros.cAPax-1
+
+  name    = "sprinkleract_config"
+  ssid    = "SprinklerAct Studios"
+  country = "United States"
+  mode    = "ap"
+
+  security = {
+    authentication_types = "wpa2-psk"
+    passphrase           = data.sops_file.secrets.data["wifi2_password"]
+    ft                   = "true"
+    ft_over_ds           = "true"
+    ft_preserve_vlanid   = "true"
+  }
+
+  channel = {
+    skip_dfs_channels = "all"
+  }
+}
+
 module "access_point_1" {
   source = "./modules/access_point"
   providers = {
     routeros = routeros.cAPax-1
   }
 
-  capsman_role = "manager"
+  capsman_role        = "manager"
+  manager_wifi_config = module.wifi_config.configuration_name
 
   identity = "access_point_1"
 
@@ -183,6 +225,15 @@ module "access_point_1" {
     ether2 = local.vlans["Management"]
     wifi1  = local.vlans["Management"]
     wifi2  = local.vlans["Management"]
+  }
+
+  virtual_aps = {
+    wifi3 = {
+      master_interface = "wifi2"
+      mac_address      = "4A:A9:8A:C7:8C:F1"
+      configuration    = routeros_wifi_configuration.sprinkleract.name
+      pvid             = local.vlans["Dad"]
+    }
   }
 }
 

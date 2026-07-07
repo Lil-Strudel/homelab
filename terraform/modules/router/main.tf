@@ -201,3 +201,40 @@ resource "routeros_ip_firewall_filter" "forward_drop" {
   comment  = "Drop All Forward"
   disabled = false
 }
+
+###################
+# Static DHCP Leases
+###################
+resource "routeros_ip_dhcp_server_lease" "lease" {
+  for_each = var.dhcp_leases
+
+  address     = each.value.address
+  mac_address = each.value.mac_address
+  server      = each.value.server
+  client_id   = each.value.client_id
+}
+
+#############
+# BGP Peering
+#############
+resource "routeros_routing_bgp_connection" "peer" {
+  for_each = var.bgp_peers
+
+  as            = "65100"
+  name          = each.key
+  router_id     = "10.69.60.1"
+  routing_table = "main"
+
+  local {
+    role = "ebgp"
+  }
+
+  remote {
+    address = "${each.value}/32"
+    as      = "65000"
+  }
+
+  output {
+    default_originate = "always"
+  }
+}
