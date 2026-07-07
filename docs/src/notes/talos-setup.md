@@ -1,4 +1,7 @@
+# Talos Cluster Setup
+
 Its quite easy :)
+
 Get the latest secure boot iso from [talos factory](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&platform=metal&secureboot=true&target=metal)
 
 you may need to setup a temporary redirect in mikrotik for a distnat pointing 10.69.60.10 to 10.69.60.11

@@ -1,0 +1,81 @@
+# Architecture
+
+The whole homelab is declarative. Three layers, each owned by a different tool, each
+committed to this repo:
+
+```
+        Terraform ──────────►  MikroTik network (VLANs, BGP, WiFi)
+            │
+            ▼
+        Talos Linux ────────►  6× bare-metal nodes (immutable OS + k8s)
+            │
+            ▼
+        Flux (GitOps) ──────►  in-cluster platform (Cilium, kube-vip, Rook-Ceph)
+```
+
+## 1. Network — Terraform
+
+The MikroTik router, switches, and access points are managed entirely by
+[Terraform](https://www.terraform.io/) via the RouterOS provider. VLANs, trunk/access
+ports, DHCP reservations, BGP peers, and WiFi are all code in [`terraform/`](https://github.com/Lil-Strudel/homelab/tree/main/terraform).
+State lives in an encrypted, versioned AWS S3 bucket with native locking.
+
+Because the provider needs LAN access and the SOPS Age key at apply time, applies run
+with **Terraform Cloud execution = Local**.
+
+See [Controlling MikroTik with Terraform](./notes/controlling-mikrotik-with-terraform.md)
+and the [Network plan](./notes/network-plan.md).
+
+## 2. Operating system — Talos Linux
+
+Every node runs [Talos](https://www.talos.dev/): a minimal, immutable, API-driven OS
+with no shell. Machine configs are generated from encrypted secrets and per-node
+patches in [`talos/`](https://github.com/Lil-Strudel/homelab/tree/main/talos), then
+applied over the network. Talos bootstraps Kubernetes directly — no `kubeadm`, no
+manual node prep.
+
+- **Control plane** — `makima-1..3`
+- **Workers** — `rem-1..3`
+- Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`.
+- CNI and kube-proxy are disabled in Talos so Cilium can own both.
+
+See [Talos Cluster Setup](./notes/talos-setup.md).
+
+## 3. In-cluster platform — Flux GitOps
+
+After bootstrap, [Flux](https://fluxcd.io/) reconciles everything under
+[`kubernetes/main/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/main).
+Git is the source of truth; changes land by commit.
+
+| Component | Role |
+| --- | --- |
+| **Cilium** | CNI + kube-proxy replacement + ingress controller |
+| **kube-vip** | Control-plane VIP (`10.69.60.10`) and service load balancing |
+| **Rook-Ceph** | In-cluster distributed storage / PersistentVolumes |
+
+### Load balancing & the control-plane VIP
+
+kube-vip advertises the control-plane VIP and `LoadBalancer` service IPs over **BGP**.
+The cluster peers as **AS 65000** to the MikroTik router at **AS 65100**, so service
+IPs are routable across the LAN without ARP tricks. Address pool: `10.69.60.100–110`.
+
+See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
+
+### Storage
+
+Two tiers:
+
+- **Rook-Ceph** — replicated block/file storage spread across the nodes, backing
+  cluster PersistentVolumes.
+- **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster.
+
+## Secrets
+
+Secrets never hit git in plaintext. Everything sensitive is [SOPS](https://github.com/getsops/sops)-encrypted
+with [Age](https://github.com/FiloSottile/age), decrypted in place by Terraform, the
+Talos config scripts, and Flux. See [Secrets with SOPS + Age](./notes/secrets-with-sops.md).
+
+## Current scope
+
+Today the cluster runs the **platform only** — Cilium, kube-vip, Rook-Ceph, and Flux.
+User-facing workloads are not deployed yet.

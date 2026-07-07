@@ -1,4 +1,10 @@
-# I am just jogging down some notes of what I have done
+# Debian + kubeadm Node Setup (archived)
+
+> ⚠️ **Superseded.** The cluster now runs [Talos Linux](../talos-setup.md), which
+> replaces this entire manual Debian + `kubeadm` bring-up. Kept as a historical record
+> of the pre-Talos setup.
+
+Original notes of what I did:
 
 - Wifi needs to be enabled in Dell BIOS
 - Fresh install of Debian Bookworm. NO SWAP! No additional packages. Not even standard system utilities.

@@ -1,3 +1,9 @@
+# Creating a kube-vip Manifest (archived)
+
+> ⚠️ **Superseded.** This was for the old Debian + `kubeadm` cluster. kube-vip is now
+> deployed by Flux from [`kubernetes/main/kube-system/kube-vip/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/main/kube-system/kube-vip).
+> Kept for reference only.
+
 ```
 sudo -s
 
