@@ -209,8 +209,8 @@ resource "routeros_ip_firewall_filter" "input_drop" {
 #
 #   Home (10)        -> Trusted, DMZ, WAN
 #   Guest (20)       -> WAN only            (+ AP client isolation, see docs)
-#   Security (30)    -> video target only   (no WAN)
-#   IoT (40)         -> nothing             (fully isolated)
+#   Security (30)    -> nothing             (fully isolated, no WAN)
+#   IoT (40)         -> nothing             (fully isolated, no WAN)
 #   DMZ (50)         -> WAN                  (inbound port-forwards added later)
 #   Trusted (60)     -> WAN                  (intra-cluster is same-VLAN)
 #   Management (100) -> everything
@@ -247,20 +247,6 @@ resource "routeros_ip_firewall_filter" "forward_home_dmz" {
   in_interface  = "Home_VLAN"
   out_interface = "DMZ_VLAN"
   comment       = "Home -> DMZ"
-  place_before  = routeros_ip_firewall_filter.forward_management_all.id
-}
-
-# Cameras (Security VLAN) may reach a single video service in Trusted. Set
-# `security_video_target` (address or CIDR) to enable; empty = rule omitted.
-resource "routeros_ip_firewall_filter" "forward_security_video" {
-  count = var.security_video_target == "" ? 0 : 1
-
-  chain         = "forward"
-  action        = "accept"
-  in_interface  = "Security_VLAN"
-  out_interface = "Trusted_VLAN"
-  dst_address   = var.security_video_target
-  comment       = "Security -> video service (Trusted)"
   place_before  = routeros_ip_firewall_filter.forward_management_all.id
 }
 

@@ -40,12 +40,6 @@ variable "internet_vlans" {
   default     = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 }
 
-variable "security_video_target" {
-  description = "Address or CIDR in the Trusted VLAN that the Security VLAN may reach for video (e.g. an NVR). Empty string omits the rule."
-  type        = string
-  default     = ""
-}
-
 variable "dhcp_leases" {
   description = "Static DHCP reservations, keyed by a stable name"
   type = map(object({
