@@ -1,0 +1,61 @@
+# Cilium BGP control plane. Control-plane nodes (makima-1..3) peer with the
+# MikroTik router (10.69.60.1) and advertise LoadBalancer service IPs. The
+# router already declares these peers in terraform/main.tf (bgp_peers).
+#
+#   Cluster ASN 65000  <-->  Router ASN 65100
+#
+# Peering from control-plane nodes matches the three router BGP peers; kube-proxy
+# replacement forwards ingress from there to pods on any node.
+apiVersion: cilium.io/v2
+kind: CiliumBGPClusterConfig
+metadata:
+  name: cilium-bgp
+spec:
+  nodeSelector:
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+  bgpInstances:
+    - name: instance-65000
+      localASN: 65000
+      peers:
+        - name: mikrotik-router
+          peerASN: 65100
+          peerAddress: 10.69.60.1
+          peerConfigRef:
+            name: mikrotik-peer
+---
+apiVersion: cilium.io/v2
+kind: CiliumBGPPeerConfig
+metadata:
+  name: mikrotik-peer
+spec:
+  gracefulRestart:
+    enabled: true
+    restartTimeSeconds: 15
+  families:
+    - afi: ipv4
+      safi: unicast
+      advertisements:
+        matchLabels:
+          advertise: bgp
+---
+apiVersion: cilium.io/v2
+kind: CiliumBGPAdvertisement
+metadata:
+  name: lb-services
+  labels:
+    advertise: bgp
+spec:
+  advertisements:
+    - advertisementType: Service
+      service:
+        addresses:
+          - LoadBalancerIP
+      # Advertise every LoadBalancer service. Label a Service
+      # `bgp-advertise: "false"` to exclude it.
+      selector:
+        matchExpressions:
+          - key: bgp-advertise
+            operator: NotIn
+            values: ["false"]

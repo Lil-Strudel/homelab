@@ -1,0 +1,17 @@
+# Shared control-plane VIP, applied to every makima (control-plane) node.
+# Talos owns 10.69.60.10 at the OS layer via a shared VIP with etcd-based
+# election, replacing kube-vip's control-plane role. Because it comes up during
+# boot (before Kubernetes), there's no bootstrap chicken-and-egg — the old
+# "temporary MikroTik redirect .10 -> .11" step is no longer needed.
+#
+# deviceSelector matches the single physical NIC (onboard NICs are disabled in
+# BIOS, so the OS only sees the 10 GbE adapter). Confirm with `talosctl get links`
+# if a node ever fails to bring the VIP up.
+machine:
+  network:
+    interfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: true
+        vip:
+          ip: 10.69.60.10

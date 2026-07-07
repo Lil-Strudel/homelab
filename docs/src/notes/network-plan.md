@@ -36,15 +36,42 @@ is a self-contained config on AP1 pinned to the Dad VLAN (200).
 
 ## BGP — where the cluster meets the network
 
-The Kubernetes control-plane nodes peer with the router over BGP so that kube-vip can
-advertise service and control-plane IPs directly into the routing table (no ARP/L2
-tricks).
+The Kubernetes control-plane nodes peer with the router over BGP so **Cilium** can
+advertise `LoadBalancer` service IPs directly into the routing table (no ARP/L2 tricks).
+The control-plane API VIP is handled separately by a Talos shared VIP (`10.69.60.10`),
+not BGP.
 
 - **Router** — AS **65100**, peering to each control-plane node.
-- **Cluster (kube-vip)** — AS **65000**, router ID per node.
+- **Cluster (Cilium BGP)** — AS **65000**, advertising from the control-plane nodes.
 - **Peers** — `makima-1` (`.11`), `makima-2` (`.12`), `makima-3` (`.13`).
-- **LoadBalancer pool** — `10.69.50.100–125` (DMZ VLAN; set in `kube-vip/config-map.yaml`).
+- **LoadBalancer pool** — `10.69.255.0/24`, a dedicated BGP-only range that belongs to
+  no VLAN subnet (set in `cilium/lb-pool.yaml`).
 
 Setup notes: [MikroTik BGP Setup](./mikrotik-setup-bgp.md).
+
+## Firewall
+
+The router runs a **default-deny** inter-VLAN policy — isolation comes from the
+*absence* of an allow rule plus a catch-all drop, not from per-pair block rules.
+
+| From ↓ | Internet | Reaches | Notes |
+| --- | --- | --- | --- |
+| Home (10) | ✅ | Trusted, DMZ | |
+| Guest (20) | ✅ | — | fully isolated (also wants AP client isolation) |
+| Security (30) | ❌ | video service in Trusted | set `security_video_target` in Terraform |
+| IoT (40) | ❌ | — | fully isolated |
+| DMZ (50) | ✅ | — | inbound port-forwards added later |
+| Trusted (60) | ✅ | — | intra-cluster traffic is same-VLAN |
+| Management (100) | ✅ | everything | |
+| Dad (200) | ✅ | — | isolated household segment |
+
+Router **`input`** is locked to the Management VLAN once enforced, but DHCP, DNS, NTP,
+and BGP (from cluster nodes) are always permitted from every VLAN so enabling the policy
+can't black-hole the network.
+
+> **Staging.** The catch-all drop rules are created **disabled** (`enforce_firewall =
+> false` in `terraform/main.tf`). Apply once — nothing changes yet — verify each flow,
+> then set `enforce_firewall = true` and apply again to enforce. Run Terraform from the
+> Management VLAN, since enforcement restricts router admin to Management.
 
 > The diagram source is editable — [`network-plan.drawio`](../assets/network-plan.drawio).

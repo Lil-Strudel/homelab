@@ -142,6 +142,18 @@ module "router" {
 
   vlans = local.vlans
 
+  # Firewall staging: apply once with this false (drops created but disabled and
+  # everything still reachable), verify each flow, then flip to true and apply
+  # again to enforce the default-deny policy. Run Terraform from the Management
+  # VLAN — once enforced, only Management can reach the router's admin services.
+  enforce_firewall = false
+
+  # VLANs with internet access. Security (30) + IoT (40) are omitted on purpose.
+  internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
+
+  # Set to the NVR/video service address once known to allow Security -> Trusted.
+  security_video_target = ""
+
   trunk_ports = ["ether2", "ether3", "ether4"]
   access_ports = {
     "ether5"  = local.vlans["Management"]

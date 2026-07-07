@@ -1,7 +1,8 @@
 # MikroTik BGP Setup
 
-kube-vip advertises the control-plane VIP and `LoadBalancer` service IPs to the router
-over BGP. The router side is intentionally simple.
+**Cilium's BGP control plane** advertises `LoadBalancer` service IPs to the router over
+BGP. (The control-plane VIP `10.69.60.10` is a Talos shared VIP and does *not* use BGP.)
+The router side is intentionally simple.
 
 On the MikroTik router, add a BGP connection **per control-plane node**:
 
@@ -9,8 +10,9 @@ On the MikroTik router, add a BGP connection **per control-plane node**:
 - **Remote address:** the node's IP — `10.69.60.11`, `.12`, `.13`
 - **Local role:** `ebgp`
 
-That's it — once the nodes are up, routes for the VIP (`10.69.60.10`) and the service
-pool (`10.69.50.100–125`) appear automatically.
+That's it — once Cilium is up, routes for the service pool (`10.69.255.0/24`) appear
+automatically as `/32`s.
 
 > These BGP peers are also declared in Terraform (`bgp_peers` in `terraform/main.tf`),
-> so they're recreated on a fresh apply.
+> so they're recreated on a fresh apply. The cluster side lives in
+> `kubernetes/main/kube-system/cilium/bgp.yaml`.
