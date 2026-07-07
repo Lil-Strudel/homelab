@@ -59,6 +59,7 @@ helm repo update
 helm install \
     cilium \
     cilium/cilium \
+    --version 1.19.5 \
     --namespace kube-system \
     --set ipam.mode=kubernetes \
     --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
@@ -76,7 +77,20 @@ helm install \
 
 > This bootstrap install mirrors the Flux-managed `HelmRelease`; once Flux takes over it
 > reconciles the same values plus the BGP `CiliumLoadBalancerIPPool` / `CiliumBGP*`
-> resources under `kubernetes/infrastructure/configs/cilium/`.
+> resources under `kubernetes/infrastructure/configs/cilium/`. The `--version` here must
+> stay identical to `spec.chart.spec.version` in
+> `kubernetes/infrastructure/controllers/cilium/helm-release.yaml`.
+
+> **Upgrading Cilium later** is an explicit commit that bumps that pinned `version`
+> (Flux then reconciles the rolling upgrade). Cilium only supports moving **one minor
+> release at a time** — always land on the current series' latest patch first, then step
+> to the next minor. A minor upgrade briefly disrupts traffic that flows through the L7
+> proxy (the Cilium Ingress controller), so time it accordingly. For extra safety on a
+> live cluster, run the [pre-flight check](https://docs.cilium.io/en/stable/operations/upgrade/#running-pre-flight-check-required)
+> and add `--set upgradeCompatibility=<current-minor>` (e.g. `1.18`) to the reconcile to
+> preserve the old datapath defaults during the transition. Our `CiliumBGP*` and
+> `CiliumLoadBalancerIPPool` resources are already on `cilium.io/v2`, the stable version
+> carried forward by 1.19.
 
 Bootstrap Flux. Pin the version so upgrades are an explicit commit, and point
 `--path` at the cluster directory (`kubernetes/clusters/main`), which is the
