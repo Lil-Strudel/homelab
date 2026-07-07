@@ -1,6 +1,22 @@
+# Base Talos machine-config patch, applied to both control-plane and worker
+# configs at `talosctl gen config` time (see gen-talos-objects.sh).
+#
+# LOAD-BEARING — do not "clean up" the following, they are deliberate:
+#   * install.image — secure-boot Talos Factory installer. The path segment is
+#     the schematic hash (encodes Secure Boot + selected extensions); the tag is
+#     the Talos version. Bump ONLY the tag on a version upgrade. Regenerate the
+#     schematic hash at factory.talos.dev ONLY if the extension set changes.
+#   * install.disk {$patch: delete} + diskSelector.model — target the Samsung
+#     SSD 870 by model so the OS never lands on the NVMe (that's Ceph/Rook data).
+#   * cluster.network.cni.name: none — Cilium is the CNI. Do NOT re-enable.
+#   * cluster.proxy.disabled: true — Cilium is the kube-proxy replacement. Do
+#     NOT re-enable. Re-enabling either would double-install and break the net.
+#
+# The control-plane API endpoint (https://10.69.60.10:6443) is a kube-vip BGP
+# VIP, not Talos's built-in machine.network.interfaces.vip — intentionally.
 machine:
   install:
-    image: factory.talos.dev/metal-installer-secureboot/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.11.5
+    image: factory.talos.dev/metal-installer-secureboot/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.5
     disk:
       $patch: delete
     diskSelector:
