@@ -4,9 +4,10 @@ Its quite easy :)
 
 Get the latest secure boot iso from [talos factory](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&platform=metal&secureboot=true&target=metal)
 
-> The control-plane VIP (`10.69.60.10`) is a Talos shared VIP, brought up by the OS once
-> etcd is healthy — no temporary MikroTik redirect needed. During the very first
-> bootstrap you talk to a real node IP (`10.69.60.11`) directly, as below.
+> The control-plane VIP (`10.69.60.10`) is owned by kube-vip, which only runs once the
+> cluster is up — so during the very first bring-up it isn't available yet. Set a
+> temporary dst-nat redirect on the MikroTik pointing `10.69.60.10` → `10.69.60.11` so
+> the endpoint resolves during bootstrap; remove it once kube-vip is running.
 
 Go into ./talos
 

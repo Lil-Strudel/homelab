@@ -36,14 +36,16 @@ is a self-contained config on AP1 pinned to the Dad VLAN (200).
 
 ## BGP — where the cluster meets the network
 
-The Kubernetes control-plane nodes peer with the router over BGP so **Cilium** can
-advertise `LoadBalancer` service IPs directly into the routing table (no ARP/L2 tricks).
-The control-plane API VIP is handled separately by a Talos shared VIP (`10.69.60.10`),
-not BGP.
+All six nodes peer with the router over BGP (no ARP/L2 tricks). Two speakers, split by
+node role so they never collide on a single node:
 
-- **Router** — AS **65100**, peering to each control-plane node.
-- **Cluster (Cilium BGP)** — AS **65000**, advertising from the control-plane nodes.
-- **Peers** — `makima-1` (`.11`), `makima-2` (`.12`), `makima-3` (`.13`).
+- **kube-vip** — advertises the **control-plane API VIP** (`10.69.60.10`) from the
+  **control-plane** nodes (`makima-1..3`, `.11`/`.12`/`.13`).
+- **Cilium** — advertises **`LoadBalancer` service IPs** from the **worker** nodes
+  (`rem-1..3`, `.21`/`.22`/`.23`).
+
+- **Router** — AS **65100**, peering to all six nodes.
+- **Cluster** — AS **65000**.
 - **LoadBalancer pool** — `10.69.255.0/24`, a dedicated BGP-only range that belongs to
   no VLAN subnet (set in `cilium/lb-pool.yaml`).
 

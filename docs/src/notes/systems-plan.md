@@ -6,8 +6,8 @@ peers) in [`terraform/main.tf`](https://github.com/Lil-Strudel/homelab/blob/main
 
 ## Compute — Kubernetes nodes
 
-Six Dell OptiPlex Micros on VLAN 60 (Trusted). The control plane shares a **Talos VIP**
-at `10.69.60.10` (brought up by the OS; see `talos/machine-patches/controlplane-vip.yaml`).
+Six Dell OptiPlex Micros on VLAN 60 (Trusted). The control plane shares a **kube-vip**
+VIP at `10.69.60.10` (advertised over BGP from the control-plane nodes).
 
 | Host | Model | IP | Role |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ at `10.69.60.10` (brought up by the OS; see `talos/machine-patches/controlplane-
 | `rem-1` | OptiPlex Micro 7080 | `10.69.60.21` | Worker |
 | `rem-2` | OptiPlex Micro 7080 | `10.69.60.22` | Worker |
 | `rem-3` | OptiPlex Micro 7080 | `10.69.60.23` | Worker |
-| — | (Talos control-plane VIP) | `10.69.60.10` | Control-plane endpoint |
+| — | (kube-vip control-plane VIP) | `10.69.60.10` | Control-plane endpoint |
 
 ### Per-node storage & networking
 
