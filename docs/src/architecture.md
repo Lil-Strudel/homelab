@@ -45,15 +45,47 @@ See [Talos Cluster Setup](./notes/talos-setup.md).
 
 ## 3. In-cluster platform — Flux GitOps
 
-After bootstrap, [Flux](https://fluxcd.io/) reconciles everything under
-[`kubernetes/main/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/main).
+After bootstrap, [Flux](https://fluxcd.io/) (v2.9.1) reconciles everything under
+[`kubernetes/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes).
 Git is the source of truth; changes land by commit.
 
-| Component | Role |
-| --- | --- |
-| **Cilium** | CNI + kube-proxy replacement + ingress controller + BGP service LB |
-| **kube-vip** | Control-plane API VIP (`10.69.60.10`) over BGP |
-| **Rook-Ceph** | In-cluster distributed storage / PersistentVolumes |
+The tree follows the standard Flux [monorepo layout](https://fluxcd.io/flux/guides/repository-structure/)
+so ordering is explicit rather than a single flat apply:
+
+```
+kubernetes/
+├── clusters/main/          # bootstrap entry point (--path)
+│   ├── flux-system/        # gotk-components + gotk-sync (Flux itself)
+│   ├── infrastructure.yaml # → infra-controllers, then infra-configs
+│   └── apps.yaml           # → apps  (dependsOn infra-configs)
+├── infrastructure/
+│   ├── controllers/        # CNI, operators, controllers (install CRDs)
+│   └── configs/            # custom resources that use those CRDs
+└── apps/main/              # user-facing workloads (none yet)
+```
+
+Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage
+only starts once the one it depends on is applied — and `infra-controllers` uses
+`wait: true`, meaning it isn't considered Ready until its HelmReleases
+(Cilium, Rook) are actually healthy:
+
+```
+flux-system ─► infra-controllers ─► infra-configs ─► apps
+ (Flux)        (Cilium, kube-vip,    (Cilium BGP +    (workloads)
+                Rook operator)        LB pool, Ceph
+                                      cluster + SCs)
+```
+
+This is what lets, say, the Rook `CephCluster` (a config) reliably land *after*
+the Rook operator and its CRDs (a controller), instead of racing it.
+
+| Component | Stage | Role |
+| --- | --- | --- |
+| **Cilium** | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
+| **kube-vip** | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
+| **Rook-Ceph operator** | controllers | Ceph operator + CSI + CRDs |
+| **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
+| **Rook `CephCluster`** | configs | The cluster CR + storage classes (need the operator) |
 
 ### Load balancing & the control-plane VIP
 
@@ -67,7 +99,7 @@ to the router at **AS 65100**.
   the **worker** nodes (`nodeSelector` excludes control-plane). The pool is
   `10.69.255.0/24` — a dedicated, BGP-only range that belongs to no VLAN subnet
   (no DHCP, no connected route, no conflict). See
-  `kubernetes/main/kube-system/cilium/bgp.yaml` and `lb-pool.yaml`.
+  `kubernetes/infrastructure/configs/cilium/bgp.yaml` and `lb-pool.yaml`.
 
 The router declares BGP peers for all six nodes in `terraform/main.tf`.
 

@@ -16,5 +16,5 @@ That's it — once the cluster is up, the VIP route and the service pool
 
 > These BGP peers are also declared in Terraform (`bgp_peers` in `terraform/main.tf`),
 > so they're recreated on a fresh apply. The cluster side lives in
-> `kubernetes/main/kube-system/kube-vip/` (VIP) and
-> `kubernetes/main/kube-system/cilium/bgp.yaml` (services).
+> `kubernetes/infrastructure/controllers/kube-vip/` (VIP) and
+> `kubernetes/infrastructure/configs/cilium/bgp.yaml` (services).
