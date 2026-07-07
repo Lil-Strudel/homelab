@@ -72,19 +72,28 @@ stay gitignored.
 
 ## Kubernetes / Flux
 
-The root Flux Kustomization has SOPS decryption enabled (patched in
-`kubernetes/main/flux-system/kustomization.yaml`). It decrypts using the cluster key,
-which must be loaded once as a secret after `flux bootstrap`:
+The `infra-controllers`, `infra-configs`, and `apps` Flux Kustomizations each have
+SOPS decryption enabled (`spec.decryption.provider: sops`, secret `sops-age`) in
+`kubernetes/clusters/main/infrastructure.yaml` and `apps.yaml`. They decrypt using
+the cluster key, which must be loaded once as a secret after `flux bootstrap` (and
+before those Kustomizations first reconcile):
 
 ```
 kubectl create secret generic sops-age -n flux-system \
   --from-file=age.agekey=$HOME/.config/sops/age/cluster.agekey
 ```
 
+> The bootstrap-managed root Kustomization (`flux-system`) only reconciles the
+> `clusters/main` directory — plain Flux CRs, no secrets — so it deliberately has
+> no decryption block. Decryption lives on the downstream Kustomizations that
+> actually apply manifests, which is why the standard `gotk-*` files are left
+> untouched.
+
 To add an application secret: write a normal `Secret` manifest named `something.sops.yaml`
-somewhere under `kubernetes/`, encrypt it with `sops -e -i something.sops.yaml`
-(only `data`/`stringData` get encrypted so the rest stays diffable), add it to the
-relevant kustomization, and commit. Flux decrypts it on apply.
+under `kubernetes/apps/` (or `kubernetes/infrastructure/`), encrypt it with
+`sops -e -i something.sops.yaml` (only `data`/`stringData` get encrypted so the rest
+stays diffable), add it to the relevant `kustomization.yaml`, and commit. The
+owning Kustomization decrypts it on apply.
 
 ## Rotating the admin key
 
