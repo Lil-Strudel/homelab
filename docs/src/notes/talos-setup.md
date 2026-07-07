@@ -2,7 +2,15 @@
 
 Its quite easy :)
 
-Get the latest secure boot iso from [talos factory](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&platform=metal&secureboot=true&target=metal)
+We run **Talos v1.13.5**, which ships **Kubernetes 1.36.2**. The Talos version lives in
+the secure-boot installer image tag in `talos/patch.yaml`; the Kubernetes version is
+pinned to match via `--kubernetes-version 1.36.2` in `talos/gen-talos-objects.sh`.
+
+Get the secure boot iso for the matching version from
+[talos factory](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&platform=metal&secureboot=true&target=metal).
+The installer image pinned in `talos/patch.yaml` uses schematic
+`376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba` (Secure Boot, default
+extension set) at tag `v1.13.5` — boot the ISO for that same schematic/version.
 
 > The control-plane VIP (`10.69.60.10`) is owned by kube-vip, which only runs once the
 > cluster is up — so during the very first bring-up it isn't available yet. Set a
@@ -50,6 +58,34 @@ talosctl bootstrap -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 ```
 talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 ```
+
+> **Upgrading Talos later** is an explicit commit that bumps the installer image tag in
+> `talos/patch.yaml` (keep the schematic hash — it encodes Secure Boot + extensions;
+> only regenerate it at [talos factory](https://factory.talos.dev/) if the extension set
+> changes). Then bump `--kubernetes-version` in `gen-talos-objects.sh` to the version the
+> new Talos ships (v1.13.5 → 1.36.2) and re-run the gen scripts. Roll it out **one node
+> at a time**, never all at once, on a live cluster:
+>
+> ```
+> talosctl upgrade -n 10.69.60.11 --image factory.talos.dev/metal-installer-secureboot/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.5
+> ```
+>
+> Do the control-plane nodes (`makima-1..3`) one by one, waiting for each to rejoin
+> `Ready` before the next. Each control-plane reboot triggers a brief **kube-vip API-VIP
+> re-election** (`10.69.60.10` moves to another node) — expect a few seconds of API
+> blips. Then the workers (`rem-1..3`) the same way. Talos only supports moving **one
+> minor at a time**, so a two-minor jump (e.g. 1.11 → 1.13) must step through the
+> intermediate minor (1.11 → 1.12 → 1.13). Once every node is on the new Talos, bump
+> Kubernetes itself with:
+>
+> ```
+> talosctl upgrade-k8s -n 10.69.60.11 --to 1.36.2
+> ```
+>
+> `upgrade-k8s` is run once against a control-plane node and rolls the control-plane and
+> kubelet static-pod versions across the cluster for you. Kubernetes' version-skew policy
+> also only allows **one minor at a time**, so a jump like 1.34 → 1.36 has to step through
+> 1.35 (`--to 1.35.x` first, then `--to 1.36.2`).
 
 Install cilium with helm
 
