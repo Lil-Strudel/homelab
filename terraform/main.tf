@@ -163,10 +163,16 @@ module "router" {
     "ether12" = local.vlans["Dad"]
   }
 
+  # All six nodes peer BGP as AS 65000. Control-plane nodes (makima) advertise
+  # the kube-vip control-plane VIP; worker nodes (rem) advertise Cilium
+  # LoadBalancer service IPs.
   bgp_peers = {
     "Makima-1 Peer" = "10.69.60.11"
     "Makima-2 Peer" = "10.69.60.12"
     "Makima-3 Peer" = "10.69.60.13"
+    "Rem-1 Peer"    = "10.69.60.21"
+    "Rem-2 Peer"    = "10.69.60.22"
+    "Rem-3 Peer"    = "10.69.60.23"
   }
 
   dhcp_leases = {

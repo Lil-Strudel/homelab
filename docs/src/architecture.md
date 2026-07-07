@@ -10,7 +10,7 @@ committed to this repo:
         Talos Linux ────────►  6× bare-metal nodes (immutable OS + k8s)
             │
             ▼
-        Flux (GitOps) ──────►  in-cluster platform (Cilium, Rook-Ceph)
+        Flux (GitOps) ──────►  in-cluster platform (Cilium, kube-vip, Rook-Ceph)
 ```
 
 ## 1. Network — Terraform
@@ -38,8 +38,8 @@ manual node prep.
 - **Workers** — `rem-1..3`
 - Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`.
 - CNI and kube-proxy are disabled in Talos so Cilium can own both.
-- The control-plane API VIP (`10.69.60.10`) is a **Talos shared VIP**, brought up
-  at the OS layer (no kube-vip) — see `talos/machine-patches/controlplane-vip.yaml`.
+- The control-plane API VIP (`10.69.60.10`) is handled by **kube-vip** in BGP mode
+  from the control-plane nodes (see platform below).
 
 See [Talos Cluster Setup](./notes/talos-setup.md).
 
@@ -52,22 +52,24 @@ Git is the source of truth; changes land by commit.
 | Component | Role |
 | --- | --- |
 | **Cilium** | CNI + kube-proxy replacement + ingress controller + BGP service LB |
+| **kube-vip** | Control-plane API VIP (`10.69.60.10`) over BGP |
 | **Rook-Ceph** | In-cluster distributed storage / PersistentVolumes |
-
-(The control-plane API VIP is handled by Talos itself, not a Flux component — see above.)
 
 ### Load balancing & the control-plane VIP
 
-Two separate mechanisms:
+Two BGP speakers, split across node roles so they never collide on the same node
+(only one BGP session per node IP can reach the router). Both peer as **AS 65000**
+to the router at **AS 65100**.
 
-- **Control-plane VIP** — `10.69.60.10`, a **Talos shared VIP** on the Trusted VLAN.
-  It's part of the OS, so it's up before Kubernetes and needs no BGP or ARP tricks.
-- **`LoadBalancer` service IPs** — **Cilium's BGP control plane** advertises them to
-  the MikroTik router. Control-plane nodes peer as **AS 65000** to the router at
-  **AS 65100**, so service IPs route across the LAN as `/32`s. The pool is
+- **Control-plane VIP** — `10.69.60.10`, advertised by **kube-vip** (BGP mode,
+  `svc_enable=false`) from the **control-plane** nodes. Service LB is off here.
+- **`LoadBalancer` service IPs** — advertised by **Cilium's BGP control plane** from
+  the **worker** nodes (`nodeSelector` excludes control-plane). The pool is
   `10.69.255.0/24` — a dedicated, BGP-only range that belongs to no VLAN subnet
   (no DHCP, no connected route, no conflict). See
   `kubernetes/main/kube-system/cilium/bgp.yaml` and `lb-pool.yaml`.
+
+The router declares BGP peers for all six nodes in `terraform/main.tf`.
 
 See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
 
@@ -89,5 +91,5 @@ Talos config scripts, and Flux. See [Secrets with SOPS + Age](./notes/secrets-wi
 
 ## Current scope
 
-Today the cluster runs the **platform only** — Cilium, Rook-Ceph, and Flux.
+Today the cluster runs the **platform only** — Cilium, kube-vip, Rook-Ceph, and Flux.
 User-facing workloads are not deployed yet.

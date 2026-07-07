@@ -14,8 +14,8 @@ network, and Flux for everything inside the cluster.
 | OS | [Talos Linux](https://www.talos.dev/) (secure-boot, immutable) |
 | Kubernetes | `kubeadm`-free, bootstrapped by Talos |
 | CNI | [Cilium](https://cilium.io/) (kube-proxy replacement, ingress) |
-| Load balancing | [Cilium BGP](https://docs.cilium.io/en/stable/network/bgp-control-plane/) (service IPs) → MikroTik |
-| Control-plane VIP | Talos shared VIP (`10.69.60.10`) |
+| Load balancing | [Cilium BGP](https://docs.cilium.io/en/stable/network/bgp-control-plane/) (service IPs, from workers) → MikroTik |
+| Control-plane VIP | [kube-vip](https://kube-vip.io/) BGP (`10.69.60.10`, from control plane) |
 | Storage | [Rook-Ceph](https://rook.io/) (in-cluster), Dell R730xd NAS (bulk) |
 | GitOps | [Flux](https://fluxcd.io/) |
 | Network IaC | [Terraform](https://www.terraform.io/) → [RouterOS](https://registry.terraform.io/providers/terraform-routeros/routeros/latest) |
@@ -27,7 +27,7 @@ network, and Flux for everything inside the cluster.
 | Path | What |
 | --- | --- |
 | [`talos/`](./talos) | Talos machine configs, patches, and generation scripts |
-| [`kubernetes/main/`](./kubernetes/main) | Flux-managed cluster state (Cilium, Rook-Ceph) |
+| [`kubernetes/main/`](./kubernetes/main) | Flux-managed cluster state (Cilium, kube-vip, Rook-Ceph) |
 | [`terraform/`](./terraform) | MikroTik network as code (router, switches, APs, VLANs) |
 | [`scripts/`](./scripts) | MikroTik bootstrap + Terraform import helpers |
 | [`docs/`](./docs) | This book's source |
