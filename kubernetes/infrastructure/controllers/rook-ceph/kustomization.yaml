@@ -4,3 +4,4 @@ resources:
 - namespace.yaml
 - helm-repo.yaml
 - operator.yaml
+- csi-drivers.yaml
