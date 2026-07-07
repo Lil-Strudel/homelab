@@ -76,7 +76,7 @@ module "access_ports" {
 
 
 ###################################
-# Creating Lists For Firewall Rules
+# Interface Lists For Firewall Rules
 ###################################
 resource "routeros_interface_list" "wan_list" {
   name = "WAN_List"
@@ -86,14 +86,7 @@ resource "routeros_interface_list_member" "wan_list_member" {
   list      = routeros_interface_list.wan_list.name
 }
 
-resource "routeros_interface_list" "management_list" {
-  name = "Management_List"
-}
-resource "routeros_interface_list_member" "management_list_member" {
-  interface = "Management_VLAN"
-  list      = routeros_interface_list.management_list.name
-}
-
+# Every VLAN interface — used by the router-service (DHCP/DNS/NTP) input rules.
 resource "routeros_interface_list" "vlan_list" {
   name = "VLAN_List"
 }
@@ -104,102 +97,188 @@ resource "routeros_interface_list_member" "vlan_list_member" {
   list      = routeros_interface_list.vlan_list.name
 }
 
+# VLANs allowed to reach the internet. Security + IoT are intentionally excluded.
+resource "routeros_interface_list" "internet_list" {
+  name = "Internet_List"
+}
+resource "routeros_interface_list_member" "internet_list_member" {
+  for_each = toset(var.internet_vlans)
+
+  interface = "${each.key}_VLAN"
+  list      = routeros_interface_list.internet_list.name
+}
+
 ######################
 # Input Firewall Rules
 ######################
+# Everything the router itself receives. The catch-all drop is staged behind
+# `enforce_firewall`; the accepts above it (DHCP/DNS/NTP/BGP) stay enabled so
+# turning enforcement on can never black-hole client networking.
 resource "routeros_ip_firewall_filter" "input_established" {
-  chain  = "input"
-  action = "accept"
-
+  chain            = "input"
+  action           = "accept"
   connection_state = "established,related"
   comment          = "Allow Established & Related"
-  place_before     = routeros_ip_firewall_filter.input_dads.id
+  place_before     = routeros_ip_firewall_filter.input_icmp.id
 }
 
-resource "routeros_ip_firewall_filter" "input_dads" {
-  chain  = "input"
-  action = "drop"
-
-  in_interface = "Dad_VLAN"
-  comment      = "Drop Input Dads VLAN"
-  place_before = routeros_ip_firewall_filter.input_vlan.id
+resource "routeros_ip_firewall_filter" "input_icmp" {
+  chain        = "input"
+  action       = "accept"
+  protocol     = "icmp"
+  comment      = "Allow ICMP"
+  place_before = routeros_ip_firewall_filter.input_dhcp.id
 }
 
-resource "routeros_ip_firewall_filter" "input_vlan" {
-  chain  = "input"
-  action = "accept"
-
+resource "routeros_ip_firewall_filter" "input_dhcp" {
+  chain             = "input"
+  action            = "accept"
+  protocol          = "udp"
+  dst_port          = "67"
   in_interface_list = routeros_interface_list.vlan_list.name
-  comment           = "Allow All VLANs Full Access"
-  place_before      = routeros_ip_firewall_filter.input_management.id
+  comment           = "Allow DHCP from all VLANs"
+  place_before      = routeros_ip_firewall_filter.input_dns_udp.id
+}
+
+resource "routeros_ip_firewall_filter" "input_dns_udp" {
+  chain             = "input"
+  action            = "accept"
+  protocol          = "udp"
+  dst_port          = "53"
+  in_interface_list = routeros_interface_list.vlan_list.name
+  comment           = "Allow DNS (UDP) from all VLANs"
+  place_before      = routeros_ip_firewall_filter.input_dns_tcp.id
+}
+
+resource "routeros_ip_firewall_filter" "input_dns_tcp" {
+  chain             = "input"
+  action            = "accept"
+  protocol          = "tcp"
+  dst_port          = "53"
+  in_interface_list = routeros_interface_list.vlan_list.name
+  comment           = "Allow DNS (TCP) from all VLANs"
+  place_before      = routeros_ip_firewall_filter.input_ntp.id
+}
+
+resource "routeros_ip_firewall_filter" "input_ntp" {
+  chain             = "input"
+  action            = "accept"
+  protocol          = "udp"
+  dst_port          = "123"
+  in_interface_list = routeros_interface_list.vlan_list.name
+  comment           = "Allow NTP from all VLANs"
+  place_before      = routeros_ip_firewall_filter.input_bgp.id
+}
+
+# Cluster nodes peer BGP with the router from the Trusted VLAN. Without this,
+# enabling the input drop would tear down the Cilium <-> router BGP sessions.
+resource "routeros_ip_firewall_filter" "input_bgp" {
+  chain        = "input"
+  action       = "accept"
+  protocol     = "tcp"
+  dst_port     = "179"
+  in_interface = "Trusted_VLAN"
+  comment      = "Allow BGP peering from cluster nodes"
+  place_before = routeros_ip_firewall_filter.input_management.id
 }
 
 resource "routeros_ip_firewall_filter" "input_management" {
-  chain  = "input"
-  action = "accept"
-
+  chain        = "input"
+  action       = "accept"
   in_interface = "Management_VLAN"
-  comment      = "Allow Management VLAN Full Access"
+  comment      = "Allow Management VLAN full router access"
   place_before = routeros_ip_firewall_filter.input_drop.id
 }
 
+# STAGED: disabled until enforce_firewall = true. Note: once enabled, only the
+# Management VLAN can reach the router's admin services — run Terraform and any
+# admin session from Management, or the API session will be dropped mid-apply.
 resource "routeros_ip_firewall_filter" "input_drop" {
-  chain  = "input"
-  action = "drop"
-
-  comment      = "Drop All Input"
-  place_before = routeros_ip_firewall_filter.forward_established.id
-  disabled     = false
+  chain    = "input"
+  action   = "drop"
+  comment  = "Drop All Input (staged: enforce_firewall)"
+  disabled = !var.enforce_firewall
 }
 
 ########################
 # Forward Firewall Rules
 ########################
+# Default-deny inter-VLAN policy. Only the explicit accepts below pass once the
+# catch-all drop is enabled via `enforce_firewall`. Isolation is achieved by the
+# *absence* of an accept rule, so no per-VLAN drop rules are needed.
+#
+#   Home (10)        -> Trusted, DMZ, WAN
+#   Guest (20)       -> WAN only            (+ AP client isolation, see docs)
+#   Security (30)    -> video target only   (no WAN)
+#   IoT (40)         -> nothing             (fully isolated)
+#   DMZ (50)         -> WAN                  (inbound port-forwards added later)
+#   Trusted (60)     -> WAN                  (intra-cluster is same-VLAN)
+#   Management (100) -> everything
+#   Dad (200)        -> WAN only
 resource "routeros_ip_firewall_filter" "forward_established" {
-  chain  = "forward"
-  action = "accept"
-
+  chain            = "forward"
+  action           = "accept"
   connection_state = "established,related"
   comment          = "Allow Established & Related"
-  place_before     = routeros_ip_firewall_filter.forward_vlan_wan.id
+  place_before     = routeros_ip_firewall_filter.forward_internet.id
 }
 
-resource "routeros_ip_firewall_filter" "forward_vlan_wan" {
-  chain  = "forward"
-  action = "accept"
-
-  in_interface_list  = routeros_interface_list.vlan_list.name
+resource "routeros_ip_firewall_filter" "forward_internet" {
+  chain              = "forward"
+  action             = "accept"
+  in_interface_list  = routeros_interface_list.internet_list.name
   out_interface_list = routeros_interface_list.wan_list.name
-  comment            = "VLAN Internet Access"
-  place_before       = routeros_ip_firewall_filter.forward_dad_vlan.id
+  comment            = "Internet access (excludes Security + IoT)"
+  place_before       = routeros_ip_firewall_filter.forward_home_trusted.id
 }
 
-resource "routeros_ip_firewall_filter" "forward_dad_vlan" {
-  chain  = "forward"
-  action = "drop"
-
-  in_interface       = "Dad_VLAN"
-  out_interface_list = routeros_interface_list.vlan_list.name
-  comment            = "Block Dads Vlan"
-  place_before       = routeros_ip_firewall_filter.forward_vlan_vlan.id
+resource "routeros_ip_firewall_filter" "forward_home_trusted" {
+  chain         = "forward"
+  action        = "accept"
+  in_interface  = "Home_VLAN"
+  out_interface = "Trusted_VLAN"
+  comment       = "Home -> Trusted"
+  place_before  = routeros_ip_firewall_filter.forward_home_dmz.id
 }
 
-resource "routeros_ip_firewall_filter" "forward_vlan_vlan" {
-  chain  = "forward"
-  action = "accept"
+resource "routeros_ip_firewall_filter" "forward_home_dmz" {
+  chain         = "forward"
+  action        = "accept"
+  in_interface  = "Home_VLAN"
+  out_interface = "DMZ_VLAN"
+  comment       = "Home -> DMZ"
+  place_before  = routeros_ip_firewall_filter.forward_management_all.id
+}
 
-  in_interface_list  = routeros_interface_list.vlan_list.name
+# Cameras (Security VLAN) may reach a single video service in Trusted. Set
+# `security_video_target` (address or CIDR) to enable; empty = rule omitted.
+resource "routeros_ip_firewall_filter" "forward_security_video" {
+  count = var.security_video_target == "" ? 0 : 1
+
+  chain         = "forward"
+  action        = "accept"
+  in_interface  = "Security_VLAN"
+  out_interface = "Trusted_VLAN"
+  dst_address   = var.security_video_target
+  comment       = "Security -> video service (Trusted)"
+  place_before  = routeros_ip_firewall_filter.forward_management_all.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_management_all" {
+  chain              = "forward"
+  action             = "accept"
+  in_interface       = "Management_VLAN"
   out_interface_list = routeros_interface_list.vlan_list.name
-  comment            = "VLAN to VLAN Traffic (aka make vlans fucking pointless)"
+  comment            = "Management -> all VLANs"
   place_before       = routeros_ip_firewall_filter.forward_drop.id
 }
 
+# STAGED: disabled until enforce_firewall = true.
 resource "routeros_ip_firewall_filter" "forward_drop" {
-  chain  = "forward"
-  action = "drop"
-
-  comment  = "Drop All Forward"
-  disabled = false
+  chain    = "forward"
+  action   = "drop"
+  comment  = "Drop All Forward (staged: enforce_firewall)"
+  disabled = !var.enforce_firewall
 }
 
 ###################
