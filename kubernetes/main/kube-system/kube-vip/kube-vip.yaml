@@ -1,3 +1,7 @@
+# kube-vip runs on the control-plane nodes and owns the control-plane API VIP
+# (10.69.60.10) over BGP. Service load balancing is intentionally OFF here
+# (svc_enable=false) — Cilium's BGP control plane handles LoadBalancer IPs from
+# the worker nodes, so the two BGP speakers never collide on the same node.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -49,9 +53,7 @@ spec:
             - name: cp_namespace
               value: kube-system
             - name: svc_enable
-              value: "true"
-            - name: svc_leasename
-              value: plndr-svcs-lock
+              value: "false"
             - name: bgp_enable
               value: "true"
             - name: bgp_routerid

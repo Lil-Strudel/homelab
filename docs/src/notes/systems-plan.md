@@ -6,8 +6,8 @@ peers) in [`terraform/main.tf`](https://github.com/Lil-Strudel/homelab/blob/main
 
 ## Compute — Kubernetes nodes
 
-Six Dell OptiPlex Micros on VLAN 60 (Trusted). The control plane shares a kube-vip
-VIP at `10.69.60.10`.
+Six Dell OptiPlex Micros on VLAN 60 (Trusted). The control plane shares a **kube-vip**
+VIP at `10.69.60.10` (advertised over BGP from the control-plane nodes).
 
 | Host | Model | IP | Role |
 | --- | --- | --- | --- |
@@ -17,10 +17,22 @@ VIP at `10.69.60.10`.
 | `rem-1` | OptiPlex Micro 7080 | `10.69.60.21` | Worker |
 | `rem-2` | OptiPlex Micro 7080 | `10.69.60.22` | Worker |
 | `rem-3` | OptiPlex Micro 7080 | `10.69.60.23` | Worker |
-| — | (kube-vip VIP) | `10.69.60.10` | Control-plane endpoint |
+| — | (kube-vip control-plane VIP) | `10.69.60.10` | Control-plane endpoint |
 
-All nodes boot **Talos Linux** (secure boot) and install to a **Samsung SSD 870**
-(selected by disk model in `talos/patch.yaml`, so the OS never lands on the wrong disk).
+### Per-node storage & networking
+
+Every Micro (control plane and worker alike) is kitted out identically:
+
+| Component | Spec | Used for |
+| --- | --- | --- |
+| SATA SSD | 1× Samsung 870 250 GB | Talos OS — immutable install target |
+| NVMe SSD | 1× 1 TB NVMe | Rook-Ceph OSD (`deviceFilter: ^nvme0n1`) |
+| NIC | 1× 10 GbE (M.2/NVMe adapter) | Cluster + storage traffic |
+
+Talos boots **Secure Boot** and installs to the **250 GB Samsung SSD 870**, selected by
+disk **model** (`Samsung SSD 870`) in `talos/patch.yaml` so the OS never lands on the
+1 TB NVMe. The NVMe is left whole for Ceph, which claims it via `deviceFilter: ^nvme0n1` —
+so all six nodes contribute one OSD each (3× replicated, `host` failure domain).
 
 ## Network
 
@@ -42,8 +54,10 @@ self-contained `SprinklerAct Studios` SSID pinned to the Dad VLAN on AP1.
 | NAS | Dell PowerEdge R730xd | `10.69.100.32` | Bulk storage (media, backups) |
 | Zigbee controller | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E | `10.69.60.30` | Home-automation radio |
 
-In-cluster storage is handled separately by **Rook-Ceph** across the six nodes; the
-R730xd is bulk/NFS storage outside the cluster.
+The R730xd carries **8× 1 TB Samsung 870** SSDs split across **two ZFS pools**, served
+as bulk/NFS storage outside the cluster. In-cluster storage is handled separately by
+**Rook-Ceph**, one OSD per node on the 1 TB NVMe (see
+[Per-node storage & networking](#per-node-storage--networking)).
 
 ## Out-of-band & power
 

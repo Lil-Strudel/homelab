@@ -28,6 +28,18 @@ variable "bgp_peers" {
   default     = {}
 }
 
+variable "enforce_firewall" {
+  description = "When false, the catch-all input/forward drop rules are created but disabled, so a bad apply can't lock you out. Verify the accept rules, then set true for stage 2."
+  type        = bool
+  default     = false
+}
+
+variable "internet_vlans" {
+  description = "VLAN names permitted to reach the WAN. Security + IoT are intentionally omitted so they have no internet access."
+  type        = list(string)
+  default     = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
+}
+
 variable "dhcp_leases" {
   description = "Static DHCP reservations, keyed by a stable name"
   type = map(object({

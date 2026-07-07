@@ -42,6 +42,10 @@ spec:
     k8sServiceHost: localhost
     k8sServicePort: 7445
     kubeProxyReplacement: true
+    # BGP control plane advertises LoadBalancer service IPs to the MikroTik
+    # router (see bgp.yaml + lb-pool.yaml). Replaces kube-vip's service LB role.
+    bgpControlPlane:
+      enabled: true
     ingressController:
       enabled: true
       loadbalancerMode: dedicated
