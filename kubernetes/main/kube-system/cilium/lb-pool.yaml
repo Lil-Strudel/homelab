@@ -1,0 +1,10 @@
+# Address pool for LoadBalancer services. These IPs are reachable only via BGP
+# (advertised as /32 by bgp.yaml), so the range deliberately does NOT belong to
+# any VLAN subnet — no connected route, no DHCP, no conflict.
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: default-pool
+spec:
+  blocks:
+    - cidr: 10.69.255.0/24

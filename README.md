@@ -14,7 +14,8 @@ network, and Flux for everything inside the cluster.
 | OS | [Talos Linux](https://www.talos.dev/) (secure-boot, immutable) |
 | Kubernetes | `kubeadm`-free, bootstrapped by Talos |
 | CNI | [Cilium](https://cilium.io/) (kube-proxy replacement, ingress) |
-| Load balancing | [kube-vip](https://kube-vip.io/) + BGP to MikroTik |
+| Load balancing | [Cilium BGP](https://docs.cilium.io/en/stable/network/bgp-control-plane/) (service IPs, from workers) → MikroTik |
+| Control-plane VIP | [kube-vip](https://kube-vip.io/) BGP (`10.69.60.10`, from control plane) |
 | Storage | [Rook-Ceph](https://rook.io/) (in-cluster), Dell R730xd NAS (bulk) |
 | GitOps | [Flux](https://fluxcd.io/) |
 | Network IaC | [Terraform](https://www.terraform.io/) → [RouterOS](https://registry.terraform.io/providers/terraform-routeros/routeros/latest) |

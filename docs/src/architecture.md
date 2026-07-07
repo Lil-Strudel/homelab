@@ -38,6 +38,8 @@ manual node prep.
 - **Workers** — `rem-1..3`
 - Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`.
 - CNI and kube-proxy are disabled in Talos so Cilium can own both.
+- The control-plane API VIP (`10.69.60.10`) is handled by **kube-vip** in BGP mode
+  from the control-plane nodes (see platform below).
 
 See [Talos Cluster Setup](./notes/talos-setup.md).
 
@@ -49,15 +51,25 @@ Git is the source of truth; changes land by commit.
 
 | Component | Role |
 | --- | --- |
-| **Cilium** | CNI + kube-proxy replacement + ingress controller |
-| **kube-vip** | Control-plane VIP (`10.69.60.10`) and service load balancing |
+| **Cilium** | CNI + kube-proxy replacement + ingress controller + BGP service LB |
+| **kube-vip** | Control-plane API VIP (`10.69.60.10`) over BGP |
 | **Rook-Ceph** | In-cluster distributed storage / PersistentVolumes |
 
 ### Load balancing & the control-plane VIP
 
-kube-vip advertises the control-plane VIP and `LoadBalancer` service IPs over **BGP**.
-The cluster peers as **AS 65000** to the MikroTik router at **AS 65100**, so service
-IPs are routable across the LAN without ARP tricks. Address pool: `10.69.60.100–110`.
+Two BGP speakers, split across node roles so they never collide on the same node
+(only one BGP session per node IP can reach the router). Both peer as **AS 65000**
+to the router at **AS 65100**.
+
+- **Control-plane VIP** — `10.69.60.10`, advertised by **kube-vip** (BGP mode,
+  `svc_enable=false`) from the **control-plane** nodes. Service LB is off here.
+- **`LoadBalancer` service IPs** — advertised by **Cilium's BGP control plane** from
+  the **worker** nodes (`nodeSelector` excludes control-plane). The pool is
+  `10.69.255.0/24` — a dedicated, BGP-only range that belongs to no VLAN subnet
+  (no DHCP, no connected route, no conflict). See
+  `kubernetes/main/kube-system/cilium/bgp.yaml` and `lb-pool.yaml`.
+
+The router declares BGP peers for all six nodes in `terraform/main.tf`.
 
 See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
 
@@ -65,9 +77,11 @@ See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
 
 Two tiers:
 
-- **Rook-Ceph** — replicated block/file storage spread across the nodes, backing
-  cluster PersistentVolumes.
-- **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster.
+- **Rook-Ceph** — replicated block/file storage backing cluster PersistentVolumes.
+  Each of the six nodes contributes its 1 TB NVMe SSD as a single OSD
+  (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication, `host` failure domain.
+- **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster:
+  8× 1 TB Samsung 870 across two ZFS pools, served over NFS.
 
 ## Secrets
 

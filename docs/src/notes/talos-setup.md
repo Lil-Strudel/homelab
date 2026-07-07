@@ -4,7 +4,10 @@ Its quite easy :)
 
 Get the latest secure boot iso from [talos factory](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&platform=metal&secureboot=true&target=metal)
 
-you may need to setup a temporary redirect in mikrotik for a distnat pointing 10.69.60.10 to 10.69.60.11
+> The control-plane VIP (`10.69.60.10`) is owned by kube-vip, which only runs once the
+> cluster is up — so during the very first bring-up it isn't available yet. Set a
+> temporary dst-nat redirect on the MikroTik pointing `10.69.60.10` → `10.69.60.11` so
+> the endpoint resolves during bootstrap; remove it once kube-vip is running.
 
 Go into ./talos
 
@@ -65,10 +68,15 @@ helm install \
     --set k8sServiceHost=localhost \
     --set k8sServicePort=7445 \
     --set kubeProxyReplacement=true \
+    --set bgpControlPlane.enabled=true \
     --set ingressController.enabled=true \
     --set ingressController.loadbalancerMode=dedicated \
     --set ingressController.default=true
 ```
+
+> This bootstrap install mirrors the Flux-managed `HelmRelease`; once Flux takes over it
+> reconciles the same values plus the BGP `CiliumLoadBalancerIPPool` / `CiliumBGP*`
+> resources under `kubernetes/main/kube-system/cilium/`.
 
 Boostrap flux
 
