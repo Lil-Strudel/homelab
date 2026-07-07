@@ -76,24 +76,33 @@ helm install \
 
 > This bootstrap install mirrors the Flux-managed `HelmRelease`; once Flux takes over it
 > reconciles the same values plus the BGP `CiliumLoadBalancerIPPool` / `CiliumBGP*`
-> resources under `kubernetes/main/kube-system/cilium/`.
+> resources under `kubernetes/infrastructure/configs/cilium/`.
 
-Boostrap flux
+Bootstrap Flux. Pin the version so upgrades are an explicit commit, and point
+`--path` at the cluster directory (`kubernetes/clusters/main`), which is the
+entry point for the [layered layout](../architecture.md#3-in-cluster-platform--flux-gitops):
 
 ```
 flux bootstrap github \
+  --version=v2.9.1 \
   --token-auth \
   --owner=Lil-Strudel \
   --repository=homelab \
   --branch=main \
-  --path=kubernetes/main \
+  --path=kubernetes/clusters/main \
   --personal
 ```
 
 Load the cluster Age key so Flux can decrypt SOPS secrets (see
-[Secrets with SOPS + Age](./secrets-with-sops.md)):
+[Secrets with SOPS + Age](./secrets-with-sops.md)). The `sops-age` secret is
+referenced by the `infra-controllers`, `infra-configs`, and `apps`
+Kustomizations, so it must exist before they reconcile:
 
 ```
 kubectl create secret generic sops-age -n flux-system \
   --from-file=age.agekey=$HOME/.config/sops/age/cluster.agekey
 ```
+
+Upgrading Flux later is the same command with a bumped `--version` (it
+regenerates and commits `gotk-components.yaml`), or `flux install --export` if
+you prefer to stage the manifest change in a PR first.

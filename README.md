@@ -27,7 +27,7 @@ network, and Flux for everything inside the cluster.
 | Path | What |
 | --- | --- |
 | [`talos/`](./talos) | Talos machine configs, patches, and generation scripts |
-| [`kubernetes/main/`](./kubernetes/main) | Flux-managed cluster state (Cilium, kube-vip, Rook-Ceph) |
+| [`kubernetes/`](./kubernetes) | Flux-managed cluster state, layered `clusters/` → `infrastructure/` → `apps/` (Cilium, kube-vip, Rook-Ceph) |
 | [`terraform/`](./terraform) | MikroTik network as code (router, switches, APs, VLANs) |
 | [`scripts/`](./scripts) | MikroTik bootstrap + Terraform import helpers |
 | [`docs/`](./docs) | This book's source |
