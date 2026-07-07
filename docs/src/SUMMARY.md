@@ -15,6 +15,7 @@
 # Guides
 
 - [Talos Cluster Setup](./notes/talos-setup.md)
+- [Rook-Ceph Setup](./notes/rook-ceph-setup.md)
 - [Secrets with SOPS + Age](./notes/secrets-with-sops.md)
 - [Controlling MikroTik with Terraform](./notes/controlling-mikrotik-with-terraform.md)
 - [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md)

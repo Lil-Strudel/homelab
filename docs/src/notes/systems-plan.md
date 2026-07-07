@@ -56,7 +56,7 @@ self-contained `SprinklerAct Studios` SSID pinned to the Dad VLAN on AP1.
 
 The R730xd carries **8× 1 TB Samsung 870** SSDs split across **two ZFS pools**, served
 as bulk/NFS storage outside the cluster. In-cluster storage is handled separately by
-**Rook-Ceph**, one OSD per node on the 1 TB NVMe (see
+**Rook-Ceph** (chart 1.20.1, Ceph v20.2.1), one OSD per node on the 1 TB NVMe (see
 [Per-node storage & networking](#per-node-storage--networking)).
 
 ## Out-of-band & power

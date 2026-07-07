@@ -59,34 +59,6 @@ talosctl bootstrap -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 ```
 
-> **Upgrading Talos later** is an explicit commit that bumps the installer image tag in
-> `talos/patch.yaml` (keep the schematic hash — it encodes Secure Boot + extensions;
-> only regenerate it at [talos factory](https://factory.talos.dev/) if the extension set
-> changes). Then bump `--kubernetes-version` in `gen-talos-objects.sh` to the version the
-> new Talos ships (v1.13.5 → 1.36.2) and re-run the gen scripts. Roll it out **one node
-> at a time**, never all at once, on a live cluster:
->
-> ```
-> talosctl upgrade -n 10.69.60.11 --image factory.talos.dev/metal-installer-secureboot/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:v1.13.5
-> ```
->
-> Do the control-plane nodes (`makima-1..3`) one by one, waiting for each to rejoin
-> `Ready` before the next. Each control-plane reboot triggers a brief **kube-vip API-VIP
-> re-election** (`10.69.60.10` moves to another node) — expect a few seconds of API
-> blips. Then the workers (`rem-1..3`) the same way. Talos only supports moving **one
-> minor at a time**, so a two-minor jump (e.g. 1.11 → 1.13) must step through the
-> intermediate minor (1.11 → 1.12 → 1.13). Once every node is on the new Talos, bump
-> Kubernetes itself with:
->
-> ```
-> talosctl upgrade-k8s -n 10.69.60.11 --to 1.36.2
-> ```
->
-> `upgrade-k8s` is run once against a control-plane node and rolls the control-plane and
-> kubelet static-pod versions across the cluster for you. Kubernetes' version-skew policy
-> also only allows **one minor at a time**, so a jump like 1.34 → 1.36 has to step through
-> 1.35 (`--to 1.35.x` first, then `--to 1.36.2`).
-
 Install cilium with helm
 
 ```
@@ -117,20 +89,9 @@ helm install \
 > stay identical to `spec.chart.spec.version` in
 > `kubernetes/infrastructure/controllers/cilium/helm-release.yaml`.
 
-> **Upgrading Cilium later** is an explicit commit that bumps that pinned `version`
-> (Flux then reconciles the rolling upgrade). Cilium only supports moving **one minor
-> release at a time** — always land on the current series' latest patch first, then step
-> to the next minor. A minor upgrade briefly disrupts traffic that flows through the L7
-> proxy (the Cilium Ingress controller), so time it accordingly. For extra safety on a
-> live cluster, run the [pre-flight check](https://docs.cilium.io/en/stable/operations/upgrade/#running-pre-flight-check-required)
-> and add `--set upgradeCompatibility=<current-minor>` (e.g. `1.18`) to the reconcile to
-> preserve the old datapath defaults during the transition. Our `CiliumBGP*` and
-> `CiliumLoadBalancerIPPool` resources are already on `cilium.io/v2`, the stable version
-> carried forward by 1.19.
-
-Bootstrap Flux. Pin the version so upgrades are an explicit commit, and point
-`--path` at the cluster directory (`kubernetes/clusters/main`), which is the
-entry point for the [layered layout](../architecture.md#3-in-cluster-platform--flux-gitops):
+Bootstrap Flux. Pin the version for a reproducible install, and point `--path`
+at the cluster directory (`kubernetes/clusters/main`), which is the entry point
+for the [layered layout](../architecture.md#3-in-cluster-platform--flux-gitops):
 
 ```
 flux bootstrap github \
@@ -153,6 +114,7 @@ kubectl create secret generic sops-age -n flux-system \
   --from-file=age.agekey=$HOME/.config/sops/age/cluster.agekey
 ```
 
-Upgrading Flux later is the same command with a bumped `--version` (it
-regenerates and commits `gotk-components.yaml`), or `flux install --export` if
-you prefer to stage the manifest change in a PR first.
+From here Flux takes over and reconciles the whole platform — Cilium's BGP
+config, kube-vip, and the Rook-Ceph operator, CSI drivers, and `CephCluster`.
+For the storage tier and reaching the Ceph dashboard, see
+[Rook-Ceph Setup](./rook-ceph-setup.md).
