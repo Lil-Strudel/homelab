@@ -28,15 +28,18 @@ and the [Network plan](./notes/network-plan.md).
 
 ## 2. Operating system — Talos Linux
 
-Every node runs [Talos](https://www.talos.dev/): a minimal, immutable, API-driven OS
-with no shell. Machine configs are generated from encrypted secrets and per-node
-patches in [`talos/`](https://github.com/Lil-Strudel/homelab/tree/main/talos), then
+Every node runs [Talos](https://www.talos.dev/) (v1.13.5, ships Kubernetes 1.36.2):
+a minimal, immutable, API-driven OS with no shell. Machine configs are generated from
+encrypted secrets and per-node patches in
+[`talos/`](https://github.com/Lil-Strudel/homelab/tree/main/talos), then
 applied over the network. Talos bootstraps Kubernetes directly — no `kubeadm`, no
 manual node prep.
 
 - **Control plane** — `makima-1..3`
 - **Workers** — `rem-1..3`
 - Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`.
+- Kubernetes version is pinned to 1.36.2 (Talos v1.13.5's default) via
+  `--kubernetes-version` in `talos/gen-talos-objects.sh`.
 - CNI and kube-proxy are disabled in Talos so Cilium can own both.
 - The control-plane API VIP (`10.69.60.10`) is handled by **kube-vip** in BGP mode
   from the control-plane nodes (see platform below).
