@@ -1,1 +1,4 @@
-secrets/*
+# Age private keys must never be committed (keep them in ~/.config/sops/age + a password manager)
+*.agekey
+*.key
+keys.txt

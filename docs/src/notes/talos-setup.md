@@ -78,3 +78,11 @@ flux bootstrap github \
   --path=kubernetes/main \
   --personal
 ```
+
+Load the cluster Age key so Flux can decrypt SOPS secrets (see
+[Secrets with SOPS + Age](./secrets-with-sops.md)):
+
+```
+kubectl create secret generic sops-age -n flux-system \
+  --from-file=age.agekey=$HOME/.config/sops/age/cluster.agekey
+```

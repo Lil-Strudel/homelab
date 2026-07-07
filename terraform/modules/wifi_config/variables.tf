@@ -1,5 +1,6 @@
 variable "passphrase" {
-  type = string
+  type      = string
+  sensitive = true
 }
 
 variable "ssid" {

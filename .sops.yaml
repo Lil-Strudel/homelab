@@ -1,0 +1,19 @@
+# SOPS creation rules. Recipients are chosen by file path.
+# The admin key (private half in ~/.config/sops/age/keys.txt + password manager)
+# can decrypt everything. Kubernetes secrets add the cluster key so Flux can
+# decrypt them in-cluster via the `sops-age` secret.
+#
+# Admin   public: age1dhzh7r7c8u8sqdfrpdupk6r37zyk9m6yha3x37964u72rg4degtqy8pzp5
+# Cluster public: age19etvk27ryx8ksye4r2pghvqd3ml2f6aqgrsahn5c2tm5hxq5ha8sj88fwd
+creation_rules:
+  # Kubernetes secrets: admin + cluster, only encrypt data/stringData so the
+  # rest of the manifest stays diffable.
+  - path_regex: kubernetes/.*\.sops\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: >-
+      age1dhzh7r7c8u8sqdfrpdupk6r37zyk9m6yha3x37964u72rg4degtqy8pzp5,
+      age19etvk27ryx8ksye4r2pghvqd3ml2f6aqgrsahn5c2tm5hxq5ha8sj88fwd
+
+  # Terraform + Talos infra secrets: admin key only.
+  - path_regex: (terraform|talos)/.*\.sops\.ya?ml$
+    age: age1dhzh7r7c8u8sqdfrpdupk6r37zyk9m6yha3x37964u72rg4degtqy8pzp5

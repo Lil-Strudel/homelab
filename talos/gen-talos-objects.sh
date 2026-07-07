@@ -1,3 +1,27 @@
+#!/usr/bin/env bash
+# Generate Talos cluster secrets and the base control-plane/worker/talosconfig.
+#
+# Secrets are kept encrypted at rest with SOPS + Age (recipients in ../.sops.yaml).
+# Plaintext cluster material only ever exists transiently (process substitution)
+# or as gitignored generated files under ./talos/.
+set -euo pipefail
+cd "$(dirname "$0")"
+
 mkdir -p talos
-talosctl gen secrets -o talos/secrets.yaml
-talosctl gen config --with-secrets talos/secrets.yaml strudelnetes https://10.69.60.10:6443 --config-patch @patch.yaml --output ./talos --force
+
+# Generate cluster secrets once, then keep only the encrypted copy.
+if [ ! -f talos/secrets.sops.yaml ]; then
+  talosctl gen secrets -o talos/secrets.sops.yaml
+  sops -e -i talos/secrets.sops.yaml
+fi
+
+# Generate the base configs from the decrypted secrets (kept in memory only).
+talosctl gen config \
+  --with-secrets <(sops -d talos/secrets.sops.yaml) \
+  strudelnetes https://10.69.60.10:6443 \
+  --config-patch @patch.yaml \
+  --output ./talos --force
+
+# Keep the committed, encrypted talosconfig in sync with the freshly generated one.
+cp talos/talosconfig talos/talosconfig.sops.yaml
+sops -e -i talos/talosconfig.sops.yaml

@@ -10,11 +10,18 @@ terraform {
       source  = "terraform-routeros/routeros"
       version = "1.61.2"
     }
+    sops = {
+      source  = "carlpett/sops"
+      version = "~> 1.1"
+    }
   }
 }
 
+data "sops_file" "secrets" {
+  source_file = "secrets.sops.yaml"
+}
+
 locals {
-  envs = { for tuple in regexall("(.*)=(.*)", file(".env")) : tuple[0] => sensitive(tuple[1]) }
   vlans = {
     Home       = 10,
     Guest      = 20,
@@ -30,40 +37,40 @@ locals {
 
 provider "routeros" {
   hosturl  = "10.69.100.1:6729"
-  username = local.envs["ROUTEROS_USERNAME"]
-  password = local.envs["ROUTEROS_PASSWORD"]
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
   insecure = true
   alias    = "ccr2004"
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.10:6729"
-  username = local.envs["ROUTEROS_USERNAME"]
-  password = local.envs["ROUTEROS_PASSWORD"]
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
   insecure = true
   alias    = "crs326"
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.11:6729"
-  username = local.envs["ROUTEROS_USERNAME"]
-  password = local.envs["ROUTEROS_PASSWORD"]
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
   insecure = true
   alias    = "crs312"
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.20:6729"
-  username = local.envs["ROUTEROS_USERNAME"]
-  password = local.envs["ROUTEROS_PASSWORD"]
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
   insecure = true
   alias    = "cAPax-1"
 }
 
 provider "routeros" {
   hosturl  = "10.69.100.21:6729"
-  username = local.envs["ROUTEROS_USERNAME"]
-  password = local.envs["ROUTEROS_PASSWORD"]
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
   insecure = true
   alias    = "cAPax-2"
 }
@@ -152,7 +159,7 @@ module "wifi_config" {
   }
 
   ssid       = "Strudel"
-  passphrase = local.envs["WIFI1_PASSWORD"]
+  passphrase = data.sops_file.secrets.data["wifi1_password"]
 }
 
 module "access_point_1" {

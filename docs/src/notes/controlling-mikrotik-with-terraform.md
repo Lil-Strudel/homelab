@@ -7,8 +7,9 @@
 - Disconnect and sign in with new password
 - Copy initialize script into terminal line by line
 - Disconnect and sign in with new user and ip
+- Make sure your admin Age key is present at `~/.config/sops/age/keys.txt` (secrets are read via SOPS — see [Secrets with SOPS + Age](./secrets-with-sops.md))
 - Run terraform init
-- Change terraform cloud execution to local
+- Change terraform cloud execution to local (required so the SOPS provider can read the Age key)
 - Run terraform import script
 - Before any major firewall rule change, change all drop firewall rules to disabled.
 - Run terraform apply
