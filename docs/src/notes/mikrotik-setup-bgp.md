@@ -10,7 +10,7 @@ On the MikroTik router, add a BGP connection **per control-plane node**:
 - **Local role:** `ebgp`
 
 That's it — once the nodes are up, routes for the VIP (`10.69.60.10`) and the service
-pool (`10.69.60.100–110`) appear automatically.
+pool (`10.69.50.100–125`) appear automatically.
 
 > These BGP peers are also declared in Terraform (`bgp_peers` in `terraform/main.tf`),
 > so they're recreated on a fresh apply.

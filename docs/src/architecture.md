@@ -57,7 +57,9 @@ Git is the source of truth; changes land by commit.
 
 kube-vip advertises the control-plane VIP and `LoadBalancer` service IPs over **BGP**.
 The cluster peers as **AS 65000** to the MikroTik router at **AS 65100**, so service
-IPs are routable across the LAN without ARP tricks. Address pool: `10.69.60.100–110`.
+IPs are routable across the LAN without ARP tricks. The control-plane VIP lives on the
+Trusted VLAN (`10.69.60.10`); `LoadBalancer` services draw from a pool on the **DMZ**
+VLAN — `10.69.50.100–125`, set in `kubernetes/main/kube-system/kube-vip/config-map.yaml`.
 
 See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
 
@@ -65,9 +67,11 @@ See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
 
 Two tiers:
 
-- **Rook-Ceph** — replicated block/file storage spread across the nodes, backing
-  cluster PersistentVolumes.
-- **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster.
+- **Rook-Ceph** — replicated block/file storage backing cluster PersistentVolumes.
+  Each of the six nodes contributes its 1 TB NVMe SSD as a single OSD
+  (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication, `host` failure domain.
+- **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster:
+  8× 1 TB Samsung 870 across two ZFS pools, served over NFS.
 
 ## Secrets
 

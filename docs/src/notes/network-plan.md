@@ -43,7 +43,7 @@ tricks).
 - **Router** — AS **65100**, peering to each control-plane node.
 - **Cluster (kube-vip)** — AS **65000**, router ID per node.
 - **Peers** — `makima-1` (`.11`), `makima-2` (`.12`), `makima-3` (`.13`).
-- **LoadBalancer pool** — `10.69.60.100–110`.
+- **LoadBalancer pool** — `10.69.50.100–125` (DMZ VLAN; set in `kube-vip/config-map.yaml`).
 
 Setup notes: [MikroTik BGP Setup](./mikrotik-setup-bgp.md).
 
