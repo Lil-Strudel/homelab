@@ -1,13 +1,25 @@
-# kube-vip runs on the control-plane nodes and owns the control-plane API VIP
-# (10.69.60.10) over BGP. Service load balancing is intentionally OFF here
-# (svc_enable=false) — Cilium's BGP control plane handles LoadBalancer IPs from
-# the worker nodes, so the two BGP speakers never collide on the same node.
+# kube-vip owns the control-plane API VIP (10.69.60.10) and advertises it over
+# BGP from the control-plane nodes. This is a hand-rolled DaemonSet equivalent to
+# `kube-vip manifest daemonset --inCluster --taint --controlplane --bgp ...`.
+#
+# DO NOT "clean up" the pieces below — they are load-bearing for BGP-mode on Talos:
+#   - hostNetwork: true + NET_ADMIN/NET_RAW caps: kube-vip programs the loopback
+#     address and speaks BGP from the host netns.
+#   - cp_enable=true / svc_enable=false: control-plane VIP only. Service load
+#     balancing is intentionally OFF — Cilium's BGP control plane advertises
+#     LoadBalancer IPs from the worker nodes, so the two BGP speakers never
+#     collide on the same node (both peer AS 65000 -> AS 65100 at 10.69.60.1).
+#   - vip_interface=lo + vip_subnet=32 + vip_arp=false: bind the VIP as a /32 on
+#     loopback with NO gratuitous ARP — the route is published purely via BGP,
+#     which is the idiomatic combo for a BGP-advertised control-plane VIP.
+#   - nodeAffinity on node-role.kubernetes.io/control-plane + tolerate-all: run a
+#     speaker on every control-plane node and nowhere else.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
     app.kubernetes.io/name: kube-vip-ds
-    app.kubernetes.io/version: v1.0.1
+    app.kubernetes.io/version: v1.2.1
   name: kube-vip-ds
   namespace: kube-system
 spec:
@@ -18,15 +30,16 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: kube-vip-ds
-        app.kubernetes.io/version: v1.0.1
+        app.kubernetes.io/version: v1.2.1
     spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
+            # Talos labels control-plane nodes node-role.kubernetes.io/control-plane.
+            # The legacy node-role.kubernetes.io/master term upstream still emits was
+            # dropped — that label was removed from Kubernetes in 1.24 and Talos never
+            # sets it.
             nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: Exists
               - matchExpressions:
                   - key: node-role.kubernetes.io/control-plane
                     operator: Exists
@@ -64,14 +77,13 @@ spec:
               value: "65000"
             - name: bgp_peeraddress
               value: 10.69.60.1
-            - name: bgp_peerpass
             - name: bgp_peeras
               value: "65100"
             - name: address
               value: 10.69.60.10
             - name: prometheus_server
               value: :2112
-          image: ghcr.io/kube-vip/kube-vip:v1.0.1
+          image: ghcr.io/kube-vip/kube-vip:v1.2.1
           imagePullPolicy: IfNotPresent
           name: kube-vip
           resources: {}
