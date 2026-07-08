@@ -1,3 +1,5 @@
-machine:
-  network:
-    hostname: makima-3
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto:
+  $patch: delete
+hostname: makima-3

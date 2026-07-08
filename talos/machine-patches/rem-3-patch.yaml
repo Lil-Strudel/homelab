@@ -1,3 +1,5 @@
-machine:
-  network:
-    hostname: rem-3
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto:
+  $patch: delete
+hostname: rem-3
