@@ -48,7 +48,7 @@ See [Talos Cluster Setup](./notes/talos-setup.md).
 
 ## 3. In-cluster platform — Flux GitOps
 
-After bootstrap, [Flux](https://fluxcd.io/) (v2.9.1) reconciles everything under
+After bootstrap, [Flux](https://fluxcd.io/) (v2.9.2) reconciles everything under
 [`kubernetes/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes).
 Git is the source of truth; changes land by commit.
 
