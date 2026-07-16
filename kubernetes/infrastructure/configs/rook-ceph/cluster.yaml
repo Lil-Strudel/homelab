@@ -1,11 +1,14 @@
-# Rook-Ceph cluster (chart `rook-ceph-cluster`): the CephCluster CR, the block
-# pool + shared filesystem, and their StorageClasses. Reconciled in the
-# `infra-configs` stage, which `dependsOn` `infra-controllers` — so the operator,
-# its CRDs, and the CSI drivers are already healthy before this lands.
+# Rook-Ceph cluster (chart `rook-ceph-cluster`): the CephCluster CR, the default
+# block pool + shared filesystem, and their StorageClasses. Reconciled in
+# `infra-configs`, which `dependsOn` `infra-controllers` -- so the operator, its
+# CRDs, and the CSI drivers are already healthy before this lands.
 #
-# Values are a deliberately MINIMAL override set. Everything not listed here is
-# left at the chart default on purpose; only values we intentionally diverge on,
-# or load-bearing values we pin against silent default drift, appear below.
+# `values:` is a deliberately MINIMAL override set: only genuine divergences from
+# the v1.20.2 chart default appear below. Notably the block pool and filesystem
+# are NOT redefined here -- the chart default already creates exactly what we want
+# (ceph-block as the default RWO class + ceph-filesystem RWX, both size 3 /
+# failureDomain host), so we inherit it rather than restate (and risk drifting
+# from) it. Rationale + provenance: docs/src/notes/creating-rook-ceph-config.md.
 # Keep the chart version in sync with the operator (controllers/rook-ceph).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -17,7 +20,7 @@ spec:
   chart:
     spec:
       chart: rook-ceph-cluster
-      version: "1.20.1"
+      version: "v1.20.2"
       sourceRef:
         kind: HelmRepository
         name: rook-release
@@ -29,15 +32,12 @@ spec:
   upgrade:
     remediation:
       retries: -1
-    crds: CreateReplace
   values:
-    operatorNamespace: rook-ceph
-
-    # Pinned Ceph image (Tentacle). Matches the Rook 1.20.1 chart default but
-    # kept explicit so a future chart bump can't silently move our Ceph major
-    # version. v20 is fully supported by Rook 1.20 (allowUnsupported stays off).
+    # Pin the Ceph image against silent data-version drift. Matches the v1.20.2
+    # chart default (Tentacle v20.2.2); kept explicit so a future chart bump can't
+    # move our Ceph major/minor without us choosing to. allowUnsupported stays off.
     cephImage:
-      tag: v20.2.1
+      tag: v20.2.2
 
     # Debug shell: `kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph -s`.
     # Off by default upstream; handy on a single-admin homelab.
@@ -45,22 +45,16 @@ spec:
       enabled: true
 
     cephClusterSpec:
-      # HA control plane across the 6 nodes: 3 mons (quorum survives 1 loss),
-      # 2 mgrs (active + standby). Chart defaults, pinned against drift.
-      mon:
-        count: 3
-      mgr:
-        count: 2
-
-      # Ceph dashboard over HTTPS; surfaced on the LAN by dashboard-lb.yaml
-      # (a Cilium-LB Service on mgr :8443). Pinned against drift.
+      # Ceph dashboard over HTTPS (chart default: enabled + ssl). Surfaced on the
+      # LAN by dashboard-lb.yaml. Pinned because it's an explicit requirement --
+      # a future default change must not silently take the dashboard away.
       dashboard:
         enabled: true
 
       # LOAD-BEARING: all 6 nodes are storage nodes, and the 3 control-plane
-      # nodes (makima-1..3) are tainted node-role.kubernetes.io/control-plane
-      # :NoSchedule (Talos default — allowSchedulingOnControlPlanes is not set).
-      # Ceph daemons must tolerate that taint or half the OSDs never schedule.
+      # nodes are tainted node-role.kubernetes.io/control-plane:NoSchedule (Talos
+      # default). Ceph daemons must tolerate that taint or half the OSDs never
+      # schedule. Applies to all daemons (mon/mgr/osd).
       placement:
         all:
           tolerations:
@@ -69,77 +63,15 @@ spec:
               effect: NoSchedule
 
       # LOAD-BEARING: consume ONLY the 1 TB data NVMe (nvme0n1) on every node,
-      # never the Talos OS disk (Samsung SSD 870, selected by model in
-      # talos/patch.yaml). One OSD per node → six OSDs. Do not widen this filter.
+      # never the Talos OS disk. One OSD per node -> six OSDs. Chart default is
+      # useAllDevices: true with no filter, which would also claim the OS disk.
       storage:
         useAllNodes: true
         useAllDevices: false
         deviceFilter: "^nvme0n1"
 
-    # Block storage (RBD, RWO) — the cluster-DEFAULT StorageClass.
-    # size 3 / failureDomain host: every placement group is replicated onto 3
-    # distinct nodes, so the pool tolerates one node down. Defined explicitly
-    # (Helm replaces list values wholesale) so replication, failure domain, and
-    # the default-class flag are visible and drift-proof rather than inherited.
-    cephBlockPools:
-      - name: ceph-blockpool
-        spec:
-          failureDomain: host
-          replicated:
-            size: 3
-        storageClass:
-          enabled: true
-          name: ceph-block
-          isDefault: true
-          reclaimPolicy: Delete
-          allowVolumeExpansion: true
-          parameters:
-            imageFormat: "2"
-            imageFeatures: layering
-            # CSI credential wiring — required, and not injected by the chart
-            # template, so it must be carried here explicitly.
-            csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
-            csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
-            csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
-            csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
-            csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
-            csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
-            csi.storage.k8s.io/fstype: ext4
-
-    # Shared filesystem (CephFS, RWX) for workloads that need multi-node mounts.
-    # Metadata + data pools both size 3 / host; 1 active MDS + hot standby.
-    cephFileSystems:
-      - name: ceph-filesystem
-        spec:
-          metadataPool:
-            replicated:
-              size: 3
-          dataPools:
-            - name: data0
-              failureDomain: host
-              replicated:
-                size: 3
-          metadataServer:
-            activeCount: 1
-            activeStandby: true
-        storageClass:
-          enabled: true
-          name: ceph-filesystem
-          isDefault: false
-          pool: data0
-          reclaimPolicy: Delete
-          allowVolumeExpansion: true
-          parameters:
-            csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
-            csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
-            csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
-            csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
-            csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
-            csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
-            csi.storage.k8s.io/fstype: ext4
-
-    # Object store (RGW / S3) intentionally DISABLED — nothing on this cluster
-    # consumes buckets/OBCs. The empty list overrides the chart default, which
-    # would otherwise stand up an RGW gateway + `ceph-bucket` StorageClass.
-    # Re-add a cephObjectStores entry here if a workload ever needs S3.
+    # Object store (RGW / S3) intentionally DISABLED -- nothing here consumes
+    # buckets/OBCs. The empty list overrides the chart default, which would
+    # otherwise stand up an RGW gateway + `ceph-bucket` StorageClass. Re-add a
+    # cephObjectStores entry if a workload ever needs S3.
     cephObjectStores: []

@@ -1,8 +1,12 @@
 # Rook-Ceph Setup
 
 In-cluster storage is [Rook](https://rook.io/)-managed [Ceph](https://ceph.com/):
-**chart 1.20.1**, running **Ceph v20.2.1** (Tentacle). It backs cluster
+**chart v1.20.2**, running **Ceph v20.2.2** (Tentacle). It backs cluster
 PersistentVolumes with replicated block and shared-filesystem storage.
+
+How the charts, versions, and values are chosen and kept reproducible is a
+separate note: [Creating the Rook-Ceph Config](./creating-rook-ceph-config.md).
+This note covers what the stack does day to day.
 
 There is nothing to run by hand — Flux brings the whole stack up from the
 manifests in `kubernetes/infrastructure/{controllers,configs}/rook-ceph/` once the
@@ -16,9 +20,9 @@ nothing races its CRDs:
 
 | HelmRelease | Chart | Stage | Role |
 | --- | --- | --- | --- |
-| `ceph-operator` | `rook-ceph` 1.20.1 | controllers | Operator + ceph-csi-operator subchart + all CRDs |
-| `ceph-csi-drivers` | `ceph-csi-drivers` 1.0.1 | controllers | RBD/CephFS `Driver` CRs (`dependsOn` the operator) |
-| `ceph-cluster` | `rook-ceph-cluster` 1.20.1 | configs | The `CephCluster` CR, pools, and StorageClasses |
+| `ceph-operator` | `rook-ceph` v1.20.2 | controllers | Operator + ceph-csi-operator subchart + all CRDs |
+| `ceph-csi-drivers` | `ceph-csi-drivers` 1.0.4 | controllers | RBD/CephFS `Driver` CRs (`dependsOn` the operator) |
+| `ceph-cluster` | `rook-ceph-cluster` v1.20.2 | configs | The `CephCluster` CR, pools, and StorageClasses |
 
 `infra-controllers` runs with `wait: true`, so the operator and CSI drivers are
 healthy before `infra-configs` reconciles the `CephCluster`.

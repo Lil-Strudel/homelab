@@ -2,19 +2,20 @@
 #
 # New in Rook v1.20: the operator no longer deploys the CSI drivers. This chart
 # creates the `Driver` CRs that the ceph-csi-operator (installed by the operator
-# chart) reconciles into the RBD/CephFS provisioners. WITHOUT this release,
-# volume provisioning fails — the StorageClasses in cluster.yaml would have no
-# driver behind them.
+# chart) reconciles into the RBD/CephFS provisioners. Without this release,
+# volume provisioning fails and cluster.yaml's StorageClasses have no driver.
 #
-# `dependsOn` the operator so the ceph-csi-operator CRDs exist before we create
-# Driver CRs. Values are the Rook-compatible recommended set: the driver names
-# MUST be `<operator-namespace>.{rbd,cephfs}.csi.ceph.com` (i.e. rook-ceph.*) to
-# match the provisioner names the rook-ceph-cluster chart bakes into the
-# StorageClasses. Node plugins run on the host network by default, which is what
-# we want on Talos + Cilium (no in-pod route to the mons otherwise).
+# `dependsOn` the operator so the ceph-csi-operator CRDs exist before these
+# Driver CRs are created. Chart version tracks the `ceph-csi-operator` subchart
+# the rook-ceph chart pins (v1.20.2 -> 1.0.4); keep them in sync on a Rook bump.
 #
-# Chart version tracks the ceph-csi-operator subchart pinned by the rook-ceph
-# chart (v1.20.1 → ceph-csi-operator 1.0.1); keep them in sync on a Rook bump.
+# The `values:` below are Rook's published, REQUIRED recommended values, copied
+# verbatim. Rook's docs warn the drivers "will fail if only configured with the
+# chart defaults" -- the driver names must carry the operator-namespace prefix
+# (rook-ceph.*) to match the provisioner names cluster.yaml's StorageClasses use,
+# and imageSet points the drivers at the CSI image set the operator chart pins.
+# Source (match this file byte-for-byte on a bump):
+#   https://raw.githubusercontent.com/rook/rook/v1.20.2/deploy/charts/ceph-csi-drivers/values.yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -27,7 +28,7 @@ spec:
   chart:
     spec:
       chart: ceph-csi-drivers
-      version: "1.0.1"
+      version: "1.0.4"
       sourceRef:
         kind: HelmRepository
         name: ceph-csi-operator
@@ -35,7 +36,7 @@ spec:
       interval: 1h
   values:
     operatorConfig:
-      namespace: rook-ceph
+      namespace: rook-ceph # namespace:operator
       driverSpecDefaults:
         imageSet:
           name: rook-csi-operator-image-set-configmap
@@ -43,17 +44,17 @@ spec:
           priorityClassName: system-node-critical
         controllerPlugin:
           priorityClassName: system-cluster-critical
+
     drivers:
       rbd:
         enabled: true
-        name: rook-ceph.rbd.csi.ceph.com
+        name: rook-ceph.rbd.csi.ceph.com # csi-provisioner-name
       cephfs:
         enabled: true
-        name: rook-ceph.cephfs.csi.ceph.com
-      # No S3/object store and no NFS export on this cluster.
+        name: rook-ceph.cephfs.csi.ceph.com # csi-provisioner-name
       nfs:
         enabled: false
-        name: rook-ceph.nfs.csi.ceph.com
+        name: rook-ceph.nfs.csi.ceph.com # csi-provisioner-name
       nvmeof:
         enabled: false
-        name: rook-ceph.nvmeof.csi.ceph.com
+        name: rook-ceph.nvmeof.csi.ceph.com # csi-provisioner-name

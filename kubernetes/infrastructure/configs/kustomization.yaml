@@ -6,3 +6,4 @@ kind: Kustomization
 # is healthy (see clusters/main/infrastructure.yaml → infra-configs).
 resources:
   - cilium
+  - rook-ceph

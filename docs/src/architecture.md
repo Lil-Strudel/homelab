@@ -86,10 +86,10 @@ the Rook operator and its CRDs (a controller), instead of racing it.
 | --- | --- | --- |
 | **Cilium** (1.19.5) | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
 | **kube-vip** (v1.2.1) | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
-| **Rook-Ceph operator** (1.20.1) | controllers | Ceph operator + ceph-csi-operator + CRDs |
-| **Ceph-CSI drivers** | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
+| **Rook-Ceph operator** (v1.20.2) | controllers | Ceph operator + ceph-csi-operator + CRDs |
+| **Ceph-CSI drivers** (1.0.4) | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
 | **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
-| **Rook `CephCluster`** (Ceph v20.2.1) | configs | The cluster CR + storage classes (need the operator) |
+| **Rook `CephCluster`** (Ceph v20.2.2) | configs | The cluster CR + storage classes (need the operator) |
 
 ### Load balancing & the control-plane VIP
 
@@ -114,7 +114,7 @@ See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md) and
 
 Two tiers:
 
-- **Rook-Ceph** (chart 1.20.1, Ceph **v20.2.1** Tentacle) — replicated block/file
+- **Rook-Ceph** (chart v1.20.2, Ceph **v20.2.2** Tentacle) — replicated block/file
   storage backing cluster PersistentVolumes. Each of the six nodes contributes its
   1 TB NVMe SSD as a single OSD (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication,
   `host` failure domain. Two StorageClasses — `ceph-block` (RBD, the cluster default)
