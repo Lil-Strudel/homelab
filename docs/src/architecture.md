@@ -107,7 +107,8 @@ to the router at **AS 65100**.
 
 The router declares BGP peers for all six nodes in `terraform/main.tf`.
 
-See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md).
+See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md) and
+[Creating the kube-vip Manifest](./notes/creating-kube-vip-manifest.md).
 
 ### Storage
 

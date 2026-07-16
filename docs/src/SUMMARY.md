@@ -19,6 +19,7 @@
 - [Secrets with SOPS + Age](./notes/secrets-with-sops.md)
 - [Controlling MikroTik with Terraform](./notes/controlling-mikrotik-with-terraform.md)
 - [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md)
+- [Creating the kube-vip Manifest](./notes/creating-kube-vip-manifest.md)
 
 # Archive
 

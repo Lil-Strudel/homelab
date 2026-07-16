@@ -5,3 +5,4 @@ kind: Kustomization
 # land here; the custom resources that use them live in ../configs.
 resources:
   - cilium
+  - kube-vip
