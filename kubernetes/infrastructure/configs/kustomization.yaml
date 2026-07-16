@@ -5,5 +5,4 @@ kind: Kustomization
 # classes (need the Rook operator running). Reconciled after infra-controllers
 # is healthy (see clusters/main/infrastructure.yaml → infra-configs).
 resources:
-- cilium
-- rook-ceph
+  - cilium

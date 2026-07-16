@@ -4,6 +4,4 @@ kind: Kustomization
 # clusters/main/infrastructure.yaml → infra-controllers). CRDs and operators
 # land here; the custom resources that use them live in ../configs.
 resources:
-- cilium
-- kube-vip
-- rook-ceph
+  - cilium
