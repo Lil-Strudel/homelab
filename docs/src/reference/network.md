@@ -1,7 +1,9 @@
 # Network
 
 The entire MikroTik network — router, switches, APs, VLANs, DHCP, BGP, and WiFi — is
-managed by Terraform. See [Controlling MikroTik with Terraform](./controlling-mikrotik-with-terraform.md).
+managed by Terraform. To stand it up, see [Bootstrap → Network](../bootstrap/network.md).
+The BGP design (why two speakers, split by role) is in
+[Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip).
 
 ![Network Plan](../assets/network-plan.png)
 
@@ -25,7 +27,7 @@ Within each `/24`, the address space is split by convention (set in
 `terraform/modules/vlan`):
 
 - **`.1`** — the router / gateway.
-- **`.2`–`.127`** — reserved for static leases, VIPs, and BGP-advertised ranges.
+- **`.2`–`.127`** — static leases, VIPs, and BGP-advertised ranges.
 - **`.128`–`.254`** — the DHCP dynamic pool.
 
 Keeping the dynamic pool in the upper half means static assignments (nodes, the
@@ -44,25 +46,14 @@ Two cAPax APs run under **CAPsMAN**, with AP1 as manager and AP2 as client, so t
 `Strudel` SSID roams seamlessly across both. A second SSID, `SprinklerAct Studios`,
 is a self-contained config on AP1 pinned to the Dad VLAN (200).
 
-## BGP — where the cluster meets the network
+## BGP
 
-All six nodes peer with the router over BGP (no ARP/L2 tricks). Two speakers, split by
-node role so they never collide on a single node:
-
-- **kube-vip** — advertises the **control-plane API VIP** (`10.69.60.10`) from the
-  **control-plane** nodes (`makima-1..3`, `.11`/`.12`/`.13`).
-- **Cilium** — advertises **`LoadBalancer` service IPs** from the **worker** nodes
-  (`rem-1..3`, `.21`/`.22`/`.23`).
-
-- **Router** — AS **65100**, peering to all six nodes.
-- **Cluster** — AS **65000**.
-- **LoadBalancer pool** — `10.69.255.0/24`, a dedicated BGP-only range that belongs to
-  no VLAN subnet (set in `cilium/lb-pool.yaml`).
-
-Cilium advertises **every** `LoadBalancer` service by default. Label a Service
-`bgp-advertise: "false"` to keep its IP off BGP.
-
-Setup notes: [MikroTik BGP Setup](./mikrotik-setup-bgp.md).
+All six nodes peer with the router over BGP (no ARP/L2 tricks). The router is
+AS **65100**, the cluster is AS **65000**, and the `LoadBalancer` pool is
+`10.69.255.0/24` (set in `cilium/lb-pool.yaml`). The full design — two speakers
+split by node role — is in
+[Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip);
+the router-side setup is in [Bootstrap → Network](../bootstrap/network.md).
 
 ## Firewall
 
@@ -81,12 +72,12 @@ The router runs a **default-deny** inter-VLAN policy — isolation comes from th
 | Dad (200) | ✅ | — | isolated household segment |
 
 Router **`input`** is locked to the Management VLAN once enforced, but DHCP, DNS, NTP,
-and BGP (from cluster nodes) are always permitted from every VLAN so enabling the policy
-can't black-hole the network.
+and BGP (from cluster nodes) are always permitted from every VLAN so enabling the
+policy can't black-hole the network.
 
 > **Staging.** The catch-all drop rules are created **disabled** (`enforce_firewall =
 > false` in `terraform/main.tf`). Apply once — nothing changes yet — verify each flow,
-> then set `enforce_firewall = true` and apply again to enforce. Run Terraform from the
+> then set `enforce_firewall = true` and apply again. Run Terraform from the
 > Management VLAN, since enforcement restricts router admin to Management.
 
 > The diagram source is editable — [`network-plan.drawio`](../assets/network-plan.drawio).

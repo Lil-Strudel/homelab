@@ -16,14 +16,12 @@
       "customType": "regex",
       "managerFilePatterns": [
         "/kubernetes/infrastructure/controllers/kube-vip/kube-vip\\.yaml$/",
-        "/docs/src/notes/creating-kube-vip-manifest\\.md$/",
-        "/docs/src/architecture\\.md$/"
+        "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [
         "image:\\s*ghcr\\.io/kube-vip/kube-vip:(?<currentValue>v[0-9.]+)",
         "app\\.kubernetes\\.io/version:\\s*(?<currentValue>v[0-9.]+)",
-        "kube-vip:(?<currentValue>v[0-9.]+)",
-        "\\*\\*kube-vip\\*\\* \\((?<currentValue>v[0-9.]+)\\)"
+        "kube-vip \\| `(?<currentValue>v[0-9.]+)`"
       ],
       "depNameTemplate": "ghcr.io/kube-vip/kube-vip",
       "datasourceTemplate": "docker",
@@ -31,14 +29,8 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/docs/src/notes/talos-setup\\.md$/",
-        "/docs/src/architecture\\.md$/"
-      ],
-      "matchStrings": [
-        "--version (?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)",
-        "\\*\\*Cilium\\*\\* \\((?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\\)"
-      ],
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Cilium \\| `(?<currentValue>[0-9.]+)`"],
       "depNameTemplate": "cilium",
       "datasourceTemplate": "helm",
       "registryUrlTemplate": "https://helm.cilium.io/",
@@ -46,8 +38,8 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": ["/docs/src/notes/talos-setup\\.md$/"],
-      "matchStrings": ["--version=(?<currentValue>v[0-9.]+)"],
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Flux \\| `(?<currentValue>v[0-9.]+)`"],
       "depNameTemplate": "fluxcd/flux2",
       "datasourceTemplate": "github-releases"
     },
@@ -55,22 +47,55 @@
       "customType": "regex",
       "managerFilePatterns": [
         "/talos/patch\\.yaml$/",
-        "/docs/src/notes/talos-setup\\.md$/"
+        "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [
         "metal-installer-secureboot/[a-f0-9]+:(?<currentValue>v[0-9.]+)",
-        "Talos (?<currentValue>v[0-9.]+)",
-        "at tag `(?<currentValue>v[0-9.]+)`"
+        "Talos Linux \\| `(?<currentValue>v[0-9.]+)`"
       ],
       "depNameTemplate": "siderolabs/talos",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Rook \\(operator \\+ cluster\\) \\| `(?<currentValue>v[0-9.]+)`"],
+      "depNameTemplate": "rook-ceph",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://charts.rook.io/release"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["ceph-csi-drivers \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "ceph-csi-drivers",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://ceph.github.io/ceph-csi-operator"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/infrastructure/configs/rook-ceph/cluster\\.yaml$/",
+        "/docs/src/reference/versions\\.md$/"
+      ],
+      "matchStrings": [
+        "tag:\\s*(?<currentValue>v[0-9.]+)",
+        "Ceph \\| `(?<currentValue>v[0-9.]+)`"
+      ],
+      "depNameTemplate": "quay.io/ceph/ceph",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
     {
-      "matchManagers": ["flux"],
-      "matchPackageNames": ["rook-ceph", "rook-ceph-cluster"],
+      "matchPackageNames": [
+        "rook-ceph",
+        "rook-ceph-cluster",
+        "ceph-csi-drivers",
+        "quay.io/ceph/ceph"
+      ],
       "groupName": "rook-ceph"
     },
     {

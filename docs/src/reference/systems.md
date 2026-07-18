@@ -1,13 +1,13 @@
 # Systems
 
 The full hardware fleet — compute, network gear, storage, and out-of-band access.
-IPs and roles below match what Terraform actually provisions (DHCP reservations, BGP
-peers) in [`terraform/main.tf`](https://github.com/Lil-Strudel/homelab/blob/main/terraform/main.tf).
+IPs and roles match what Terraform provisions (DHCP reservations, BGP peers) in
+[`terraform/main.tf`](https://github.com/Lil-Strudel/homelab/blob/main/terraform/main.tf).
 
 ## Compute — Kubernetes nodes
 
 Six Dell OptiPlex Micros on VLAN 60 (Trusted). The control plane shares a **kube-vip**
-VIP at `10.69.60.10` (advertised over BGP from the control-plane nodes).
+VIP at `10.69.60.10`.
 
 | Host | Model | IP | Role |
 | --- | --- | --- | --- |
@@ -17,11 +17,9 @@ VIP at `10.69.60.10` (advertised over BGP from the control-plane nodes).
 | `rem-1` | OptiPlex Micro 7080 | `10.69.60.21` | Worker |
 | `rem-2` | OptiPlex Micro 7080 | `10.69.60.22` | Worker |
 | `rem-3` | OptiPlex Micro 7080 | `10.69.60.23` | Worker |
-| — | (kube-vip control-plane VIP) | `10.69.60.10` | Control-plane endpoint |
+| — | kube-vip control-plane VIP | `10.69.60.10` | Control-plane endpoint |
 
-### Per-node storage & networking
-
-Every Micro (control plane and worker alike) is kitted out identically:
+Every Micro is kitted out identically:
 
 | Component | Spec | Used for |
 | --- | --- | --- |
@@ -29,10 +27,8 @@ Every Micro (control plane and worker alike) is kitted out identically:
 | NVMe SSD | 1× 1 TB NVMe | Rook-Ceph OSD (`deviceFilter: ^nvme0n1`) |
 | NIC | 1× 10 GbE (M.2/NVMe adapter) | Cluster + storage traffic |
 
-Talos boots **Secure Boot** and installs to the **250 GB Samsung SSD 870**, selected by
-disk **model** (`Samsung SSD 870`) in `talos/patch.yaml` so the OS never lands on the
-1 TB NVMe. The NVMe is left whole for Ceph, which claims it via `deviceFilter: ^nvme0n1` —
-so all six nodes contribute one OSD each (3× replicated, `host` failure domain).
+The OS/disk split (Talos on the Samsung 870, Ceph on the NVMe) and the OSD layout
+are covered in [Architecture → Storage](../architecture.md#storage).
 
 ## Network
 
@@ -55,9 +51,8 @@ self-contained `SprinklerAct Studios` SSID pinned to the Dad VLAN on AP1.
 | Zigbee controller | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E | `10.69.60.30` | Home-automation radio |
 
 The R730xd carries **8× 1 TB Samsung 870** SSDs split across **two ZFS pools**, served
-as bulk/NFS storage outside the cluster. In-cluster storage is handled separately by
-**Rook-Ceph** (chart v1.20.2, Ceph v20.2.2), one OSD per node on the 1 TB NVMe (see
-[Per-node storage & networking](#per-node-storage--networking)).
+as bulk/NFS storage outside the cluster. In-cluster storage is Rook-Ceph, one OSD per
+node on the 1 TB NVMe (see [Operations → Storage](../operations/storage.md)).
 
 ## Out-of-band & power
 
@@ -74,11 +69,11 @@ router (VLAN 200, "Dad") is bridged in for a non-homelab network segment.
 
 ## Why this hardware
 
-- **OptiPlex Micros** — cheap, quiet, low-power, plentiful on the used market, and
-  they take an M.2 + 2.5" SATA SSD. Six of them give a real 3+3 HA cluster in the
-  footprint of a couple of books.
+- **OptiPlex Micros** — cheap, quiet, low-power, plentiful used, and they take an
+  M.2 + 2.5" SATA SSD. Six give a real 3+3 HA cluster in the footprint of a couple
+  of books.
 - **MikroTik everywhere** — full RouterOS API means the entire network is
-  Terraformable; SFP+/10G on the switches without enterprise pricing.
+  Terraformable; SFP+/10G without enterprise pricing.
 - **R730xd** — lots of 3.5" bays for cheap bulk storage that doesn't belong on the
   cluster's fast Ceph tier.
 - **PiKVM + TESmart + UPS** — headless recovery and clean shutdowns without walking

@@ -1,29 +1,36 @@
 # Summary
 
-# Welcome
-
----
+# Overview
 
 - [Introduction](introduction.md)
 - [Architecture](architecture.md)
-- [Commenting](./notes/commenting.md)
 
-# Plans
+# Reference
 
-- [Systems](./notes/systems-plan.md)
-- [Network](./notes/network-plan.md)
+- [Systems](./reference/systems.md)
+- [Network](./reference/network.md)
+- [Versions](./reference/versions.md)
 
-# Guides
+# Bootstrap
 
-- [Talos Cluster Setup](./notes/talos-setup.md)
-- [Rook-Ceph Setup](./notes/rook-ceph-setup.md)
-- [Creating the Rook-Ceph Config](./notes/creating-rook-ceph-config.md)
-- [Secrets with SOPS + Age](./notes/secrets-with-sops.md)
-- [Controlling MikroTik with Terraform](./notes/controlling-mikrotik-with-terraform.md)
-- [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md)
-- [Creating the kube-vip Manifest](./notes/creating-kube-vip-manifest.md)
+- [1. Network](./bootstrap/network.md)
+- [2. Talos Cluster](./bootstrap/talos.md)
+- [3. Cilium + Flux](./bootstrap/cluster.md)
+
+# Operations
+
+- [Secrets (SOPS + Age)](./operations/secrets.md)
+- [Storage (Rook-Ceph)](./operations/storage.md)
+- [Adding a Service](./operations/adding-a-service.md)
+- [Upgrades](./operations/upgrades.md)
+
+# Decisions & Lessons
+
+- [kube-vip Manifest](./decisions/kube-vip.md)
+- [Rook-Ceph Values](./decisions/rook-ceph.md)
+- [Commenting](./decisions/commenting.md)
 
 # Archive
 
-- [Debian + kubeadm Node Setup](./notes/archive/kube-node-setup.md)
-- [kube-vip Manifest](./notes/archive/creating-kube-vip-manifest.md)
+- [Debian + kubeadm Node Setup](./archive/kube-node-setup.md)
+- [kube-vip Manifest](./archive/kube-vip-manifest.md)

@@ -39,8 +39,8 @@ network, and Flux for everything inside the cluster.
 - **Network** — MikroTik CCR2004 router, CRS326 core + CRS312 10G switches, 2× cAPax APs
 - **Storage / OOB** — Dell PowerEdge R730xd NAS, PiKVM, TESmart KVM, APC UPS
 
-See [Systems](./docs/src/notes/systems-plan.md) and [Network](./docs/src/notes/network-plan.md)
+See [Systems](./docs/src/reference/systems.md) and [Network](./docs/src/reference/network.md)
 for the full breakdown.
 
 > ⚠️ This repo is public. All secrets are SOPS-encrypted; the plaintext Age keys and
-> generated configs are gitignored. See [Secrets with SOPS + Age](./docs/src/notes/secrets-with-sops.md).
+> generated configs are gitignored. See [Secrets with SOPS + Age](./docs/src/operations/secrets.md).

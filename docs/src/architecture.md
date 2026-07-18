@@ -1,5 +1,10 @@
 # Architecture
 
+This is the one place the system *design* lives — how the three layers fit, how BGP
+and storage are wired, and why. Other docs give commands and facts; when they need
+the "how it fits together," they link here. Version numbers live in
+[Reference → Versions](./reference/versions.md).
+
 The whole homelab is declarative. Three layers, each owned by a different tool, each
 committed to this repo:
 
@@ -23,32 +28,28 @@ State lives in an encrypted, versioned AWS S3 bucket with native locking.
 Because the provider needs LAN access and the SOPS Age key at apply time, applies run
 with **Terraform Cloud execution = Local**.
 
-See [Controlling MikroTik with Terraform](./notes/controlling-mikrotik-with-terraform.md)
-and the [Network plan](./notes/network-plan.md).
+See [Bootstrap → Network](./bootstrap/network.md) and [Reference → Network](./reference/network.md).
 
 ## 2. Operating system — Talos Linux
 
-Every node runs [Talos](https://www.talos.dev/) (v1.13.5, ships Kubernetes 1.36.2):
-a minimal, immutable, API-driven OS with no shell. Machine configs are generated from
-encrypted secrets and per-node patches in
-[`talos/`](https://github.com/Lil-Strudel/homelab/tree/main/talos), then
+Every node runs [Talos](https://www.talos.dev/): a minimal, immutable, API-driven OS
+with no shell. Machine configs are generated from encrypted secrets and per-node
+patches in [`talos/`](https://github.com/Lil-Strudel/homelab/tree/main/talos), then
 applied over the network. Talos bootstraps Kubernetes directly — no `kubeadm`, no
 manual node prep.
 
 - **Control plane** — `makima-1..3`
 - **Workers** — `rem-1..3`
 - Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`.
-- Kubernetes version is pinned to 1.36.2 (Talos v1.13.5's default) via
-  `--kubernetes-version` in `talos/gen-talos-objects.sh`.
 - CNI and kube-proxy are disabled in Talos so Cilium can own both.
 - The control-plane API VIP (`10.69.60.10`) is handled by **kube-vip** in BGP mode
   from the control-plane nodes (see platform below).
 
-See [Talos Cluster Setup](./notes/talos-setup.md).
+See [Bootstrap → Talos Cluster](./bootstrap/talos.md).
 
 ## 3. In-cluster platform — Flux GitOps
 
-After bootstrap, [Flux](https://fluxcd.io/) (v2.9.2) reconciles everything under
+After bootstrap, [Flux](https://fluxcd.io/) reconciles everything under
 [`kubernetes/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes).
 Git is the source of truth; changes land by commit.
 
@@ -80,22 +81,24 @@ flux-system ─► infra-controllers ─► infra-configs ─► apps
 ```
 
 This is what lets, say, the Rook `CephCluster` (a config) reliably land *after*
-the Rook operator and its CRDs (a controller), instead of racing it.
+the Rook operator and its CRDs (a controller), instead of racing it. This
+ordering is also why [adding a service](./operations/adding-a-service.md) means
+picking the right layer.
 
 | Component | Stage | Role |
 | --- | --- | --- |
-| **Cilium** (1.19.6) | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
-| **kube-vip** (v1.2.1) | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
-| **Rook-Ceph operator** (v1.20.2) | controllers | Ceph operator + ceph-csi-operator + CRDs |
-| **Ceph-CSI drivers** (1.0.4) | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
+| **Cilium** | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
+| **kube-vip** | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
+| **Rook-Ceph operator** | controllers | Ceph operator + ceph-csi-operator + CRDs |
+| **Ceph-CSI drivers** | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
 | **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
-| **Rook `CephCluster`** (Ceph v20.2.2) | configs | The cluster CR + storage classes (need the operator) |
+| **Rook `CephCluster`** | configs | The cluster CR + storage classes (need the operator) |
 
 ### Load balancing & the control-plane VIP
 
 Two BGP speakers, split across node roles so they never collide on the same node
 (only one BGP session per node IP can reach the router). Both peer as **AS 65000**
-to the router at **AS 65100**.
+to the router at **AS 65100** (`10.69.60.1`).
 
 - **Control-plane VIP** — `10.69.60.10`, advertised by **kube-vip** (BGP mode,
   `svc_enable=false`) from the **control-plane** nodes. Service LB is off here.
@@ -105,21 +108,22 @@ to the router at **AS 65100**.
   (no DHCP, no connected route, no conflict). See
   `kubernetes/infrastructure/configs/cilium/bgp.yaml` and `lb-pool.yaml`.
 
-The router declares BGP peers for all six nodes in `terraform/main.tf`.
+Cilium advertises **every** `LoadBalancer` service by default; label a Service
+`bgp-advertise: "false"` to keep its IP off BGP. The router declares BGP peers for
+all six nodes in `terraform/main.tf`.
 
-See [MikroTik BGP Setup](./notes/mikrotik-setup-bgp.md) and
-[Creating the kube-vip Manifest](./notes/creating-kube-vip-manifest.md).
+See [Bootstrap → Network](./bootstrap/network.md) and [kube-vip Manifest](./decisions/kube-vip.md).
 
 ### Storage
 
 Two tiers:
 
-- **Rook-Ceph** (chart v1.20.2, Ceph **v20.2.2** Tentacle) — replicated block/file
-  storage backing cluster PersistentVolumes. Each of the six nodes contributes its
-  1 TB NVMe SSD as a single OSD (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication,
-  `host` failure domain. Two StorageClasses — `ceph-block` (RBD, the cluster default)
-  and `ceph-filesystem` (CephFS, RWX). No object store (RGW/S3) — nothing consumes
-  buckets. See [Rook-Ceph Setup](./notes/rook-ceph-setup.md).
+- **Rook-Ceph** (Ceph Tentacle) — replicated block/file storage backing cluster
+  PersistentVolumes. Each of the six nodes contributes its 1 TB NVMe SSD as a single
+  OSD (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication, `host` failure domain.
+  Two StorageClasses — `ceph-block` (RBD, the cluster default) and `ceph-filesystem`
+  (CephFS, RWX). No object store (RGW/S3) — nothing consumes buckets. See
+  [Operations → Storage](./operations/storage.md).
 - **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster:
   8× 1 TB Samsung 870 across two ZFS pools, served over NFS.
 
@@ -127,7 +131,7 @@ Two tiers:
 
 Secrets never hit git in plaintext. Everything sensitive is [SOPS](https://github.com/getsops/sops)-encrypted
 with [Age](https://github.com/FiloSottile/age), decrypted in place by Terraform, the
-Talos config scripts, and Flux. See [Secrets with SOPS + Age](./notes/secrets-with-sops.md).
+Talos config scripts, and Flux. See [Operations → Secrets](./operations/secrets.md).
 
 ## Current scope
 

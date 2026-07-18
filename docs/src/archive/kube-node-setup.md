@@ -1,6 +1,6 @@
 # Debian + kubeadm Node Setup (archived)
 
-> ⚠️ **Superseded.** The cluster now runs [Talos Linux](../talos-setup.md), which
+> ⚠️ **Superseded.** The cluster now runs [Talos Linux](../bootstrap/talos.md), which
 > replaces this entire manual Debian + `kubeadm` bring-up. Kept as a historical record
 > of the pre-Talos setup.
 

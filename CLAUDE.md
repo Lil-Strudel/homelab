@@ -41,7 +41,7 @@ Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is `
 
 The controllers/configs split matters: **controllers** install operators/CRDs (Cilium, kube-vip, Rook-Ceph HelmReleases); **configs** apply the custom resources those operators define (Cilium BGP peering + LB IP pool, Rook `CephCluster`). A config that lands before its controller's CRDs exist will fail — keep new CRs in `configs` and their operator in `controllers`.
 
-- **Cilium** (`controllers/cilium/helm-release.yaml`) is CNI + kube-proxy replacement + default ingress controller + BGP control plane. Its Helm values must mirror the bootstrap `helm install` in `docs/src/notes/talos-setup.md`, and the chart version must match what's used at bootstrap.
+- **Cilium** (`controllers/cilium/helm-release.yaml`) is CNI + kube-proxy replacement + default ingress controller + BGP control plane. Its Helm values must mirror the bootstrap `helm install` in `docs/src/bootstrap/cluster.md`, and the chart version must match what's used at bootstrap.
 - **BGP** (`configs/cilium/bgp.yaml`): workers (non-control-plane nodes) peer ASN 65000 → MikroTik ASN 65100 at `10.69.60.1` to advertise LoadBalancer service IPs. kube-vip advertises the control-plane VIP separately.
 - **Rook-Ceph** (`configs/rook-ceph/cluster.yaml`): OSDs consume `nvme0n1` (`deviceFilter: "^nvme0n1"`) on all nodes, tolerating control-plane taints.
 - `apps/main/kustomization.yaml` currently has no resources — this is where workloads go.
@@ -60,12 +60,13 @@ Two things must both be right, or the service silently breaks or drifts:
 
 2. **Renovate coverage.** New pinned versions must be monitored, or they rot. Check that whatever you added is actually picked up:
    - **Flux-native sources** (`HelmRelease` chart versions, `HelmRepository`/`OCIRepository` refs, image tags in `kubernetes/**`) are covered automatically by the `flux` manager (`managerFilePatterns` matches `kubernetes/**.yaml`). Prefer these — they need no extra config.
-   - **A version pinned anywhere else** (a raw manifest like `kube-vip.yaml`, a version echoed in `docs/`, a `--version` flag in a setup guide) is invisible to the standard managers and needs a `customManagers` regex entry in `renovate.json`. Follow the existing kube-vip/Cilium/Talos entries as the pattern. When the same version is duplicated across files (manifest + docs + architecture table), list **every** file in that manager's `managerFilePatterns` so they update together and never drift.
+   - **A version pinned anywhere else** (a raw manifest like `kube-vip.yaml`, a `--version` flag) is invisible to the standard managers and needs a `customManagers` regex entry in `renovate.json`. Follow the existing kube-vip/Cilium/Talos entries as the pattern.
+   - **Version numbers in docs live in exactly one place: the `docs/src/reference/versions.md` table.** Every other doc uses a `<PLACEHOLDER>` and links there — never echo a pinned `x.y.z` into prose or a command elsewhere. Give the new component a table row and a `customManagers` entry that lists **both** its `versions.md` row (matched by ``ComponentName \| `(?<currentValue>…)` ``) **and** its real pin file, so Renovate bumps the table and the manifest together. `groupName` them (see `rook-ceph`, `cilium`) so the two land in one PR.
    - Add a `packageRules` `groupName` when a single component spans multiple packages (see `rook-ceph`, `cilium`) so its updates land in one PR. Major bumps for flux/custom managers already require dashboard approval — no per-service action needed.
 
 ## Comments vs. documentation
 
-This repo deliberately keeps the two separate (see `docs/src/notes/commenting.md`, the canonical rule). Apply it to anything you write here:
+This repo deliberately keeps the two separate (see `docs/src/decisions/commenting.md`, the canonical rule). Apply it to anything you write here:
 
 - **Inline comments are sparse** and earn their place only by explaining an unobvious **"why" about that exact line** — something the code can't say and a well-meaning cleanup would otherwise break. Keep them terse. Example: `disabled: true # Cilium is the kube-proxy replacement — do NOT re-enable`.
 - **Do not** write inline comments that restate the next line, narrate structure/ordering, or read like documentation (provenance, version tables, rationale, how pieces fit together).
@@ -83,4 +84,4 @@ MikroTik RouterOS network as code (router, 2 switches, 2 access points) via the 
 
 ## Docs (`docs/`)
 
-mdBook source; `docs/src/notes/` holds the setup guides that these scripts/configs implement (Talos, Rook-Ceph, kube-vip manifest, MikroTik BGP, SOPS). When changing a bootstrap workflow, update the matching guide — they are treated as the canonical runbook and cross-reference exact versions/values.
+mdBook source, organized by job: **Overview** (`introduction`, `architecture` — the one home for system design), **Reference** (`reference/`: `systems`, `network`, `versions` — the single source of truth for pinned versions), **Bootstrap** (`bootstrap/`: ordered bring-up — `network` → `talos` → `cluster`), **Operations** (`operations/`: `secrets`, `storage`, `adding-a-service`, `upgrades`), and **Decisions & Lessons** (`decisions/`: the "why" — `kube-vip`, `rook-ceph`, `commenting`). When changing a bootstrap workflow, update the matching runbook; when a value/version changes, update `reference/versions.md` (the one place numbers live — everything else links to it). Facts have a single home: design → `architecture`, versions → `reference/versions`, so don't restate them elsewhere.
