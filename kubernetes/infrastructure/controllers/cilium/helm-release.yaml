@@ -10,7 +10,7 @@ spec:
       chart: cilium
       # Pinned so upgrades are an explicit commit. Keep in sync with the
       # bootstrap `helm install` in docs/src/notes/talos-setup.md.
-      version: "1.19.5"
+      version: "1.19.6"
       sourceRef:
         kind: HelmRepository
         name: cilium
