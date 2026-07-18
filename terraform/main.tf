@@ -183,6 +183,27 @@ module "router" {
     mgmt-30    = { address = "10.69.100.30", mac_address = "D8:3A:DD:68:92:7C", server = "Management_DHCP_Server", client_id = "1:d8:3a:dd:68:92:7c" }
     mgmt-32    = { address = "10.69.100.32", mac_address = "90:B1:1C:00:E4:0F", server = "Management_DHCP_Server" }
   }
+
+  wg_home_private_key       = data.sops_file.secrets.data["wireguard_home_private_key"]
+  wg_management_private_key = data.sops_file.secrets.data["wireguard_management_private_key"]
+
+  wg_home_peers = {
+    home-phone  = { public_key = "X7PrlehY0YkbVyv5hC0/xokHpnt927U8FTk3LFLF3lc=", address = "10.69.70.2/32" }
+    home-laptop = { public_key = "25l6Q7lmYuTl4SvDsrcVXSKSeJY7UlR3mXPXuJ94mVg=", address = "10.69.70.3/32" }
+  }
+  wg_management_peers = {
+    mgmt-laptop = { public_key = "KJ/Z4ibFkUg9ZbJlND1kmqP36oF2vr2dFn3AyZqEE1k=", address = "10.69.80.2/32" }
+  }
+}
+
+output "wg_home_public_key" {
+  description = "Public key of the home WireGuard tunnel, for building client configs"
+  value       = module.router.wg_home_public_key
+}
+
+output "wg_management_public_key" {
+  description = "Public key of the management WireGuard tunnel, for building client configs"
+  value       = module.router.wg_management_public_key
 }
 
 module "core_switch" {

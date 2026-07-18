@@ -58,3 +58,12 @@ output "route53_secret_access_key" {
   value       = aws_iam_access_key.route53.secret
   sensitive   = true
 }
+
+resource "aws_route53_record" "vpn" {
+  provider = aws.dns
+  zone_id  = data.aws_route53_zone.main.zone_id
+  name     = "vpn.${local.domain}"
+  type     = "A"
+  ttl      = 300
+  records  = [data.sops_file.secrets.data["vpn_public_ip"]]
+}

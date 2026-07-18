@@ -50,3 +50,43 @@ variable "dhcp_leases" {
   }))
   default = {}
 }
+
+variable "wg_home_private_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "wg_management_private_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "wg_home_port" {
+  type    = number
+  default = 51820
+}
+
+variable "wg_management_port" {
+  type    = number
+  default = 51821
+}
+
+variable "wg_home_peers" {
+  description = "WireGuard clients for the home tunnel, keyed by a stable name. address is the client's /32 on 10.69.70.0/24."
+  type = map(object({
+    public_key    = string
+    address       = string
+    preshared_key = optional(string)
+  }))
+  default = {}
+}
+
+variable "wg_management_peers" {
+  description = "WireGuard clients for the management tunnel, keyed by a stable name. address is the client's /32 on 10.69.80.0/24."
+  type = map(object({
+    public_key    = string
+    address       = string
+    preshared_key = optional(string)
+  }))
+  default = {}
+}
