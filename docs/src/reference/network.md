@@ -55,6 +55,24 @@ split by node role — is in
 [Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip);
 the router-side setup is in [Bootstrap → Network](../bootstrap/network.md).
 
+## WireGuard / Remote Access
+
+Two built-in WireGuard tunnels on the router provide roadwarrior VPN access from
+anywhere. Both listen on the WAN and are reached at **`vpn.lilstrudel.io`**. Because
+MikroTik WireGuard is L3-only, each tunnel is its own routed `/24` — a client is
+*routed* toward a role, not bridged onto a VLAN's L2 segment — and its reach is set by
+firewall rules that mirror that role.
+
+| Tunnel | Subnet | Port | Role — reaches |
+| --- | --- | --- | --- |
+| `wg-home` | `10.69.70.0/24` | `51820/udp` | Personal / trusted devices (phone, etc.): Home, Trusted (cluster + `LoadBalancer` IPs `10.69.255.x`), DMZ, internet. **No Management, no router admin.** |
+| `wg-management` | `10.69.80.0/24` | `51821/udp` | Admin: every VLAN + full router access + internet. |
+
+Cluster `LoadBalancer` services (`10.69.255.x`) are reachable over `wg-home` via the
+`wg-home → Trusted` rule, since those routes' next hops are Trusted-VLAN nodes.
+
+Adding a client is a day-2 task — see [Operations → VPN Access](../operations/vpn-access.md).
+
 ## Firewall
 
 The router runs a **default-deny** inter-VLAN policy — isolation comes from the
@@ -70,10 +88,13 @@ The router runs a **default-deny** inter-VLAN policy — isolation comes from th
 | Trusted (60) | ✅ | — | intra-cluster traffic is same-VLAN |
 | Management (100) | ✅ | everything | |
 | Dad (200) | ✅ | — | isolated household segment |
+| `wg-home` | ✅ | Home, Trusted, DMZ | personal VPN; no Management/router admin |
+| `wg-management` | ✅ | everything | admin VPN; full router access |
 
-Router **`input`** is locked to the Management VLAN once enforced, but DHCP, DNS, NTP,
-and BGP (from cluster nodes) are always permitted from every VLAN so enabling the
-policy can't black-hole the network.
+Router **`input`** is locked to the Management VLAN (and the `wg-management` tunnel) once
+enforced, but DHCP, DNS, NTP, and BGP (from cluster nodes) are always permitted from
+every VLAN — and the WireGuard listen ports from the WAN — so enabling the policy can't
+black-hole the network or lock out the VPN.
 
 > **Staging.** The catch-all drop rules are created **disabled** (`enforce_firewall =
 > false` in `terraform/main.tf`). Apply once — nothing changes yet — verify each flow,

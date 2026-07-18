@@ -74,6 +74,56 @@ module "access_ports" {
   access_ports = var.access_ports
 }
 
+############
+# WireGuard
+############
+resource "routeros_interface_wireguard" "wg_home" {
+  name        = "wg-home"
+  listen_port = var.wg_home_port
+  private_key = var.wg_home_private_key
+  comment     = "Home VPN (personal / trusted devices)"
+}
+
+resource "routeros_ip_address" "wg_home" {
+  interface = routeros_interface_wireguard.wg_home.name
+  address   = "10.69.70.1/24"
+}
+
+resource "routeros_interface_wireguard_peer" "wg_home" {
+  for_each = var.wg_home_peers
+
+  interface       = routeros_interface_wireguard.wg_home.name
+  public_key      = each.value.public_key
+  preshared_key   = each.value.preshared_key
+  allowed_address = [each.value.address]
+  is_responder    = true
+  client_address  = each.value.address
+  client_dns      = "10.69.70.1"
+}
+
+resource "routeros_interface_wireguard" "wg_management" {
+  name        = "wg-management"
+  listen_port = var.wg_management_port
+  private_key = var.wg_management_private_key
+  comment     = "Management VPN (admin)"
+}
+
+resource "routeros_ip_address" "wg_management" {
+  interface = routeros_interface_wireguard.wg_management.name
+  address   = "10.69.80.1/24"
+}
+
+resource "routeros_interface_wireguard_peer" "wg_management" {
+  for_each = var.wg_management_peers
+
+  interface       = routeros_interface_wireguard.wg_management.name
+  public_key      = each.value.public_key
+  preshared_key   = each.value.preshared_key
+  allowed_address = [each.value.address]
+  is_responder    = true
+  client_address  = each.value.address
+  client_dns      = "10.69.80.1"
+}
 
 ###################################
 # Interface Lists For Firewall Rules
@@ -86,7 +136,7 @@ resource "routeros_interface_list_member" "wan_list_member" {
   list      = routeros_interface_list.wan_list.name
 }
 
-# Every VLAN interface — used by the router-service (DHCP/DNS/NTP) input rules.
+# Every VLAN interface, plus the WireGuard tunnels — used by the router-service (DHCP/DNS/NTP) input rules.
 resource "routeros_interface_list" "vlan_list" {
   name = "VLAN_List"
 }
@@ -94,6 +144,12 @@ resource "routeros_interface_list_member" "vlan_list_member" {
   for_each = var.vlans
 
   interface = "${each.key}_VLAN"
+  list      = routeros_interface_list.vlan_list.name
+}
+resource "routeros_interface_list_member" "vlan_list_member_wg" {
+  for_each = toset([routeros_interface_wireguard.wg_home.name, routeros_interface_wireguard.wg_management.name])
+
+  interface = each.value
   list      = routeros_interface_list.vlan_list.name
 }
 
@@ -107,10 +163,26 @@ resource "routeros_interface_list_member" "internet_list_member" {
   interface = "${each.key}_VLAN"
   list      = routeros_interface_list.internet_list.name
 }
+resource "routeros_interface_list_member" "internet_list_member_wg" {
+  for_each = toset([routeros_interface_wireguard.wg_home.name, routeros_interface_wireguard.wg_management.name])
+
+  interface = each.value
+  list      = routeros_interface_list.internet_list.name
+}
 
 ######################
 # Input Firewall Rules
 ######################
+resource "routeros_ip_firewall_filter" "input_wireguard" {
+  chain             = "input"
+  action            = "accept"
+  protocol          = "udp"
+  dst_port          = "${var.wg_home_port},${var.wg_management_port}"
+  in_interface_list = routeros_interface_list.wan_list.name
+  comment           = "Allow WireGuard from WAN"
+  place_before      = routeros_ip_firewall_filter.input_established.id
+}
+
 resource "routeros_ip_firewall_filter" "input_established" {
   chain            = "input"
   action           = "accept"
@@ -182,6 +254,14 @@ resource "routeros_ip_firewall_filter" "input_management" {
   action       = "accept"
   in_interface = "Management_VLAN"
   comment      = "Allow Management VLAN full router access"
+  place_before = routeros_ip_firewall_filter.input_wg_management.id
+}
+
+resource "routeros_ip_firewall_filter" "input_wg_management" {
+  chain        = "input"
+  action       = "accept"
+  in_interface = routeros_interface_wireguard.wg_management.name
+  comment      = "Allow Management VPN full router access"
   place_before = routeros_ip_firewall_filter.input_drop.id
 }
 
@@ -236,6 +316,42 @@ resource "routeros_ip_firewall_filter" "forward_management_all" {
   in_interface       = "Management_VLAN"
   out_interface_list = routeros_interface_list.vlan_list.name
   comment            = "Management -> all VLANs"
+  place_before       = routeros_ip_firewall_filter.forward_wg_home_home.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_wg_home_home" {
+  chain         = "forward"
+  action        = "accept"
+  in_interface  = routeros_interface_wireguard.wg_home.name
+  out_interface = "Home_VLAN"
+  comment       = "Home VPN -> Home"
+  place_before  = routeros_ip_firewall_filter.forward_wg_home_trusted.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_wg_home_trusted" {
+  chain         = "forward"
+  action        = "accept"
+  in_interface  = routeros_interface_wireguard.wg_home.name
+  out_interface = "Trusted_VLAN"
+  comment       = "Home VPN -> Trusted (cluster + services)"
+  place_before  = routeros_ip_firewall_filter.forward_wg_home_dmz.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_wg_home_dmz" {
+  chain         = "forward"
+  action        = "accept"
+  in_interface  = routeros_interface_wireguard.wg_home.name
+  out_interface = "DMZ_VLAN"
+  comment       = "Home VPN -> DMZ"
+  place_before  = routeros_ip_firewall_filter.forward_wg_management.id
+}
+
+resource "routeros_ip_firewall_filter" "forward_wg_management" {
+  chain              = "forward"
+  action             = "accept"
+  in_interface       = routeros_interface_wireguard.wg_management.name
+  out_interface_list = routeros_interface_list.vlan_list.name
+  comment            = "Management VPN -> all VLANs"
   place_before       = routeros_ip_firewall_filter.forward_drop.id
 }
 
