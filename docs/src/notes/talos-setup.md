@@ -2,7 +2,7 @@
 
 Its quite easy :)
 
-We run **Talos v1.13.5**, which ships **Kubernetes 1.36.2**. The Talos version lives in
+We run **Talos v1.13.6**, which ships **Kubernetes 1.36.2**. The Talos version lives in
 the secure-boot installer image tag in `talos/patch.yaml`; the Kubernetes version is
 pinned to match via `--kubernetes-version 1.36.2` in `talos/gen-talos-objects.sh`.
 
@@ -10,7 +10,7 @@ Get the secure boot iso for the matching version from
 [talos factory](https://factory.talos.dev/?arch=amd64&board=undefined&cmdline-set=true&extensions=-&platform=metal&secureboot=true&target=metal).
 The installer image pinned in `talos/patch.yaml` uses schematic
 `376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba` (Secure Boot, default
-extension set) at tag `v1.13.5` — boot the ISO for that same schematic/version.
+extension set) at tag `v1.13.6` — boot the ISO for that same schematic/version.
 
 > The control-plane VIP (`10.69.60.10`) is owned by kube-vip, which only runs once the
 > cluster is up — so during the very first bring-up it isn't available yet. Set a
