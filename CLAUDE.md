@@ -1,0 +1,86 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Infrastructure-as-code for a home Kubernetes cluster and its network, declarative from bare metal up. Three independent domains: **Talos** (OS/cluster bootstrap), **Flux/Kubernetes** (in-cluster GitOps), and **Terraform** (MikroTik network). Full write-up: `docs/` (mdBook), published at https://lil-strudel.github.io/homelab/.
+
+## Secrets: SOPS + Age
+
+All secrets are SOPS-encrypted (`*.sops.yaml`); this repo is public. `.sops.yaml` at the root drives which recipients encrypt what, keyed by file path:
+- `kubernetes/**` secrets → **admin + cluster** Age keys, and only `data`/`stringData` fields are encrypted (rest stays diffable). Flux decrypts in-cluster via the `sops-age` secret.
+- `terraform/**` and `talos/**` secrets → **admin key only**.
+
+The admin private key lives in `~/.config/sops/age/keys.txt` (also in a password manager). Encrypt/decrypt with `sops -e -i <file>` / `sops -d <file>`. Terraform reads secrets at plan time via the `sops` provider (`data.sops_file.secrets`); never write plaintext secrets to disk in tracked paths (`*.agekey`/`*.key`/`keys.txt` are gitignored).
+
+## Talos (`talos/`)
+
+Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..3` at `10.69.60.21-23`, control-plane VIP `10.69.60.10` (owned by kube-vip). Talos v1.13.6 / Kubernetes 1.36.2.
+
+The committed source of truth is `secrets.sops.yaml` + `talosconfig.sops.yaml`. The plaintext `controlplane.yaml`/`worker.yaml`/`talosconfig` and per-node `machine-configs/` are **gitignored and regenerated** — never commit them.
+
+Bring-up scripts (run from `talos/`, in order):
+```
+./gen-talos-objects.sh    # gen secrets + controlplane/worker/talosconfig from patch.yaml
+./gen-machine-configs.sh  # patch base configs with per-node machine-patches/ → machine-configs/
+./apply-config-all-nodes.sh   # talosctl apply-config to all 6 nodes
+talosctl bootstrap  -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
+talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
+```
+`danger-reset-all-nodes.sh` wipes and reboots every node — destructive.
+
+Key `patch.yaml` invariants (do not change without understanding the fallout):
+- **CNI is `none` and kube-proxy is `disabled`** — Cilium replaces both. Re-enabling either double-installs and breaks networking.
+- Talos installs to the **Samsung SSD 870** (selected by `diskSelector.model`), deliberately *not* the NVMe, which is reserved for Ceph OSD data.
+- The Kubernetes version is pinned twice and must stay in sync: `--kubernetes-version` in `gen-talos-objects.sh` and the Talos installer image tag in `patch.yaml`.
+
+## Kubernetes / Flux (`kubernetes/`)
+
+Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is `kubernetes/clusters/main` (`--path` at bootstrap):
+
+`clusters/main` → **infra-controllers** (`infrastructure/controllers`) → **infra-configs** (`infrastructure/configs`, `dependsOn` controllers) → **apps** (`apps/main`, `dependsOn` configs).
+
+The controllers/configs split matters: **controllers** install operators/CRDs (Cilium, kube-vip, Rook-Ceph HelmReleases); **configs** apply the custom resources those operators define (Cilium BGP peering + LB IP pool, Rook `CephCluster`). A config that lands before its controller's CRDs exist will fail — keep new CRs in `configs` and their operator in `controllers`.
+
+- **Cilium** (`controllers/cilium/helm-release.yaml`) is CNI + kube-proxy replacement + default ingress controller + BGP control plane. Its Helm values must mirror the bootstrap `helm install` in `docs/src/notes/talos-setup.md`, and the chart version must match what's used at bootstrap.
+- **BGP** (`configs/cilium/bgp.yaml`): workers (non-control-plane nodes) peer ASN 65000 → MikroTik ASN 65100 at `10.69.60.1` to advertise LoadBalancer service IPs. kube-vip advertises the control-plane VIP separately.
+- **Rook-Ceph** (`configs/rook-ceph/cluster.yaml`): OSDs consume `nvme0n1` (`deviceFilter: "^nvme0n1"`) on all nodes, tolerating control-plane taints.
+- `apps/main/kustomization.yaml` currently has no resources — this is where workloads go.
+
+There is no build/test tooling; changes are validated by Flux reconciliation. `flux reconcile kustomization <name> --with-source` forces a sync; the `flux`/`kubectl` CLIs operate against the live cluster.
+
+### Adding a service to the cluster
+
+Two things must both be right, or the service silently breaks or drifts:
+
+1. **Dependency chain.** Decide which layer the manifest belongs to and register it so it reconciles in the right order:
+   - Operator / CRD-provider / HelmRelease that others depend on → `infrastructure/controllers/<name>/`, added to `controllers/kustomization.yaml`.
+   - Custom resources of an operator (anything referencing a CRD) → `infrastructure/configs/<name>/`, added to `configs/kustomization.yaml`. These reconcile *after* controllers, so their CRDs exist.
+   - Ordinary workloads → `apps/main/`, added to `apps/main/kustomization.yaml` (reconciles last, after configs).
+   Every new directory must be listed in its parent `kustomization.yaml` — Flux only sees what Kustomize includes. If a resource depends on something in an earlier layer (a CRD, a secret, an operator), confirm that layer's Kustomization owns it; if you need finer ordering than the three layers give, add a `dependsOn` to the Kustomization in `clusters/main/`.
+
+2. **Renovate coverage.** New pinned versions must be monitored, or they rot. Check that whatever you added is actually picked up:
+   - **Flux-native sources** (`HelmRelease` chart versions, `HelmRepository`/`OCIRepository` refs, image tags in `kubernetes/**`) are covered automatically by the `flux` manager (`managerFilePatterns` matches `kubernetes/**.yaml`). Prefer these — they need no extra config.
+   - **A version pinned anywhere else** (a raw manifest like `kube-vip.yaml`, a version echoed in `docs/`, a `--version` flag in a setup guide) is invisible to the standard managers and needs a `customManagers` regex entry in `renovate.json`. Follow the existing kube-vip/Cilium/Talos entries as the pattern. When the same version is duplicated across files (manifest + docs + architecture table), list **every** file in that manager's `managerFilePatterns` so they update together and never drift.
+   - Add a `packageRules` `groupName` when a single component spans multiple packages (see `rook-ceph`, `cilium`) so its updates land in one PR. Major bumps for flux/custom managers already require dashboard approval — no per-service action needed.
+
+## Comments vs. documentation
+
+This repo deliberately keeps the two separate (see `docs/src/notes/commenting.md`, the canonical rule). Apply it to anything you write here:
+
+- **Inline comments are sparse** and earn their place only by explaining an unobvious **"why" about that exact line** — something the code can't say and a well-meaning cleanup would otherwise break. Keep them terse. Example: `disabled: true # Cilium is the kube-proxy replacement — do NOT re-enable`.
+- **Do not** write inline comments that restate the next line, narrate structure/ordering, or read like documentation (provenance, version tables, rationale, how pieces fit together).
+- **Everything documentation-shaped goes in `docs/`**, organized by topic: why a value is pinned/diverges → the relevant guide; how pieces relate → *Architecture*; conventions/addressing/naming → the *Plans*. When you change a value or workflow, update its guide there rather than annotating the source.
+
+Before adding a comment, apply the test: is this an unobvious "why" about this exact line? If not, it's documentation — put it in `docs/`.
+
+## Terraform (`terraform/`)
+
+MikroTik RouterOS network as code (router, 2 switches, 2 access points) via the `terraform-routeros/routeros` provider. State in AWS S3 (`profile = "strudelan"`, native lockfile). Run standard `terraform init/plan/apply` from `terraform/`.
+
+- `main.tf` is the single root: it defines a **provider alias per device** (each MikroTik reached over its own `10.69.100.x:6729` HTTPS-API), the VLAN map, and instantiates reusable modules under `modules/` (`router`, `switch`, `access_point`, `wifi_config`, plus port/vlan helpers) with each device's port/VLAN assignments inline.
+- The RouterOS API endpoint (port 6729, TLS) is set up out-of-band by `scripts/initialize_mikrotik.sh` (run once on a fresh device: DHCP, self-signed certs, enable `www-ssl`). `scripts/tf_import_mikrotik.sh` records `terraform import` commands for adopting pre-existing device state.
+- Adding a device = add a provider alias + a module block; adding VLANs = edit the `vlans` local (a numeric ID map consumed by every module).
+
+## Docs (`docs/`)
+
+mdBook source; `docs/src/notes/` holds the setup guides that these scripts/configs implement (Talos, Rook-Ceph, kube-vip manifest, MikroTik BGP, SOPS). When changing a bootstrap workflow, update the matching guide — they are treated as the canonical runbook and cross-reference exact versions/values.
