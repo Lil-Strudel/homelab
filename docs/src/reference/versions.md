@@ -16,6 +16,8 @@ in lockstep, so the two never drift.
 | Rook (operator + cluster) | `v1.20.2` | `controllers/rook-ceph/operator.yaml` + `configs/rook-ceph/cluster.yaml` |
 | ceph-csi-drivers | `1.0.4` | `controllers/rook-ceph/csi-drivers.yaml` |
 | Ceph | `v20.2.2` (Tentacle) | `configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
+| cert-manager | `v1.21.0` | `controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
+| external-dns | `1.21.1` | `controllers/external-dns/helm-release.yaml` (chart version) |
 
 ## Pins that must move together
 

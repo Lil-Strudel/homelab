@@ -91,8 +91,11 @@ picking the right layer.
 | **kube-vip** | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
 | **Rook-Ceph operator** | controllers | Ceph operator + ceph-csi-operator + CRDs |
 | **Ceph-CSI drivers** | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
+| **cert-manager** | controllers | ACME (Let's Encrypt) certificate issuance + CRDs |
+| **external-dns** | controllers | Syncs Service/Ingress hostnames to Route53 |
 | **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
 | **Rook `CephCluster`** | configs | The cluster CR + storage classes (need the operator) |
+| **ClusterIssuers** | configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
 
 ### Load balancing & the control-plane VIP
 

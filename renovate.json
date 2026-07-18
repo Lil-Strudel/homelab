@@ -86,6 +86,23 @@
       "depNameTemplate": "quay.io/ceph/ceph",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["cert-manager \\| `(?<currentValue>v[0-9.]+)`"],
+      "depNameTemplate": "quay.io/jetstack/charts/cert-manager",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["external-dns \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "external-dns",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://kubernetes-sigs.github.io/external-dns/",
+      "versioningTemplate": "helm"
     }
   ],
   "packageRules": [
@@ -101,6 +118,14 @@
     {
       "matchPackageNames": ["cilium"],
       "groupName": "cilium"
+    },
+    {
+      "matchPackageNames": ["quay.io/jetstack/charts/cert-manager"],
+      "groupName": "cert-manager"
+    },
+    {
+      "matchPackageNames": ["external-dns"],
+      "groupName": "external-dns"
     },
     {
       "matchManagers": ["flux", "custom.regex"],

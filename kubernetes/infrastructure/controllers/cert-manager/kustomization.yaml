@@ -1,8 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - cert-manager
-  - cilium
-  - external-dns
-  - kube-vip
-  - rook-ceph
+- namespace.yaml
+- oci-repo.yaml
+- helm-release.yaml

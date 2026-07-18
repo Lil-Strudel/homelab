@@ -32,6 +32,12 @@ provider "aws" {
   profile = "strudelan"
 }
 
+provider "aws" {
+  alias   = "dns"
+  region  = "us-east-1"
+  profile = "lil-strudel"
+}
+
 resource "random_id" "tfstate_suffix" {
   byte_length = 4
 }
@@ -85,6 +91,7 @@ locals {
     Dad        = 200,
   }
   base_ip = "10.69"
+  domain  = "lilstrudel.io"
 }
 
 provider "routeros" {
