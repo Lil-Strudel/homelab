@@ -60,6 +60,35 @@ PersistentKeepalive = 25
 `AllowedIPs` is the client's choice: `10.69.0.0/16` routes only homelab traffic over the
 tunnel; `0.0.0.0/0` sends everything (useful on untrusted networks).
 
+The server public key also comes straight from SOPS, without applying — the public key
+is derived from the private key:
+
+```bash
+sops -d --extract '["wireguard_home_private_key"]' secrets.sops.yaml | wg pubkey
+```
+
+## 4. Connect (Linux / NetworkManager)
+
+Drop the config in `/etc/wireguard/` (root-owned, `0600`) and import it as a
+NetworkManager connection — the connection name is the filename:
+
+```bash
+sudo install -m 600 -o root -g root home-laptop.conf /etc/wireguard/home-laptop.conf
+sudo nmcli connection import type wireguard file /etc/wireguard/home-laptop.conf
+nmcli connection modify home-laptop connection.autoconnect no   # don't auto-VPN at boot
+```
+
+Bring it up or down (or toggle from the desktop's network applet):
+
+```bash
+nmcli connection up   home-laptop
+nmcli connection down home-laptop
+```
+
+Both tunnels route `10.69.0.0/16`, so run **one at a time** — bring the other down before
+raising a tunnel, or their routes collide. Non-NetworkManager hosts can use
+`wg-quick up <name>` against the same `/etc/wireguard/<name>.conf` instead.
+
 ## Notes
 
 - The router's WAN must have a routable public IP. Behind CGNAT/double-NAT, forward the
