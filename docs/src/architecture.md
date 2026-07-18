@@ -84,7 +84,7 @@ the Rook operator and its CRDs (a controller), instead of racing it.
 
 | Component | Stage | Role |
 | --- | --- | --- |
-| **Cilium** (1.19.5) | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
+| **Cilium** (1.19.6) | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
 | **kube-vip** (v1.2.1) | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
 | **Rook-Ceph operator** (v1.20.2) | controllers | Ceph operator + ceph-csi-operator + CRDs |
 | **Ceph-CSI drivers** (1.0.4) | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
