@@ -1,14 +1,3 @@
-# Rook-Ceph operator (chart `rook-ceph`). Installs the operator, the bundled
-# ceph-csi-operator subchart, and all Ceph CRDs. Reconciled in `infra-controllers`
-# with `wait: true`, so it is fully healthy before the CephCluster
-# (configs/rook-ceph/cluster.yaml) and the CSI drivers reconcile.
-#
-# No `values:` override on purpose. Every value we would otherwise pin here
-# (crds.enabled, csi.installCsiOperator, csi.kubeletDirPath, the operator image
-# tag) already equals the v1.20.2 chart default for our setup, so overriding
-# would only restate defaults. See docs/src/notes/creating-rook-ceph-config.md.
-# Chart version is the operator image pin (appVersion v1.20.2); keep it in sync
-# with cluster.yaml and the ceph-csi-drivers chart.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:

@@ -21,6 +21,16 @@ ID: **`10.69.<vlan>.0/24`**, with the router as `.1`.
 | 100 | Management | `10.69.100.0/24` | Network gear, OOB (KVM, UPS) |
 | 200 | Dad | `10.69.200.0/24` | Separate household segment |
 
+Within each `/24`, the address space is split by convention (set in
+`terraform/modules/vlan`):
+
+- **`.1`** — the router / gateway.
+- **`.2`–`.127`** — reserved for static leases, VIPs, and BGP-advertised ranges.
+- **`.128`–`.254`** — the DHCP dynamic pool.
+
+Keeping the dynamic pool in the upper half means static assignments (nodes, the
+kube-vip VIP, etc.) never collide with a DHCP lease.
+
 ## Switching
 
 Router `ether2–4` are trunk ports carrying all VLANs down to the switches. The
@@ -48,6 +58,9 @@ node role so they never collide on a single node:
 - **Cluster** — AS **65000**.
 - **LoadBalancer pool** — `10.69.255.0/24`, a dedicated BGP-only range that belongs to
   no VLAN subnet (set in `cilium/lb-pool.yaml`).
+
+Cilium advertises **every** `LoadBalancer` service by default. Label a Service
+`bgp-advertise: "false"` to keep its IP off BGP.
 
 Setup notes: [MikroTik BGP Setup](./mikrotik-setup-bgp.md).
 

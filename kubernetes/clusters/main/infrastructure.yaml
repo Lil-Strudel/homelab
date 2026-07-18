@@ -1,12 +1,3 @@
-# Infrastructure reconciliation, split into two ordered stages so custom
-# resources never race ahead of the CRDs/operators they need.
-#
-#   infra-controllers  → CNI, operators, controllers (installs CRDs)
-#   infra-configs      → CRs that use those CRDs (dependsOn infra-controllers)
-#
-# `wait: true` on infra-controllers means it only becomes Ready once every
-# object it owns — including the Cilium and Rook HelmReleases — is healthy, so
-# infra-configs (and everything downstream) starts against a ready platform.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

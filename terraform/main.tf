@@ -32,8 +32,6 @@ provider "aws" {
   profile = "strudelan"
 }
 
-# S3 bucket that holds this Terraform state. It is created here first (while the
-# remote backend is still active), then the backend is switched to point at it.
 resource "random_id" "tfstate_suffix" {
   byte_length = 4
 }
@@ -142,13 +140,8 @@ module "router" {
 
   vlans = local.vlans
 
-  # Firewall staging: apply once with this false (drops created but disabled and
-  # everything still reachable), verify each flow, then flip to true and apply
-  # again to enforce the default-deny policy. Run Terraform from the Management
-  # VLAN — once enforced, only Management can reach the router's admin services.
   enforce_firewall = false
 
-  # VLANs with internet access. Security (30) + IoT (40) are omitted on purpose.
   internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 
   trunk_ports = ["ether2", "ether3", "ether4"]
@@ -163,9 +156,6 @@ module "router" {
     "ether12" = local.vlans["Dad"]
   }
 
-  # All six nodes peer BGP as AS 65000. Control-plane nodes (makima) advertise
-  # the kube-vip control-plane VIP; worker nodes (rem) advertise Cilium
-  # LoadBalancer service IPs.
   bgp_peers = {
     "Makima-1 Peer" = "10.69.60.11"
     "Makima-2 Peer" = "10.69.60.12"
@@ -249,8 +239,6 @@ module "wifi_config" {
   passphrase = data.sops_file.secrets.data["wifi1_password"]
 }
 
-# SprinklerAct is a self-contained (inline security/channel) config on AP1,
-# unlike the shared Strudel network which uses separate channel/security objects.
 resource "routeros_wifi_configuration" "sprinkleract" {
   provider = routeros.cAPax-1
 

@@ -111,9 +111,6 @@ resource "routeros_interface_list_member" "internet_list_member" {
 ######################
 # Input Firewall Rules
 ######################
-# Everything the router itself receives. The catch-all drop is staged behind
-# `enforce_firewall`; the accepts above it (DHCP/DNS/NTP/BGP) stay enabled so
-# turning enforcement on can never black-hole client networking.
 resource "routeros_ip_firewall_filter" "input_established" {
   chain            = "input"
   action           = "accept"
@@ -170,8 +167,6 @@ resource "routeros_ip_firewall_filter" "input_ntp" {
   place_before      = routeros_ip_firewall_filter.input_bgp.id
 }
 
-# Cluster nodes peer BGP with the router from the Trusted VLAN. Without this,
-# enabling the input drop would tear down the Cilium <-> router BGP sessions.
 resource "routeros_ip_firewall_filter" "input_bgp" {
   chain        = "input"
   action       = "accept"
@@ -190,9 +185,6 @@ resource "routeros_ip_firewall_filter" "input_management" {
   place_before = routeros_ip_firewall_filter.input_drop.id
 }
 
-# STAGED: disabled until enforce_firewall = true. Note: once enabled, only the
-# Management VLAN can reach the router's admin services — run Terraform and any
-# admin session from Management, or the API session will be dropped mid-apply.
 resource "routeros_ip_firewall_filter" "input_drop" {
   chain    = "input"
   action   = "drop"
@@ -203,18 +195,6 @@ resource "routeros_ip_firewall_filter" "input_drop" {
 ########################
 # Forward Firewall Rules
 ########################
-# Default-deny inter-VLAN policy. Only the explicit accepts below pass once the
-# catch-all drop is enabled via `enforce_firewall`. Isolation is achieved by the
-# *absence* of an accept rule, so no per-VLAN drop rules are needed.
-#
-#   Home (10)        -> Trusted, DMZ, WAN
-#   Guest (20)       -> WAN only            (+ AP client isolation, see docs)
-#   Security (30)    -> nothing             (fully isolated, no WAN)
-#   IoT (40)         -> nothing             (fully isolated, no WAN)
-#   DMZ (50)         -> WAN                  (inbound port-forwards added later)
-#   Trusted (60)     -> WAN                  (intra-cluster is same-VLAN)
-#   Management (100) -> everything
-#   Dad (200)        -> WAN only
 resource "routeros_ip_firewall_filter" "forward_established" {
   chain            = "forward"
   action           = "accept"
@@ -259,7 +239,6 @@ resource "routeros_ip_firewall_filter" "forward_management_all" {
   place_before       = routeros_ip_firewall_filter.forward_drop.id
 }
 
-# STAGED: disabled until enforce_firewall = true.
 resource "routeros_ip_firewall_filter" "forward_drop" {
   chain    = "forward"
   action   = "drop"

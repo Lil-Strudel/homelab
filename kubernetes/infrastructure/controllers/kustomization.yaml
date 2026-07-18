@@ -1,8 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Platform operators / CNI / long-lived controllers. Reconciled first (see
-# clusters/main/infrastructure.yaml → infra-controllers). CRDs and operators
-# land here; the custom resources that use them live in ../configs.
 resources:
   - cilium
   - kube-vip

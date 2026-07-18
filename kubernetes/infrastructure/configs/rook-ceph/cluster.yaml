@@ -1,15 +1,3 @@
-# Rook-Ceph cluster (chart `rook-ceph-cluster`): the CephCluster CR, the default
-# block pool + shared filesystem, and their StorageClasses. Reconciled in
-# `infra-configs`, which `dependsOn` `infra-controllers` -- so the operator, its
-# CRDs, and the CSI drivers are already healthy before this lands.
-#
-# `values:` is a deliberately MINIMAL override set: only genuine divergences from
-# the v1.20.2 chart default appear below. Notably the block pool and filesystem
-# are NOT redefined here -- the chart default already creates exactly what we want
-# (ceph-block as the default RWO class + ceph-filesystem RWX, both size 3 /
-# failureDomain host), so we inherit it rather than restate (and risk drifting
-# from) it. Rationale + provenance: docs/src/notes/creating-rook-ceph-config.md.
-# Keep the chart version in sync with the operator (controllers/rook-ceph).
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -33,45 +21,21 @@ spec:
     remediation:
       retries: -1
   values:
-    # Pin the Ceph image against silent data-version drift. Matches the v1.20.2
-    # chart default (Tentacle v20.2.2); kept explicit so a future chart bump can't
-    # move our Ceph major/minor without us choosing to. allowUnsupported stays off.
     cephImage:
       tag: v20.2.2
-
-    # Debug shell: `kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph -s`.
-    # Off by default upstream; handy on a single-admin homelab.
     toolbox:
       enabled: true
-
     cephClusterSpec:
-      # Ceph dashboard over HTTPS (chart default: enabled + ssl). Surfaced on the
-      # LAN by dashboard-lb.yaml. Pinned because it's an explicit requirement --
-      # a future default change must not silently take the dashboard away.
       dashboard:
         enabled: true
-
-      # LOAD-BEARING: all 6 nodes are storage nodes, and the 3 control-plane
-      # nodes are tainted node-role.kubernetes.io/control-plane:NoSchedule (Talos
-      # default). Ceph daemons must tolerate that taint or half the OSDs never
-      # schedule. Applies to all daemons (mon/mgr/osd).
       placement:
         all:
           tolerations:
             - key: node-role.kubernetes.io/control-plane
               operator: Exists
               effect: NoSchedule
-
-      # LOAD-BEARING: consume ONLY the 1 TB data NVMe (nvme0n1) on every node,
-      # never the Talos OS disk. One OSD per node -> six OSDs. Chart default is
-      # useAllDevices: true with no filter, which would also claim the OS disk.
       storage:
         useAllNodes: true
         useAllDevices: false
         deviceFilter: "^nvme0n1"
-
-    # Object store (RGW / S3) intentionally DISABLED -- nothing here consumes
-    # buckets/OBCs. The empty list overrides the chart default, which would
-    # otherwise stand up an RGW gateway + `ceph-bucket` StorageClass. Re-add a
-    # cephObjectStores entry if a workload ever needs S3.
     cephObjectStores: []

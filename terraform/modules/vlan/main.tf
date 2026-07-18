@@ -21,8 +21,6 @@ resource "routeros_ip_address" "address" {
   address   = "${local.start_ip}.1/24"
 }
 
-# Dynamic pool is the upper half of the /24 (.128-.254). The lower half
-# (.2-.127) is reserved for static leases, VIPs, and BGP-advertised ranges.
 resource "routeros_ip_pool" "pool" {
   name   = "${var.name}_DHCP_Pool"
   ranges = ["${local.start_ip}.128-${local.start_ip}.254"]

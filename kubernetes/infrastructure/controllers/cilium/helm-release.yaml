@@ -8,8 +8,6 @@ spec:
   chart:
     spec:
       chart: cilium
-      # Pinned so upgrades are an explicit commit. Keep in sync with the
-      # bootstrap `helm install` in docs/src/notes/talos-setup.md.
       version: "1.19.6"
       sourceRef:
         kind: HelmRepository
@@ -44,8 +42,6 @@ spec:
     k8sServiceHost: localhost
     k8sServicePort: 7445
     kubeProxyReplacement: true
-    # BGP control plane advertises LoadBalancer service IPs to the MikroTik
-    # router (see bgp.yaml + lb-pool.yaml). Replaces kube-vip's service LB role.
     bgpControlPlane:
       enabled: true
     ingressController:

@@ -6,6 +6,7 @@
 
 - [Introduction](introduction.md)
 - [Architecture](architecture.md)
+- [Commenting](./notes/commenting.md)
 
 # Plans
 

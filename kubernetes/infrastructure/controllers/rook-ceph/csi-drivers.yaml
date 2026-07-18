@@ -1,21 +1,3 @@
-# Ceph-CSI drivers (chart `ceph-csi-drivers`, from the ceph-csi-operator repo).
-#
-# New in Rook v1.20: the operator no longer deploys the CSI drivers. This chart
-# creates the `Driver` CRs that the ceph-csi-operator (installed by the operator
-# chart) reconciles into the RBD/CephFS provisioners. Without this release,
-# volume provisioning fails and cluster.yaml's StorageClasses have no driver.
-#
-# `dependsOn` the operator so the ceph-csi-operator CRDs exist before these
-# Driver CRs are created. Chart version tracks the `ceph-csi-operator` subchart
-# the rook-ceph chart pins (v1.20.2 -> 1.0.4); keep them in sync on a Rook bump.
-#
-# The `values:` below are Rook's published, REQUIRED recommended values, copied
-# verbatim. Rook's docs warn the drivers "will fail if only configured with the
-# chart defaults" -- the driver names must carry the operator-namespace prefix
-# (rook-ceph.*) to match the provisioner names cluster.yaml's StorageClasses use,
-# and imageSet points the drivers at the CSI image set the operator chart pins.
-# Source (match this file byte-for-byte on a bump):
-#   https://raw.githubusercontent.com/rook/rook/v1.20.2/deploy/charts/ceph-csi-drivers/values.yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -36,7 +18,7 @@ spec:
       interval: 1h
   values:
     operatorConfig:
-      namespace: rook-ceph # namespace:operator
+      namespace: rook-ceph
       driverSpecDefaults:
         imageSet:
           name: rook-csi-operator-image-set-configmap

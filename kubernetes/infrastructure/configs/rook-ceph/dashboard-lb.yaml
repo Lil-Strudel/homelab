@@ -1,8 +1,3 @@
-# Exposes the Ceph dashboard on the LAN. A LoadBalancer Service that Cilium's
-# BGP control plane hands an IP from the `10.69.255.0/24` pool and advertises to
-# the MikroTik. The selector pins `mgr_role: active`, so it always follows the
-# currently-active mgr (dashboard.enabled + ssl: true in cluster.yaml → HTTPS on
-# 8443). Reach it at https://<assigned-LB-IP>:8443.
 apiVersion: v1
 kind: Service
 metadata:

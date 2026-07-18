@@ -1,9 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Custom resources that depend on the operators/CRDs in ../controllers:
-# Cilium BGP + LB pool (need Cilium CRDs), the Rook CephCluster + storage
-# classes (need the Rook operator running). Reconciled after infra-controllers
-# is healthy (see clusters/main/infrastructure.yaml → infra-configs).
 resources:
   - cilium
   - rook-ceph

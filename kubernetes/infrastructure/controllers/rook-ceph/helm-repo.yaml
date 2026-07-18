@@ -1,8 +1,3 @@
-# Chart sources for the Rook-Ceph stack.
-#
-#   rook-release       → the rook-ceph operator + rook-ceph-cluster charts
-#   ceph-csi-operator  → the ceph-csi-drivers chart (new hard requirement in
-#                        Rook v1.20; the operator no longer bundles the drivers)
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:

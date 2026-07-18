@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Generate per-node machine configs from the base control-plane/worker configs.
-# Requires ./gen-talos-objects.sh to have been run first (it produces the
-# gitignored talos/controlplane.yaml and talos/worker.yaml from the encrypted secrets).
 set -euo pipefail
 cd "$(dirname "$0")"
 
