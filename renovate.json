@@ -103,6 +103,29 @@
       "datasourceTemplate": "helm",
       "registryUrlTemplate": "https://kubernetes-sigs.github.io/external-dns/",
       "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Velero \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "velero",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://vmware-tanzu.github.io/helm-charts",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/infrastructure/controllers/velero/helm-release\\.yaml$/",
+        "/docs/src/reference/versions\\.md$/"
+      ],
+      "matchStrings": [
+        "image:\\s*velero/velero-plugin-for-aws:(?<currentValue>v[0-9.]+)",
+        "velero-plugin-for-aws \\| `(?<currentValue>v[0-9.]+)`"
+      ],
+      "depNameTemplate": "velero/velero-plugin-for-aws",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -126,6 +149,10 @@
     {
       "matchPackageNames": ["external-dns"],
       "groupName": "external-dns"
+    },
+    {
+      "matchPackageNames": ["velero", "velero/velero-plugin-for-aws"],
+      "groupName": "velero"
     },
     {
       "matchManagers": ["flux", "custom.regex"],

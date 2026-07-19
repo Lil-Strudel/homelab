@@ -130,6 +130,9 @@ Two tiers:
 - **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster:
   8× 1 TB Samsung 870 across two ZFS pools, served over NFS.
 
+PVC data is backed up off-cluster to AWS S3 by **Velero**; cluster state itself is
+recovered from this repo via Flux. See [Operations → Backups](./operations/backups.md).
+
 ## Secrets
 
 Secrets never hit git in plaintext. Everything sensitive is [SOPS](https://github.com/getsops/sops)-encrypted

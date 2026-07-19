@@ -1,0 +1,83 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: velero
+  namespace: velero
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: velero
+      version: "12.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: velero
+        namespace: velero
+      interval: 1h
+  values:
+    initContainers:
+      - name: velero-plugin-for-aws
+        image: velero/velero-plugin-for-aws:v1.14.2
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - name: plugins
+            mountPath: /target
+    credentials:
+      useSecret: true
+      existingSecret: velero-aws-credentials
+    snapshotsEnabled: false
+    deployNodeAgent: true
+    nodeAgent:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+    configuration:
+      backupStorageLocation:
+        - name: default
+          provider: aws
+          bucket: homelab-backups-827aa035
+          prefix: velero
+          default: true
+          config:
+            region: us-west-2
+    schedules:
+      daily:
+        schedule: "0 2 * * *"
+        template:
+          ttl: 72h0m0s
+          storageLocation: default
+          snapshotVolumes: false
+          defaultVolumesToFsBackup: true
+          includedNamespaces:
+            - "*"
+          includedResources:
+            - pods
+            - persistentvolumeclaims
+            - persistentvolumes
+      weekly:
+        schedule: "0 3 * * 0"
+        template:
+          ttl: 336h0m0s
+          storageLocation: default
+          snapshotVolumes: false
+          defaultVolumesToFsBackup: true
+          includedNamespaces:
+            - "*"
+          includedResources:
+            - pods
+            - persistentvolumeclaims
+            - persistentvolumes
+      monthly:
+        schedule: "0 4 1 * *"
+        template:
+          ttl: 2880h0m0s
+          storageLocation: default
+          snapshotVolumes: false
+          defaultVolumesToFsBackup: true
+          includedNamespaces:
+            - "*"
+          includedResources:
+            - pods
+            - persistentvolumeclaims
+            - persistentvolumes
