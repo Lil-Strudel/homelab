@@ -21,6 +21,7 @@
 
 - [Secrets (SOPS + Age)](./operations/secrets.md)
 - [Storage (Rook-Ceph)](./operations/storage.md)
+- [Backups (Velero)](./operations/backups.md)
 - [DNS & Certificates](./operations/dns-and-certificates.md)
 - [VPN Access](./operations/vpn-access.md)
 - [Adding a Service](./operations/adding-a-service.md)
