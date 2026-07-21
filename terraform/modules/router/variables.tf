@@ -40,6 +40,12 @@ variable "internet_vlans" {
   default     = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 }
 
+variable "dns_records" {
+  description = "Internal static DNS A records served by the router's resolver, keyed by FQDN -> IP"
+  type        = map(string)
+  default     = {}
+}
+
 variable "dhcp_leases" {
   description = "Static DHCP reservations, keyed by a stable name"
   type = map(object({

@@ -43,6 +43,42 @@ platform pin):
 - Add a `packageRules` `groupName` when one component spans multiple packages (see
   `rook-ceph`, `cilium`) so its updates land in one PR.
 
+## Networking: IP, DNS & exposure
+
+A service reachable by hostname needs a **pinned** LoadBalancer IP and a DNS record.
+The IP's subnet is also what selects its Cilium pool, so exposure class is decided by
+which IP you pick (see [Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip)):
+
+| Class | Pin an IP from | Pool | DNS |
+| --- | --- | --- | --- |
+| Internal-only | `10.69.60.64/26` (Trusted) | `internal-pool` | MikroTik record only |
+| Public-class | `10.69.50.64/26` (DMZ) | `public-pool` | MikroTik + (dormant) Route53 |
+
+1. **Pin the IP** on the `LoadBalancer` Service — or, for a dedicated-mode `Ingress`, on
+   the `Ingress` (Cilium propagates `lbipam.cilium.io/*` to the generated Service):
+
+   ```yaml
+   metadata:
+     annotations:
+       lbipam.cilium.io/ips: "10.69.60.65"
+   ```
+
+2. **Register DNS** by adding the service to the `services` map in `terraform/main.tf`
+   (one source of truth for both horizons) and `terraform apply`:
+
+   ```hcl
+   services = {
+     myapp = { ip = "10.69.60.65", public = false }
+   }
+   ```
+
+   `public = true` (with a `10.69.50.x` IP) also creates a Route53 record — dormant until
+   the internet last-mile (`local.public_ingress_ip`) exists. See
+   [DNS & Certificates](./dns-and-certificates.md).
+
+3. **Certificate** — reference `letsencrypt-prod` (DNS-01, no inbound needed). A trusted
+   cert works even for internal-only services.
+
 ## Secrets
 
 To add an application secret: write a normal `Secret` manifest named

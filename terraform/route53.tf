@@ -48,15 +48,32 @@ resource "aws_iam_access_key" "route53" {
 }
 
 output "route53_access_key_id" {
-  description = "Access key ID for the Route53 user (cert-manager + external-dns). Copy into the SOPS secrets."
+  description = "Access key ID for the Route53 user (cert-manager DNS-01). Copy into the SOPS secrets."
   value       = aws_iam_access_key.route53.id
   sensitive   = true
 }
 
 output "route53_secret_access_key" {
-  description = "Secret access key for the Route53 user (cert-manager + external-dns). Copy into the SOPS secrets."
+  description = "Secret access key for the Route53 user (cert-manager DNS-01). Copy into the SOPS secrets."
   value       = aws_iam_access_key.route53.secret
   sensitive   = true
+}
+
+# Public records for internet-exposed services. Dormant until local.public_ingress_ip
+# is set (the internet last-mile: a tunnel / VPS), at which point every `public = true`
+# service in local.services gets an A record pointing at that entry point.
+resource "aws_route53_record" "public" {
+  for_each = {
+    for name, svc in local.services : name => svc
+    if svc.public && local.public_ingress_ip != ""
+  }
+
+  provider = aws.dns
+  zone_id  = data.aws_route53_zone.main.zone_id
+  name     = "${each.key}.${local.domain}"
+  type     = "A"
+  ttl      = 300
+  records  = [local.public_ingress_ip]
 }
 
 resource "aws_route53_record" "vpn" {

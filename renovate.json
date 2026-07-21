@@ -101,15 +101,6 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
-      "matchStrings": ["external-dns \\| `(?<currentValue>[0-9.]+)`"],
-      "depNameTemplate": "external-dns",
-      "datasourceTemplate": "helm",
-      "registryUrlTemplate": "https://kubernetes-sigs.github.io/external-dns/",
-      "versioningTemplate": "helm"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
       "matchStrings": ["Velero \\| `(?<currentValue>[0-9.]+)`"],
       "depNameTemplate": "velero",
       "datasourceTemplate": "helm",
@@ -148,10 +139,6 @@
     {
       "matchPackageNames": ["quay.io/jetstack/charts/cert-manager"],
       "groupName": "cert-manager"
-    },
-    {
-      "matchPackageNames": ["external-dns"],
-      "groupName": "external-dns"
     },
     {
       "matchPackageNames": ["velero", "velero/velero-plugin-for-aws"],

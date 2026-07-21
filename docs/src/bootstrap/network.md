@@ -62,6 +62,6 @@ from `bgp_peers` in `terraform/main.tf`, so this is really just what an apply se
 - **Local role:** `ebgp`
 
 That's the whole router side. Once the cluster is up, the control-plane VIP route and
-the service pool (`10.69.255.0/24`) `/32`s appear automatically — kube-vip advertises
-the VIP, Cilium advertises services (see
+the service pool (`internal-pool` `10.69.60.64/26` + `public-pool` `10.69.50.64/26`)
+`/32`s appear automatically — kube-vip advertises the VIP, Cilium advertises services (see
 [Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip)).

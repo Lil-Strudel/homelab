@@ -92,8 +92,7 @@ picking the right layer.
 | **Rook-Ceph operator** | controllers | Ceph operator + ceph-csi-operator + CRDs |
 | **Ceph-CSI drivers** | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
 | **cert-manager** | controllers | ACME (Let's Encrypt) certificate issuance + CRDs |
-| **external-dns** | controllers | Syncs Service/Ingress hostnames to Route53 |
-| **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
+| **Cilium BGP / LB pools** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
 | **Rook `CephCluster`** | configs | The cluster CR + storage classes (need the operator) |
 | **ClusterIssuers** | configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
 
@@ -106,14 +105,22 @@ to the router at **AS 65100** (`10.69.60.1`).
 - **Control-plane VIP** — `10.69.60.10`, advertised by **kube-vip** (BGP mode,
   `svc_enable=false`) from the **control-plane** nodes. Service LB is off here.
 - **`LoadBalancer` service IPs** — advertised by **Cilium's BGP control plane** from
-  the **worker** nodes (`nodeSelector` excludes control-plane). The pool is
-  `10.69.255.0/24` — a dedicated, BGP-only range that belongs to no VLAN subnet
-  (no DHCP, no connected route, no conflict). See
-  `kubernetes/infrastructure/configs/cilium/bgp.yaml` and `lb-pool.yaml`.
+  the **worker** nodes (`nodeSelector` excludes control-plane). Two pools split by
+  exposure class — `internal-pool` (`10.69.60.64/26`, Trusted) and `public-pool`
+  (`10.69.50.64/26`, DMZ) — each a slice of its VLAN's `/24`. A service lands in a pool
+  by the subnet of its pinned IP (`lbipam.cilium.io/ips`). See
+  `kubernetes/infrastructure/configs/cilium/bgp.yaml` and `lb-pool.yaml`, and
+  [Decisions → Service Networking](./decisions/service-networking.md) for why the pools
+  live inside the VLANs (and the accepted same-VLAN ARP trade-off).
 
 Cilium advertises **every** `LoadBalancer` service by default; label a Service
 `bgp-advertise: "false"` to keep its IP off BGP. The router declares BGP peers for
 all six nodes in `terraform/main.tf`.
+
+Public-class services on `public-pool` are built out exactly as if internet-exposed
+(DMZ IP, prod cert, public-DNS machinery); only the internet **last-mile** — a tunnel /
+VPS plus the Route53 records that point at it — is left unbuilt, so today they route
+internally only.
 
 See [Bootstrap → Network](./bootstrap/network.md) and [kube-vip Manifest](./decisions/kube-vip.md).
 

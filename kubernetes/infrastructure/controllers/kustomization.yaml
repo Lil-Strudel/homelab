@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - cert-manager
   - cilium
-  - external-dns
   - kube-vip
   - rook-ceph
   - velero
