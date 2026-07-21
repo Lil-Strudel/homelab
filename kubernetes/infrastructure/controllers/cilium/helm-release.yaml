@@ -5,6 +5,7 @@ metadata:
   namespace: kube-system
 spec:
   interval: 1h
+  timeout: 15m
   chart:
     spec:
       chart: cilium
@@ -14,6 +15,13 @@ spec:
         name: cilium
         namespace: kube-system
       interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true
   values:
     ipam:
       mode: kubernetes
