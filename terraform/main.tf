@@ -147,7 +147,7 @@ module "router" {
 
   vlans = local.vlans
 
-  enforce_firewall = false
+  enforce_firewall = true
 
   internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 
