@@ -49,9 +49,22 @@ is a self-contained config on AP1 pinned to the Dad VLAN (200).
 ## BGP
 
 All six nodes peer with the router over BGP (no ARP/L2 tricks). The router is
-AS **65100**, the cluster is AS **65000**, and the `LoadBalancer` pool is
-`10.69.255.0/24` (set in `cilium/lb-pool.yaml`). The full design — two speakers
-split by node role — is in
+AS **65100**, the cluster is AS **65000**. Two `CiliumLoadBalancerIPPool`s carry
+service IPs, split by exposure class (both in `cilium/lb-pool.yaml`):
+
+| Pool | CIDR | VLAN | For |
+| --- | --- | --- | --- |
+| `internal-pool` | `10.69.60.64/26` | Trusted (60) | internal-only services |
+| `public-pool` | `10.69.50.64/26` | DMZ (50) | internet-facing services |
+
+A service picks its pool by the subnet of its **pinned** LoadBalancer IP
+(`lbipam.cilium.io/ips`), so every service must pin an IP — which the Terraform
+services map does anyway. Both pools sit inside their VLAN's own `/24`; a
+BGP-advertised IP inside a VLAN's subnet is unreachable from *other hosts on that same
+VLAN* (they ARP on-segment), but neither VLAN holds hosts that reach LB IPs by IP, so
+this is accepted rather than worked around (see
+[Decisions → Service Networking](../decisions/service-networking.md)). The full design
+— two speakers split by node role — is in
 [Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip);
 the router-side setup is in [Bootstrap → Network](../bootstrap/network.md).
 
@@ -65,11 +78,12 @@ firewall rules that mirror that role.
 
 | Tunnel | Subnet | Port | Role — reaches |
 | --- | --- | --- | --- |
-| `wg-home` | `10.69.70.0/24` | `51820/udp` | Personal / trusted devices (phone, etc.): Home, Trusted (cluster + `LoadBalancer` IPs `10.69.255.x`), DMZ, internet. **No Management, no router admin.** |
+| `wg-home` | `10.69.70.0/24` | `51820/udp` | Personal / trusted devices (phone, etc.): Home, Trusted (cluster + internal `LoadBalancer` IPs `10.69.60.64/26`), DMZ (public-class `LoadBalancer` IPs `10.69.50.64/26`), internet. **No Management, no router admin.** |
 | `wg-management` | `10.69.80.0/24` | `51821/udp` | Admin: every VLAN + full router access + internet. |
 
-Cluster `LoadBalancer` services (`10.69.255.x`) are reachable over `wg-home` via the
-`wg-home → Trusted` rule, since those routes' next hops are Trusted-VLAN nodes.
+Cluster `LoadBalancer` services are reachable over `wg-home` via the `wg-home → Trusted`
+and `wg-home → DMZ` rules, since those routes' next hops are Trusted-VLAN nodes
+regardless of which pool the IP came from.
 
 Adding a client is a day-2 task — see [Operations → VPN Access](../operations/vpn-access.md).
 
@@ -84,8 +98,8 @@ The router runs a **default-deny** inter-VLAN policy — isolation comes from th
 | Guest (20) | ✅ | — | fully isolated (also wants AP client isolation) |
 | Security (30) | ❌ | — | fully isolated |
 | IoT (40) | ❌ | — | fully isolated |
-| DMZ (50) | ✅ | — | inbound port-forwards added later |
-| Trusted (60) | ✅ | — | intra-cluster traffic is same-VLAN |
+| DMZ (50) | ✅ | — | holds `public-pool` service IPs; internet inbound (the last-mile tunnel) not built yet |
+| Trusted (60) | ✅ | — | the services VLAN; holds `internal-pool` service IPs; intra-cluster traffic is same-VLAN |
 | Management (100) | ✅ | everything | |
 | Dad (200) | ✅ | — | isolated household segment |
 | `wg-home` | ✅ | Home, Trusted, DMZ | personal VPN; no Management/router admin |

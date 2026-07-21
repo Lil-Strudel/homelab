@@ -92,6 +92,19 @@ locals {
   }
   base_ip = "10.69"
   domain  = "lilstrudel.io"
+
+  # Single source of truth for cluster service DNS. `ip` is the pinned Cilium
+  # LoadBalancer IP (its subnet decides the pool: 10.69.50.x public / 10.69.60.x
+  # internal). `public = true` adds a Route53 record once the internet last-mile
+  # exists — see route53.tf and local.public_ingress_ip.
+  services = {
+    vault = { ip = "10.69.50.64", public = true }
+    ceph  = { ip = "10.69.60.64", public = false }
+  }
+
+  # Public entry point (tunnel / VPS) for `public = true` services. Empty until the
+  # internet last-mile is built, which keeps the public Route53 records dormant.
+  public_ingress_ip = ""
 }
 
 provider "routeros" {
@@ -146,6 +159,8 @@ module "router" {
   base_ip = local.base_ip
 
   vlans = local.vlans
+
+  dns_records = { for name, svc in local.services : "${name}.${local.domain}" => svc.ip }
 
   enforce_firewall = true
 

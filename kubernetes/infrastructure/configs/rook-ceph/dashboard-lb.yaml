@@ -6,6 +6,8 @@ metadata:
   labels:
     app: rook-ceph-mgr
     rook_cluster: rook-ceph
+  annotations:
+    lbipam.cilium.io/ips: "10.69.60.64"
 spec:
   type: LoadBalancer
   selector:

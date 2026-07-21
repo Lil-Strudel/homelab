@@ -39,7 +39,7 @@ Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is `
 
 `clusters/main` → **infra-controllers** (`infrastructure/controllers`) → **infra-configs** (`infrastructure/configs`, `dependsOn` controllers) → **apps** (`apps/main`, `dependsOn` configs).
 
-The controllers/configs split matters: **controllers** install operators/CRDs (Cilium, kube-vip, Rook-Ceph HelmReleases); **configs** apply the custom resources those operators define (Cilium BGP peering + LB IP pool, Rook `CephCluster`). A config that lands before its controller's CRDs exist will fail — keep new CRs in `configs` and their operator in `controllers`.
+The controllers/configs split matters: **controllers** install operators/CRDs (Cilium, kube-vip, Rook-Ceph HelmReleases); **configs** apply the custom resources those operators define (Cilium BGP peering + LB IP pools, Rook `CephCluster`). A config that lands before its controller's CRDs exist will fail — keep new CRs in `configs` and their operator in `controllers`.
 
 - **Cilium** (`controllers/cilium/helm-release.yaml`) is CNI + kube-proxy replacement + default ingress controller + BGP control plane. Its Helm values must mirror the bootstrap `helm install` in `docs/src/bootstrap/cluster.md`, and the chart version must match what's used at bootstrap.
 - **BGP** (`configs/cilium/bgp.yaml`): workers (non-control-plane nodes) peer ASN 65000 → MikroTik ASN 65100 at `10.69.60.1` to advertise LoadBalancer service IPs. kube-vip advertises the control-plane VIP separately.
@@ -76,7 +76,7 @@ Before adding a comment, apply the test: is this an unobvious "why" about this e
 
 ## Terraform (`terraform/`)
 
-MikroTik RouterOS network as code (router, 2 switches, 2 access points) via the `terraform-routeros/routeros` provider, plus the Route53 IAM user for cert-manager/external-dns. State in AWS S3 (`profile = "strudelan"`, native lockfile). AWS profiles resolve through **AWS SSO** — run `./scripts/aws_sso_setup.sh` once, then `aws sso login` before each session; then standard `terraform init/plan/apply` from `terraform/`.
+MikroTik RouterOS network as code (router, 2 switches, 2 access points) via the `terraform-routeros/routeros` provider, plus the Route53 IAM user for cert-manager and the split-horizon DNS records (internal MikroTik + public Route53). State in AWS S3 (`profile = "strudelan"`, native lockfile). AWS profiles resolve through **AWS SSO** — run `./scripts/aws_sso_setup.sh` once, then `aws sso login` before each session; then standard `terraform init/plan/apply` from `terraform/`.
 
 - `main.tf` is the single root: it defines a **provider alias per device** (each MikroTik reached over its own `10.69.100.x:6729` HTTPS-API), the VLAN map, and instantiates reusable modules under `modules/` (`router`, `switch`, `access_point`, `wifi_config`, plus port/vlan helpers) with each device's port/VLAN assignments inline. Two AWS providers: the default (`strudelan`, state account) and `aws.dns` (`lil-strudel`, the account holding the `lilstrudel.io` Route53 zone). `route53.tf` uses `aws.dns` to manage the DNS IAM user + policy + key — see [DNS & Certificates](docs/src/operations/dns-and-certificates.md).
 - The RouterOS API endpoint (port 6729, TLS) is set up out-of-band by `scripts/initialize_mikrotik.sh` (run once on a fresh device: DHCP, self-signed certs, enable `www-ssl`). `scripts/tf_import_mikrotik.sh` records `terraform import` commands for adopting pre-existing device state.

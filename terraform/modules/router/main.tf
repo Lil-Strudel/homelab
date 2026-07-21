@@ -28,6 +28,15 @@ resource "routeros_ip_dns" "dns-server" {
   ]
 }
 
+resource "routeros_ip_dns_record" "static" {
+  for_each = var.dns_records
+
+  name    = each.key
+  address = each.value
+  type    = "A"
+  ttl     = "5m"
+}
+
 resource "routeros_ip_firewall_nat" "nat_rule" {
   action        = "masquerade"
   chain         = "srcnat"
