@@ -27,9 +27,14 @@ New pinned versions must be monitored or they rot. Check that what you added is 
 up (and record it in [Reference → Versions](../reference/versions.md) if it's a
 platform pin):
 
-- **Flux-native sources** — `HelmRelease` chart versions, `HelmRepository`/
-  `OCIRepository` refs, and image tags in `kubernetes/**` — are covered automatically
-  by the `flux` manager. Prefer these; they need no extra config.
+- **Flux-native sources** — `HelmRelease` chart versions and `HelmRepository`/
+  `OCIRepository` refs — are covered automatically by the `flux` manager. Prefer these;
+  they need no extra config.
+- **Container `image:` tags in ordinary workload manifests** under `kubernetes/apps/`
+  (a plain `Deployment`, `StatefulSet`, etc.) are covered by the `kubernetes` manager,
+  scoped to that path in `renovate.json`. The `flux` manager only reads Flux CRDs, so an
+  image tag pinned inside a `HelmRelease`'s `values` (see the velero-plugin / Ceph image
+  entries) still needs a `customManagers` regex.
 - **A version pinned anywhere else** — a raw manifest, a version echoed in `docs/`, a
   `--version` flag in a setup guide — is invisible to the standard managers and needs a
   `customManagers` regex entry in `renovate.json` (follow the kube-vip / Cilium / Talos

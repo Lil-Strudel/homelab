@@ -11,6 +11,9 @@
   "flux": {
     "managerFilePatterns": ["/kubernetes/.+\\.ya?ml$/"]
   },
+  "kubernetes": {
+    "managerFilePatterns": ["/kubernetes/apps/.+\\.ya?ml$/"]
+  },
   "customManagers": [
     {
       "customType": "regex",
