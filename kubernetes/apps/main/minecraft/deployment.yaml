@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft
+  namespace: minecraft
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: minecraft
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: minecraft
+          image: itzg/minecraft-server:2026.7.2-java25 # java stream must satisfy VERSION's minimum — Paper 26.x needs 25+
+          ports:
+            - name: minecraft
+              containerPort: 25565
+            - name: rcon
+              containerPort: 25575
+          env:
+            - name: EULA
+              value: "TRUE"
+            - name: TYPE
+              value: PAPER
+            - name: VERSION
+              value: "26.2"
+            - name: MEMORY
+              value: 1400M
+            - name: USE_AIKAR_FLAGS
+              value: "true"
+            - name: DIFFICULTY
+              value: normal
+            - name: MOTD
+              value: lilstrudel.io
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft
+                  key: RCON_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          startupProbe:
+            exec:
+              command: ["mc-health"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: ["mc-health"]
+            periodSeconds: 15
+          livenessProbe:
+            exec:
+              command: ["mc-health"]
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: minecraft-data

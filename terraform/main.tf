@@ -98,8 +98,10 @@ locals {
   # internal). `public = true` adds a Route53 record once the internet last-mile
   # exists — see route53.tf and local.public_ingress_ip.
   services = {
-    vault = { ip = "10.69.50.64", public = true }
-    ceph  = { ip = "10.69.60.64", public = false }
+    vault     = { ip = "10.69.50.64", public = true }
+    ceph      = { ip = "10.69.60.64", public = false }
+    minecraft = { ip = "10.69.50.65", public = false }
+    factorio  = { ip = "10.69.50.66", public = false }
   }
 
   # Public entry point (tunnel / VPS) for `public = true` services. Empty until the
