@@ -68,9 +68,12 @@ which IP you pick (see [Architecture → Load balancing](../architecture.md#load
 
    ```hcl
    services = {
-     myapp = { ip = "10.69.60.65", public = false }
+     "myapp.lilstrudel.io" = { ip = "10.69.60.65", zone = local.domain, public = false }
    }
    ```
+
+   Entries are keyed by FQDN, so a service can take a subdomain of any zone listed in
+   `local.zones` — or a bare apex, if it should own the whole domain.
 
    `public = true` (with a `10.69.50.x` IP) also creates a Route53 record — dormant until
    the internet last-mile (`local.public_ingress_ip`) exists. See

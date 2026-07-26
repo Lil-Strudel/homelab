@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shlink
+  namespace: shlink
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: shlink
+  template:
+    metadata:
+      labels:
+        app: shlink
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001 # without this the fresh RBD volume is root-owned and the installer cannot create the SQLite file
+      containers:
+        - name: shlink
+          image: shlinkio/shlink:5.1.5
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DEFAULT_DOMAIN
+              value: 16e.link
+            - name: IS_HTTPS_ENABLED
+              value: "true"
+            - name: TIMEZONE
+              value: America/Denver
+            - name: TRUSTED_PROXIES
+              value: 10.0.0.0/8 # else every visit is attributed to the Envoy ingress pod
+            - name: INITIAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shlink
+                  key: INITIAL_API_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /etc/shlink/data
+          startupProbe:
+            httpGet:
+              path: /rest/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /rest/health
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /rest/health
+              port: http
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: shlink-data

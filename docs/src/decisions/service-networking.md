@@ -68,6 +68,18 @@ SNI. A distinct L4 port per service doesn't fit that record shape, so exposing t
 needs its own path — a dst-nat rule, a WAN → DMZ forward rule ahead of the catch-all
 drop, and a stable WAN address, none of which exist today.
 
+## Some services must never take the last mile
+
+A DMZ IP normally means "ready to expose". Shlink's admin UI is the exception. The
+`shlink-web-client` SPA is fully client-side: `SHLINK_SERVER_API_KEY` is baked into what
+the browser downloads, so anyone who can load `admin.16e.link` holds an admin API key for
+the Shlink instance. It shares the short domain's DMZ IP and Ingress for convenience, but
+it is internal-only **by design**, not merely because the last mile is unbuilt.
+
+If `16e.link` is ever exposed, the `admin` host must be excluded from whatever forwards
+`:443` — or the UI moved behind real authentication first. The short-link host itself is
+safe to expose; only the admin host carries the key.
+
 ## Public exposure: everything but the last mile
 
 Internet-facing services are built as if already exposed — a DMZ (`public-pool`) IP, a

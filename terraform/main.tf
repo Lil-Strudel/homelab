@@ -93,15 +93,27 @@ locals {
   base_ip = "10.69"
   domain  = "lilstrudel.io"
 
-  # Single source of truth for cluster service DNS. `ip` is the pinned Cilium
-  # LoadBalancer IP (its subnet decides the pool: 10.69.50.x public / 10.69.60.x
-  # internal). `public = true` adds a Route53 record once the internet last-mile
-  # exists — see route53.tf and local.public_ingress_ip.
+  # Listing a zone here grants the cert-manager IAM user write access to it — a zone
+  # left out cannot be issued certs via DNS-01. See route53.tf.
+  zones = toset([
+    local.domain,
+    "16e.link",
+    "lilstrudel.com",
+    "strudelconsulting.com",
+    "aaronsanto.com",
+  ])
+
+  # Single source of truth for cluster service DNS, keyed by FQDN. `ip` is the pinned
+  # Cilium LoadBalancer IP (its subnet decides the pool: 10.69.50.x public / 10.69.60.x
+  # internal). `zone` must be one of local.zones. `public = true` adds a Route53 record
+  # once the internet last-mile exists — see route53.tf and local.public_ingress_ip.
   services = {
-    vault     = { ip = "10.69.50.64", public = true }
-    ceph      = { ip = "10.69.60.64", public = false }
-    minecraft = { ip = "10.69.50.65", public = false }
-    factorio  = { ip = "10.69.50.66", public = false }
+    "vault.lilstrudel.io"     = { ip = "10.69.50.64", zone = local.domain, public = true }
+    "ceph.lilstrudel.io"      = { ip = "10.69.60.64", zone = local.domain, public = false }
+    "minecraft.lilstrudel.io" = { ip = "10.69.50.65", zone = local.domain, public = false }
+    "factorio.lilstrudel.io"  = { ip = "10.69.50.66", zone = local.domain, public = false }
+    "16e.link"                = { ip = "10.69.50.67", zone = "16e.link", public = false }
+    "admin.16e.link"          = { ip = "10.69.50.67", zone = "16e.link", public = false }
   }
 
   # Public entry point (tunnel / VPS) for `public = true` services. Empty until the
@@ -162,7 +174,7 @@ module "router" {
 
   vlans = local.vlans
 
-  dns_records = { for name, svc in local.services : "${name}.${local.domain}" => svc.ip }
+  dns_records = { for fqdn, svc in local.services : fqdn => svc.ip }
 
   enforce_firewall = true
 

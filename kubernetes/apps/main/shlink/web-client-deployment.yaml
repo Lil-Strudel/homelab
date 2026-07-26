@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shlink-web-client
+  namespace: shlink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shlink-web-client
+  template:
+    metadata:
+      labels:
+        app: shlink-web-client
+    spec:
+      containers:
+        - name: shlink-web-client
+          image: shlinkio/shlink-web-client:4.8.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SHLINK_SERVER_NAME
+              value: 16e.link
+            - name: SHLINK_SERVER_URL
+              value: https://16e.link
+            - name: SHLINK_SERVER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shlink
+                  key: INITIAL_API_KEY
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi

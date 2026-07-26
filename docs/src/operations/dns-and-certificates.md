@@ -3,15 +3,16 @@
 DNS is **split-horizon**, and both sides are declared in Terraform from one source of
 truth — the `services` map in `terraform/main.tf`:
 
-- **Internal** — the MikroTik resolver answers `*.lilstrudel.io` for LAN clients,
-  pointing each service at its **pinned** cluster `LoadBalancer` IP (`10.69.60.x`
-  internal / `10.69.50.x` public-class). Managed as `routeros_ip_dns_record`s by the
-  router module.
-- **Public** — Route53 (`lilstrudel.io`) answers for the internet, pointing
-  internet-facing services at the public entry point. This side is **built but dormant**:
-  the records only materialize once `local.public_ingress_ip` is set (the internet
-  last-mile — a tunnel / VPS). Until then, `public = true` services resolve **internally
-  only**.
+- **Internal** — the MikroTik resolver answers for LAN clients, pointing each service at
+  its **pinned** cluster `LoadBalancer` IP (`10.69.60.x` internal / `10.69.50.x`
+  public-class). Managed as `routeros_ip_dns_record`s by the router module.
+- **Public** — Route53 answers for the internet, pointing internet-facing services at
+  the public entry point. This side is **built but dormant**: the records only
+  materialize once `local.public_ingress_ip` is set (the internet last-mile — a tunnel /
+  VPS). Until then, `public = true` services resolve **internally only**.
+
+Entries are keyed by **FQDN**, so a service can live on a subdomain or on a bare apex,
+and `zone` picks which of the owned domains it belongs to.
 
 Certificates are separate and need no inbound reachability:
 
@@ -36,17 +37,40 @@ applied by Terraform.
 `infra-controllers` runs with `wait: true`, so cert-manager's CRDs exist before the
 `ClusterIssuer` CRs reconcile in `infra-configs`.
 
+## Zones
+
+`local.zones` in `terraform/main.tf` lists every hosted zone the cluster may use. It is
+the whole control surface: a zone in the list is read by Terraform **and** made writable
+by cert-manager, so DNS-01 can issue for any name in it. A zone left out is neither.
+
+| Zone | Used for |
+| --- | --- |
+| `lilstrudel.io` | the primary domain — cluster services, `vpn` |
+| `16e.link` | Shlink short links (apex) and its admin UI |
+| `lilstrudel.com` | enrolled, unused |
+| `strudelconsulting.com` | enrolled, unused |
+| `aaronsanto.com` | enrolled, unused |
+
+Enrolling a zone is read-only plus an IAM grant — it never adopts or modifies records
+already in that zone. Only names that appear in `local.services` (plus `vpn`) are
+managed, so everything else a zone serves is left alone. The cost of enrolling a zone is
+that the in-cluster credential gains `ChangeResourceRecordSets` on it; keep a zone out of
+the list if it should never be cluster-writable.
+
 ## AWS account & IAM
 
-The `lilstrudel.io` zone lives in a **separate AWS account** from the `strudelan`
-Terraform-state account. Terraform manages Route53 (the zone data source, the public
-records, and the DNS IAM user) under a second provider alias (`aws.dns`, profile
-`lil-strudel`) in `terraform/route53.tf`:
+All the zones live in a **separate AWS account** from the `strudelan` Terraform-state
+account. Terraform manages Route53 (the zone data sources, the public records, and the
+DNS IAM user) under a second provider alias (`aws.dns`, profile `lil-strudel`) in
+`terraform/route53.tf`:
 
-- `aws_iam_user.route53` (`homelab-route53`) with an inline policy scoped to the
-  `lilstrudel.io` hosted zone, for **cert-manager's** DNS-01 `TXT` challenges.
+- `aws_iam_user.route53` (`homelab-route53`) with an inline policy scoped to the hosted
+  zones in `local.zones`, for **cert-manager's** DNS-01 `TXT` challenges.
 - `aws_iam_access_key.route53`, surfaced as the **sensitive** outputs
   `route53_access_key_id` / `route53_secret_access_key`.
+
+Widening the zone list rewrites the policy in place and does **not** rotate the access
+key, so the `route53-credentials` Secret below stays valid.
 
 Both profiles resolve through AWS SSO / IAM Identity Center. Configure them once with
 the helper (writes a managed block into `~/.aws/config`, then logs in):
@@ -79,15 +103,19 @@ Edit it with `sops <file>` to paste the two values, then commit. The repo-root
 ## Using it
 
 **A DNS record for a service** — add it to the `services` map in `terraform/main.tf` and
-`terraform apply`. The `ip` is the service's pinned LoadBalancer IP; its subnet also
-decides the Cilium pool (`10.69.50.x` public / `10.69.60.x` internal):
+`terraform apply`. The key is the full hostname; `ip` is the service's pinned
+LoadBalancer IP, whose subnet also decides the Cilium pool (`10.69.50.x` public /
+`10.69.60.x` internal); `zone` names which of the [enrolled zones](#zones) it sits in:
 
 ```hcl
 services = {
-  myapp = { ip = "10.69.60.65", public = false }  # internal-only
+  "myapp.lilstrudel.io" = { ip = "10.69.60.65", zone = local.domain, public = false }
+  "example.com"         = { ip = "10.69.50.68", zone = "example.com", public = false }
   # public-class: ip in 10.69.50.x + public = true
 }
 ```
+
+A bare apex is just a key with no subdomain part, so a service can own an entire domain.
 
 - `public = false` → an internal MikroTik record only. Reachable on the LAN and over
   `wg-home`.
