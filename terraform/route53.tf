@@ -1,6 +1,8 @@
-data "aws_route53_zone" "main" {
+data "aws_route53_zone" "all" {
+  for_each = local.zones
+
   provider = aws.dns
-  name     = local.domain
+  name     = each.value
 }
 
 resource "aws_iam_user" "route53" {
@@ -28,7 +30,9 @@ resource "aws_iam_user_policy" "route53" {
           "route53:ListResourceRecordSets",
           "route53:ListTagsForResources",
         ]
-        Resource = "arn:aws:route53:::hostedzone/${data.aws_route53_zone.main.zone_id}"
+        Resource = [
+          for z in data.aws_route53_zone.all : "arn:aws:route53:::hostedzone/${z.zone_id}"
+        ]
       },
       {
         Effect = "Allow"
@@ -64,13 +68,13 @@ output "route53_secret_access_key" {
 # service in local.services gets an A record pointing at that entry point.
 resource "aws_route53_record" "public" {
   for_each = {
-    for name, svc in local.services : name => svc
+    for fqdn, svc in local.services : fqdn => svc
     if svc.public && local.public_ingress_ip != ""
   }
 
   provider = aws.dns
-  zone_id  = data.aws_route53_zone.main.zone_id
-  name     = "${each.key}.${local.domain}"
+  zone_id  = data.aws_route53_zone.all[each.value.zone].zone_id
+  name     = each.key
   type     = "A"
   ttl      = 300
   records  = [local.public_ingress_ip]
@@ -78,7 +82,7 @@ resource "aws_route53_record" "public" {
 
 resource "aws_route53_record" "vpn" {
   provider = aws.dns
-  zone_id  = data.aws_route53_zone.main.zone_id
+  zone_id  = data.aws_route53_zone.all[local.domain].zone_id
   name     = "vpn.${local.domain}"
   type     = "A"
   ttl      = 300

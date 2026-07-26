@@ -166,6 +166,10 @@
       "groupName": "velero"
     },
     {
+      "matchPackageNames": ["shlinkio/shlink", "shlinkio/shlink-web-client"],
+      "groupName": "shlink"
+    },
+    {
       "matchManagers": ["flux", "custom.regex"],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
