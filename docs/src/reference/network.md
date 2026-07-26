@@ -59,7 +59,9 @@ service IPs, split by exposure class (both in `cilium/lb-pool.yaml`):
 
 A service picks its pool by the subnet of its **pinned** LoadBalancer IP
 (`lbipam.cilium.io/ips`), so every service must pin an IP — which the Terraform
-services map does anyway. Both pools sit inside their VLAN's own `/24`; a
+services map does anyway. That map (`local.services` in `terraform/main.tf`) is also the
+allocation record: it is the one place to look up which IPs in either pool are taken, and
+the one place to claim a new one. Both pools sit inside their VLAN's own `/24`; a
 BGP-advertised IP inside a VLAN's subnet is unreachable from *other hosts on that same
 VLAN* (they ARP on-segment), but neither VLAN holds hosts that reach LB IPs by IP, so
 this is accepted rather than worked around (see

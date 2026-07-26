@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factorio
+  namespace: factorio
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: factorio
+  template:
+    metadata:
+      labels:
+        app: factorio
+    spec:
+      containers:
+        - name: factorio
+          image: factoriotools/factorio:2.0.77
+          ports:
+            - name: factorio
+              containerPort: 34197
+              protocol: UDP
+            - name: rcon
+              containerPort: 27015
+          volumeMounts:
+            - name: data
+              mountPath: /factorio
+          startupProbe:
+            tcpSocket:
+              port: rcon
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: rcon
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: rcon
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: factorio-data

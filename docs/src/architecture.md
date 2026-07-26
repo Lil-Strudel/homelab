@@ -65,7 +65,7 @@ kubernetes/
 ├── infrastructure/
 │   ├── controllers/        # CNI, operators, controllers (install CRDs)
 │   └── configs/            # custom resources that use those CRDs
-└── apps/main/              # user-facing workloads (none yet)
+└── apps/main/              # user-facing workloads
 ```
 
 Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage

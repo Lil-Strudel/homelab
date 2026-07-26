@@ -14,7 +14,28 @@
   "kubernetes": {
     "managerFilePatterns": ["/kubernetes/apps/.+\\.ya?ml$/"]
   },
+  "customDatasources": {
+    "papermc": {
+      "defaultRegistryUrlTemplate": "https://fill.papermc.io/v3/projects/paper",
+      "format": "json",
+      "transformTemplates": [
+        "{ \"releases\": $spread(versions).*[$not($contains($, \"-\"))].{ \"version\": $ } }"
+      ]
+    }
+  },
   "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/apps/main/minecraft/deployment\\.yaml$/"
+      ],
+      "matchStrings": [
+        "-\\s*name:\\s*VERSION\\s+value:\\s*\"(?<currentValue>[0-9.]+)\""
+      ],
+      "depNameTemplate": "papermc",
+      "datasourceTemplate": "custom.papermc",
+      "versioningTemplate": "loose"
+    },
     {
       "customType": "regex",
       "managerFilePatterns": [
