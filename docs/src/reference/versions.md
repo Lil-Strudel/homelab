@@ -11,7 +11,7 @@ in lockstep, so the two never drift.
 | Talos Linux | `v1.13.6` | `talos/patch.yaml` (installer image tag) |
 | Kubernetes | `1.36.2` | `talos/gen-talos-objects.sh` (`--kubernetes-version`) + `talos/patch.yaml` installer tag |
 | Cilium | `1.19.6` | `kubernetes/infrastructure/controllers/cilium/helm-release.yaml` |
-| Flux | `v2.9.2` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
+| Flux | `v2.9.3` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
 | kube-vip | `v1.2.1` | `kubernetes/infrastructure/controllers/kube-vip/kube-vip.yaml` (image tag) |
 | Rook (operator + cluster) | `v1.20.2` | `controllers/rook-ceph/operator.yaml` + `configs/rook-ceph/cluster.yaml` |
 | ceph-csi-drivers | `1.0.4` | `controllers/rook-ceph/csi-drivers.yaml` |
