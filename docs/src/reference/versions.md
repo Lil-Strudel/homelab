@@ -15,7 +15,7 @@ in lockstep, so the two never drift.
 | kube-vip | `v1.2.1` | `kubernetes/infrastructure/controllers/kube-vip/kube-vip.yaml` (image tag) |
 | Rook (operator + cluster) | `v1.20.2` | `controllers/rook-ceph/operator.yaml` + `configs/rook-ceph/cluster.yaml` |
 | ceph-csi-drivers | `1.0.4` | `controllers/rook-ceph/csi-drivers.yaml` |
-| Ceph | `v20.2.2` (Tentacle) | `configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
+| Ceph | `v21.1.0` (Tentacle) | `configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
 | cert-manager | `v1.21.0` | `controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.1.0` | `controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.2` | `controllers/velero/helm-release.yaml` (`initContainers` image tag) |
