@@ -59,7 +59,7 @@ spec:
                   key: RCON_PASSWORD
             - name: PLUGINS
               value: |
-                https://github.com/EngineHub/WorldEdit/archive/refs/tags/7.4.4.zip
+                https://cdn.modrinth.com/data/1u6JkXh5/versions/qNuPcliz/worldedit-bukkit-7.4.4.jar
                 https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsX-2.22.0.jar
                 https://github.com/NEZNAMY/TAB/releases/download/6.1.0/TAB.v6.1.0.-.Paper.1.20.5.-.1.21.4.jar
           volumeMounts:
