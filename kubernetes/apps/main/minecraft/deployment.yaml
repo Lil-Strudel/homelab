@@ -41,7 +41,7 @@ spec:
             - name: DIFFICULTY
               value: normal
             - name: MOTD
-              value: lilstrudel.io
+              value: "\u00A7b╔═════════\u00A7d❖\u00A7b═════════╗\u00A7r\n\u00A73    LilStrudel SMP\u00A7r\n\u00A7b╚═════════\u00A7d❖\u00A7b═════════╝\u00A7r\n\u00A77A world for friends. \u00A74❤"
             - name: ENABLE_WHITELIST
               value: true
             - name: WHITELIST
