@@ -57,6 +57,12 @@ spec:
                 secretKeyRef:
                   name: minecraft
                   key: RCON_PASSWORD
+            - name: PLUGINS
+              value: |
+                EssentialsX
+                WorldEdit
+                TAB
+                LuckPerms
           volumeMounts:
             - name: data
               mountPath: /data
