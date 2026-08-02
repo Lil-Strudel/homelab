@@ -42,6 +42,10 @@ spec:
               value: normal
             - name: MOTD
               value: lilstrudel.io
+            - name: ENABLE_WHITELIST
+              value: true
+            - name: WHITELIST
+              value: ""
             - name: RCON_PASSWORD
               valueFrom:
                 secretKeyRef:
