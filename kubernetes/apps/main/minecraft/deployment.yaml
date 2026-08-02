@@ -41,11 +41,17 @@ spec:
             - name: DIFFICULTY
               value: normal
             - name: MOTD
-              value: "\u00A7b╔═════════\u00A7d❖\u00A7b═════════╗\u00A7r\n\u00A73    LilStrudel SMP\u00A7r\n\u00A7b╚═════════\u00A7d❖\u00A7b═════════╝\u00A7r\n\u00A77A world for friends. \u00A74❤"
+              value: "\u00A73LilStrudel.io\u00A7r\n\u00A77A world for friends. \u00A74❤"
             - name: ENABLE_WHITELIST
               value: "true"
             - name: WHITELIST
-              value: ""
+              value: "f09c8561-47f3-4e82-9346-ddb8f69fde7f"
+            - name: OVERRIDE_WHITELIST
+              value: "true"
+            - name: OPS
+              value: "f09c8561-47f3-4e82-9346-ddb8f69fde7f"
+            - name: ENABLE_AUTOPAUSE
+              value: "true"
             - name: RCON_PASSWORD
               valueFrom:
                 secretKeyRef:
