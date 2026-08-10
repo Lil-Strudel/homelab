@@ -30,6 +30,10 @@ resource "routeros_ip_dhcp_server" "dhcp_server" {
   address_pool = routeros_ip_pool.pool.name
   interface    = routeros_interface_vlan.vlan.name
   name         = "${var.name}_DHCP_Server"
+
+  # Declared to match what RouterOS already sets; leaving it out makes every plan want to
+  # null it and silently change how dynamic leases are keyed.
+  dynamic_lease_identifiers = "client-mac,client-id"
 }
 
 resource "routeros_ip_dhcp_server_network" "dhcp_server_network" {

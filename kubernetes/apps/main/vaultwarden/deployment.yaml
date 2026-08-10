@@ -15,9 +15,21 @@ spec:
       labels:
         app: vaultwarden
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: vaultwarden
           image: vaultwarden/server:1.37.0-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: 80
@@ -26,6 +38,13 @@ spec:
               value: https://vault.lilstrudel.io
             - name: SIGNUPS_ALLOWED
               value: "false"
+            - name: INVITATIONS_ALLOWED
+              value: "false"
+            - name: DISABLE_ICON_DOWNLOAD
+              value: "true" # icon fetching would reveal every domain in the vault to those sites
+
+            - name: IP_HEADER
+              value: X-Forwarded-For # without this every failed login is attributed to the ingress pod
             - name: ADMIN_TOKEN
               valueFrom:
                 secretKeyRef:

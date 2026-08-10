@@ -1,15 +1,7 @@
 apiVersion: cilium.io/v2
 kind: CiliumLoadBalancerIPPool
 metadata:
-  name: internal-pool
+  name: services-pool
 spec:
   blocks:
-    - cidr: 10.69.60.64/26
----
-apiVersion: cilium.io/v2
-kind: CiliumLoadBalancerIPPool
-metadata:
-  name: public-pool
-spec:
-  blocks:
-    - cidr: 10.69.50.64/26
+    - cidr: 10.69.65.0/24

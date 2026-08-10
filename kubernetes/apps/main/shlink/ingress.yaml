@@ -5,13 +5,12 @@ metadata:
   namespace: shlink
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    lbipam.cilium.io/ips: "10.69.50.67"
+    lbipam.cilium.io/ips: "10.69.65.21"
 spec:
   ingressClassName: cilium
   tls:
     - hosts:
         - 16e.link
-        - admin.16e.link
       secretName: shlink-tls
   rules:
     - host: 16e.link
@@ -22,15 +21,5 @@ spec:
             backend:
               service:
                 name: shlink
-                port:
-                  number: 8080
-    - host: admin.16e.link
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: shlink-web-client
                 port:
                   number: 8080

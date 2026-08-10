@@ -2,3 +2,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: shlink
+  # baseline, not restricted: shlink-web-client's nginx entrypoint cannot run as non-root.
+  # warn/audit stay at restricted so the gap stays visible.
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

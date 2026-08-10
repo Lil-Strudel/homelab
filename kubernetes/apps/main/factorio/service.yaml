@@ -4,7 +4,7 @@ metadata:
   name: factorio
   namespace: factorio
   annotations:
-    lbipam.cilium.io/ips: "10.69.50.66"
+    lbipam.cilium.io/ips: "10.69.65.31"
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local

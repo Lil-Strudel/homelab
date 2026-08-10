@@ -4,7 +4,7 @@ metadata:
   name: minecraft
   namespace: minecraft
   annotations:
-    lbipam.cilium.io/ips: "10.69.50.65"
+    lbipam.cilium.io/ips: "10.69.65.30"
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
