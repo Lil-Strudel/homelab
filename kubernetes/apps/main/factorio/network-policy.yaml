@@ -1,0 +1,41 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: factorio
+  namespace: factorio
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "34197"
+              protocol: UDP
+    # The readiness/liveness probes are tcpSocket checks against RCON from the kubelet.
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "27015"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        - matchPattern: "*.factorio.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

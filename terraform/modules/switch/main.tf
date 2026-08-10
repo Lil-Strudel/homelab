@@ -40,6 +40,11 @@ resource "routeros_ip_route" "route" {
   gateway  = "${var.base_ip}.${var.management_vlan}.1"
 }
 
+resource "routeros_ip_dns" "dns" {
+  servers               = ["${var.base_ip}.${var.management_vlan}.1"]
+  allow_remote_requests = false # never an open resolver on Management
+}
+
 ###################
 # Configuring Ports
 ###################

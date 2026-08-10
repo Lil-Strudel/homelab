@@ -162,6 +162,16 @@ resource "routeros_interface_list_member" "vlan_list_member_wg" {
   list      = routeros_interface_list.vlan_list.name
 }
 
+# Management only. MAC-telnet / MAC-Winbox stay available as a recovery path when IP
+# routing is broken, but only from the segment that already has full router access.
+resource "routeros_interface_list" "management_list" {
+  name = "Management_List"
+}
+resource "routeros_interface_list_member" "management_list_member" {
+  interface = "Management_VLAN"
+  list      = routeros_interface_list.management_list.name
+}
+
 # VLANs allowed to reach the internet. Security + IoT are intentionally excluded.
 resource "routeros_interface_list" "internet_list" {
   name = "Internet_List"
@@ -298,25 +308,19 @@ resource "routeros_ip_firewall_filter" "forward_internet" {
   in_interface_list  = routeros_interface_list.internet_list.name
   out_interface_list = routeros_interface_list.wan_list.name
   comment            = "Internet access (excludes Security + IoT)"
-  place_before       = routeros_ip_firewall_filter.forward_home_trusted.id
+  place_before       = routeros_ip_firewall_filter.forward_home_services.id
 }
 
-resource "routeros_ip_firewall_filter" "forward_home_trusted" {
-  chain         = "forward"
-  action        = "accept"
-  in_interface  = "Home_VLAN"
-  out_interface = "Trusted_VLAN"
-  comment       = "Home -> Trusted"
-  place_before  = routeros_ip_firewall_filter.forward_home_dmz.id
-}
-
-resource "routeros_ip_firewall_filter" "forward_home_dmz" {
-  chain         = "forward"
-  action        = "accept"
-  in_interface  = "Home_VLAN"
-  out_interface = "DMZ_VLAN"
-  comment       = "Home -> DMZ"
-  place_before  = routeros_ip_firewall_filter.forward_management_all.id
+# Matched on dst-address, not out-interface: service IPs are BGP /32s whose next hop is a
+# Trusted-VLAN node, so these packets leave via Trusted_VLAN. Matching the interface would
+# also expose the nodes themselves — the Talos API, the kube API, and the Zigbee Pi.
+resource "routeros_ip_firewall_filter" "forward_home_services" {
+  chain        = "forward"
+  action       = "accept"
+  in_interface = "Home_VLAN"
+  dst_address  = var.services_cidr
+  comment      = "Home -> Services"
+  place_before = routeros_ip_firewall_filter.forward_management_all.id
 }
 
 resource "routeros_ip_firewall_filter" "forward_management_all" {
@@ -334,25 +338,16 @@ resource "routeros_ip_firewall_filter" "forward_wg_home_home" {
   in_interface  = routeros_interface_wireguard.wg_home.name
   out_interface = "Home_VLAN"
   comment       = "Home VPN -> Home"
-  place_before  = routeros_ip_firewall_filter.forward_wg_home_trusted.id
+  place_before  = routeros_ip_firewall_filter.forward_wg_home_services.id
 }
 
-resource "routeros_ip_firewall_filter" "forward_wg_home_trusted" {
-  chain         = "forward"
-  action        = "accept"
-  in_interface  = routeros_interface_wireguard.wg_home.name
-  out_interface = "Trusted_VLAN"
-  comment       = "Home VPN -> Trusted (cluster + services)"
-  place_before  = routeros_ip_firewall_filter.forward_wg_home_dmz.id
-}
-
-resource "routeros_ip_firewall_filter" "forward_wg_home_dmz" {
-  chain         = "forward"
-  action        = "accept"
-  in_interface  = routeros_interface_wireguard.wg_home.name
-  out_interface = "DMZ_VLAN"
-  comment       = "Home VPN -> DMZ"
-  place_before  = routeros_ip_firewall_filter.forward_wg_management.id
+resource "routeros_ip_firewall_filter" "forward_wg_home_services" {
+  chain        = "forward"
+  action       = "accept"
+  in_interface = routeros_interface_wireguard.wg_home.name
+  dst_address  = var.services_cidr
+  comment      = "Home VPN -> Services"
+  place_before = routeros_ip_firewall_filter.forward_wg_management.id
 }
 
 resource "routeros_ip_firewall_filter" "forward_wg_management" {
@@ -369,6 +364,85 @@ resource "routeros_ip_firewall_filter" "forward_drop" {
   action   = "drop"
   comment  = "Drop All Forward (staged: enforce_firewall)"
   disabled = !var.enforce_firewall
+}
+
+#################
+# Service Hardening
+#################
+# Only the services being switched off are declared. winbox (8291), ssh, and www-ssl
+# (6729, the REST endpoint every provider alias uses) are deliberately left unmanaged —
+# declaring www-ssl without its certificate attribute would strip the cert and break
+# every subsequent apply.
+resource "routeros_ip_service" "disabled" {
+  for_each = {
+    "telnet"  = 23
+    "ftp"     = 21
+    "www"     = 80
+    "api"     = 8728
+    "api-ssl" = 8729
+  }
+
+  numbers  = each.key
+  port     = each.value
+  disabled = true
+}
+
+resource "routeros_tool_bandwidth_server" "btest" {
+  enabled = false
+}
+
+resource "routeros_ip_settings" "hardening" {
+  accept_redirects    = false
+  accept_source_route = false
+  tcp_syncookies      = true
+  rp_filter           = "loose" # not strict: BGP + the kube-vip VIP make return paths asymmetric
+}
+
+resource "routeros_tool_mac_server" "mac_server" {
+  allowed_interface_list = routeros_interface_list.management_list.name
+}
+
+resource "routeros_tool_mac_server_winbox" "mac_winbox" {
+  allowed_interface_list = routeros_interface_list.management_list.name
+}
+
+resource "routeros_ip_neighbor_discovery_settings" "discovery" {
+  discover_interface_list = routeros_interface_list.management_list.name
+}
+
+####################
+# Raw (pre-conntrack)
+####################
+# The raw table drops before connection tracking, so scan and flood traffic costs no
+# conntrack state. Reputation and geo lists land here once the edge host feeds them.
+resource "routeros_ip_firewall_raw" "wan_dns_drop" {
+  chain             = "prerouting"
+  action            = "drop"
+  protocol          = "udp"
+  dst_port          = "53"
+  in_interface_list = routeros_interface_list.wan_list.name
+  comment           = "Never answer DNS from WAN (the resolver has allow-remote-requests on)"
+  place_before      = routeros_ip_firewall_raw.wan_icmp_limit.id
+}
+
+# Order is load-bearing: the accept must precede the drop, or every ICMP packet from the
+# WAN is discarded rather than just the excess — which black-holes PMTUD.
+resource "routeros_ip_firewall_raw" "wan_icmp_limit" {
+  chain             = "prerouting"
+  action            = "accept"
+  protocol          = "icmp"
+  limit             = "10,20:packet"
+  in_interface_list = routeros_interface_list.wan_list.name
+  comment           = "Rate-limit ICMP from WAN"
+  place_before      = routeros_ip_firewall_raw.wan_icmp_drop.id
+}
+
+resource "routeros_ip_firewall_raw" "wan_icmp_drop" {
+  chain             = "prerouting"
+  action            = "drop"
+  protocol          = "icmp"
+  in_interface_list = routeros_interface_list.wan_list.name
+  comment           = "Drop ICMP from WAN above the rate limit"
 }
 
 ###################

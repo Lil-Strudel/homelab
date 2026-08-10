@@ -93,6 +93,11 @@ locals {
   base_ip = "10.69"
   domain  = "lilstrudel.io"
 
+  # Cluster LoadBalancer IPs. Deliberately outside every VLAN's /24: no interface owns it,
+  # so no host ever treats a service IP as directly connected and ARPs for it on-segment.
+  # The router only ever learns /32s here over BGP from the Trusted-VLAN workers.
+  services_cidr = "10.69.65.0/24"
+
   # Listing a zone here grants the cert-manager IAM user write access to it — a zone
   # left out cannot be issued certs via DNS-01. See route53.tf.
   zones = toset([
@@ -103,21 +108,31 @@ locals {
     "aaronsanto.com",
   ])
 
-  # Single source of truth for cluster service DNS, keyed by FQDN. `ip` is the pinned
-  # Cilium LoadBalancer IP (its subnet decides the pool: 10.69.50.x public / 10.69.60.x
-  # internal). `zone` must be one of local.zones. `public = true` adds a Route53 record
-  # once the internet last-mile exists — see route53.tf and local.public_ingress_ip.
+  # Single source of truth for cluster services, keyed by FQDN, and the allocation record
+  # for the services range: this is the one place to look up a taken IP or claim a free
+  # one. `ip` is the pinned Cilium LoadBalancer IP, `zone` must be one of local.zones.
+  #
+  # `expose` is the whole internet-facing decision for a service — it drives the dst-nat
+  # rule, the DMZ -> service forward rule, and the public Route53 record together, so a
+  # service that is not declared here cannot be reachable from the WAN. `null` means
+  # internal-only. The shape, once the edge host exists:
+  #
+  #   expose = {
+  #     wan_port = 443                            # dst-nat WAN -> edge host
+  #     backend  = { proto = "tcp", port = 443 }  # edge host -> this service's ip
+  #     enabled  = true                           # false keeps the path built but closed
+  #   }
   services = {
-    "vault.lilstrudel.io"     = { ip = "10.69.50.64", zone = local.domain, public = true }
-    "ceph.lilstrudel.io"      = { ip = "10.69.60.64", zone = local.domain, public = false }
-    "minecraft.lilstrudel.io" = { ip = "10.69.50.65", zone = local.domain, public = false }
-    "factorio.lilstrudel.io"  = { ip = "10.69.50.66", zone = local.domain, public = false }
-    "16e.link"                = { ip = "10.69.50.67", zone = "16e.link", public = false }
-    "admin.16e.link"          = { ip = "10.69.50.67", zone = "16e.link", public = false }
+    "vault.lilstrudel.io"     = { ip = "10.69.65.20", zone = local.domain, expose = null }
+    "ceph.lilstrudel.io"      = { ip = "10.69.65.10", zone = local.domain, expose = null }
+    "minecraft.lilstrudel.io" = { ip = "10.69.65.30", zone = local.domain, expose = null }
+    "factorio.lilstrudel.io"  = { ip = "10.69.65.31", zone = local.domain, expose = null }
+    "16e.link"                = { ip = "10.69.65.21", zone = "16e.link", expose = null }
+    "admin.16e.link"          = { ip = "10.69.65.22", zone = "16e.link", expose = null }
   }
 
-  # Public entry point (tunnel / VPS) for `public = true` services. Empty until the
-  # internet last-mile is built, which keeps the public Route53 records dormant.
+  # WAN-side entry point for exposed services: the DMZ edge host, reached via dst-nat.
+  # Empty until that host exists, which keeps the public Route53 records dormant.
   public_ingress_ip = ""
 }
 
@@ -172,11 +187,12 @@ module "router" {
 
   base_ip = local.base_ip
 
-  vlans = local.vlans
+  vlans         = local.vlans
+  services_cidr = local.services_cidr
 
   dns_records = { for fqdn, svc in local.services : fqdn => svc.ip }
 
-  enforce_firewall = true
+  enforce_firewall = false
 
   internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 

@@ -9,3 +9,5 @@ resources:
 - web-client-deployment.yaml
 - web-client-service.yaml
 - ingress.yaml
+- admin-ingress.yaml
+- network-policy.yaml

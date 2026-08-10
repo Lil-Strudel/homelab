@@ -1,0 +1,28 @@
+# Separate Ingress, IP, and certificate from 16e.link so that publishing the short-link
+# host cannot reach the admin UI. The shlink-web-client SPA hands a working Shlink admin
+# API key to any browser that loads it, so this host is internal-only permanently.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shlink-admin
+  namespace: shlink
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.22"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - admin.16e.link
+      secretName: shlink-admin-tls
+  rules:
+    - host: admin.16e.link
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shlink-web-client
+                port:
+                  number: 8080

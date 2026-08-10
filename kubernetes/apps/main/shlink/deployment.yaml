@@ -15,13 +15,21 @@ spec:
       labels:
         app: shlink
     spec:
+      automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001 # without this the fresh RBD volume is root-owned and the installer cannot create the SQLite file
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: shlink
           image: shlinkio/shlink:5.1.5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: 8080
@@ -33,7 +41,7 @@ spec:
             - name: TIMEZONE
               value: America/Denver
             - name: TRUSTED_PROXIES
-              value: 10.0.0.0/8 # else every visit is attributed to the Envoy ingress pod
+              value: 10.244.0.0/16 # pod CIDR only — else anything in RFC1918 can spoof X-Forwarded-For
             - name: INITIAL_API_KEY
               valueFrom:
                 secretKeyRef:

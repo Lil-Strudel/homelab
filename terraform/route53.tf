@@ -63,13 +63,13 @@ output "route53_secret_access_key" {
   sensitive   = true
 }
 
-# Public records for internet-exposed services. Dormant until local.public_ingress_ip
-# is set (the internet last-mile: a tunnel / VPS), at which point every `public = true`
-# service in local.services gets an A record pointing at that entry point.
+# Public records for internet-exposed services. Dormant until local.public_ingress_ip is
+# set (the DMZ edge host), at which point every service carrying an `expose` block gets an
+# A record pointing at that entry point.
 resource "aws_route53_record" "public" {
   for_each = {
     for fqdn, svc in local.services : fqdn => svc
-    if svc.public && local.public_ingress_ip != ""
+    if svc.expose != null && local.public_ingress_ip != ""
   }
 
   provider = aws.dns

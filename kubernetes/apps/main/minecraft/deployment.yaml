@@ -15,12 +15,20 @@ spec:
       labels:
         app: minecraft
     spec:
+      automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: minecraft
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           image: itzg/minecraft-server:2026.7.2-java25 # java stream must satisfy VERSION's minimum — Paper 26.x needs 25+
           ports:
             - name: minecraft
@@ -55,14 +63,15 @@ spec:
                 secretKeyRef:
                   name: minecraft
                   key: RCON_PASSWORD
-            - name: PLUGINS
-              value: |
-                https://cdn.modrinth.com/data/1u6JkXh5/versions/qNuPcliz/worldedit-bukkit-7.4.4.jar
-                https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsX-2.22.0.jar
-                https://github.com/NEZNAMY/TAB/releases/download/6.1.0/TAB.v6.1.0.-.Paper.1.20.5.-.1.21.4.jar
+            - name: DATAPACKS
+              value: /datapacks
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: plugins
+              mountPath: /plugins
+            - name: datapacks
+              mountPath: /datapacks
           startupProbe:
             exec:
               command: ["mc-health"]
@@ -83,8 +92,15 @@ spec:
               cpu: 500m
               memory: 1Gi
             limits:
+              cpu: "2" # generous — CFS throttling shows up as tick lag, so this only catches a runaway
               memory: 2Gi
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: minecraft-data
+        - name: plugins
+          persistentVolumeClaim:
+            claimName: minecraft-plugins
+        - name: datapacks
+          persistentVolumeClaim:
+            claimName: minecraft-datapacks

@@ -23,6 +23,16 @@ resource "aws_s3_bucket_public_access_block" "backups" {
   restrict_public_buckets = true
 }
 
+# Versioning turns Velero's deletes into delete markers, so a compromised cluster cannot
+# destroy backup history with the credentials it holds. Velero keeps s3:DeleteObject, so
+# its own TTL expiry still behaves normally.
+resource "aws_s3_bucket_versioning" "backups" {
+  bucket = aws_s3_bucket.backups.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
 
@@ -41,6 +51,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
+    }
+  }
+
+  # The recovery window for a delete that should not have happened. Long enough to notice,
+  # short enough that superseded versions do not accumulate cost forever.
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
     }
   }
 }
@@ -82,6 +105,20 @@ resource "aws_iam_user_policy" "velero" {
           "s3:ListBucketMultipartUploads",
         ]
         Resource = aws_s3_bucket.backups.arn
+      },
+      # Neither is granted above, so this only guards against a future widening of the
+      # Allow statements: an explicit Deny cannot be overridden by one.
+      {
+        Effect = "Deny"
+        Action = [
+          "s3:DeleteObjectVersion",
+          "s3:PutBucketVersioning",
+          "s3:PutLifecycleConfiguration",
+        ]
+        Resource = [
+          aws_s3_bucket.backups.arn,
+          "${aws_s3_bucket.backups.arn}/*",
+        ]
       },
     ]
   })

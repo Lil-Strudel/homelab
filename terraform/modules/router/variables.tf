@@ -40,6 +40,11 @@ variable "internet_vlans" {
   default     = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 }
 
+variable "services_cidr" {
+  description = "Routed range holding cluster LoadBalancer IPs. Not a VLAN and not an L2 segment — the router only ever learns /32s in it over BGP, so rules must match dst-address rather than out-interface."
+  type        = string
+}
+
 variable "dns_records" {
   description = "Internal static DNS A records served by the router's resolver, keyed by FQDN -> IP"
   type        = map(string)
