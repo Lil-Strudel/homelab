@@ -19,7 +19,11 @@ Do this per device (router, switches, APs):
 7. Set Terraform Cloud execution to **Local** (so the SOPS provider can read the Age
    key and reach the LAN).
 8. Before any major firewall change, set all drop firewall rules to **disabled**
-   (`enforce_firewall = false`).
+   (`enforce_firewall = false` in `terraform/main.tf`). Apply once — nothing is blocked
+   yet — verify each flow in the
+   [firewall matrix](../reference/network.md#firewall), then set it back to `true` and
+   apply again. Run Terraform from the Management VLAN, since enforcement restricts
+   router admin to Management and `wg-management`.
 9. Run the import script (below), then `terraform apply`.
 
 ## Importing existing RouterOS objects
@@ -61,7 +65,9 @@ from `bgp_peers` in `terraform/main.tf`, so this is really just what an apply se
   workers `10.69.60.21`/`.22`/`.23`
 - **Local role:** `ebgp`
 
-That's the whole router side. Once the cluster is up, the control-plane VIP route and
-the service pool (`internal-pool` `10.69.60.64/26` + `public-pool` `10.69.50.64/26`)
-`/32`s appear automatically — kube-vip advertises the VIP, Cilium advertises services (see
+That's the whole router side. Once the cluster is up, the control-plane VIP route and a
+`/32` per service in `10.69.65.0/24` appear automatically — kube-vip advertises the VIP,
+Cilium advertises services (see
 [Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip)).
+Those `/32`s are the only way the services range exists on the network, so nothing about
+it needs a VLAN, an address, or a DHCP server on the router.

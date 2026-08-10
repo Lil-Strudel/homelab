@@ -45,42 +45,46 @@ platform pin):
 
 ## Networking: IP, DNS & exposure
 
-A service reachable by hostname needs a **pinned** LoadBalancer IP and a DNS record.
-The IP's subnet is also what selects its Cilium pool, so exposure class is decided by
-which IP you pick (see [Architecture → Load balancing](../architecture.md#load-balancing--the-control-plane-vip)):
+A service reachable by hostname needs a **pinned** LoadBalancer IP and a DNS record. All
+service IPs come from one pool, `services-pool` (`10.69.65.1`–`10.69.65.254`); the address
+carries no exposure meaning (see
+[Decisions → Service Networking](../decisions/service-networking.md)).
 
-| Class | Pin an IP from | Pool | DNS |
-| --- | --- | --- | --- |
-| Internal-only | `10.69.60.64/26` (Trusted) | `internal-pool` | MikroTik record only |
-| Public-class | `10.69.50.64/26` (DMZ) | `public-pool` | MikroTik + (dormant) Route53 |
+1. **Claim an address** by reading `local.services` in `terraform/main.tf` — the
+   allocation record — and taking a free one.
 
-1. **Pin the IP** on the `LoadBalancer` Service — or, for a dedicated-mode `Ingress`, on
+2. **Pin it** on the `LoadBalancer` Service — or, for a dedicated-mode `Ingress`, on
    the `Ingress` (Cilium propagates `lbipam.cilium.io/*` to the generated Service):
 
    ```yaml
    metadata:
      annotations:
-       lbipam.cilium.io/ips: "10.69.60.65"
+       lbipam.cilium.io/ips: "10.69.65.50"
    ```
 
-2. **Register DNS** by adding the service to the `services` map in `terraform/main.tf`
-   (one source of truth for both horizons) and `terraform apply`:
+3. **Register DNS** by adding the service to the same `services` map (one source of truth
+   for both horizons) and `terraform apply`:
 
    ```hcl
    services = {
-     "myapp.lilstrudel.io" = { ip = "10.69.60.65", zone = local.domain, public = false }
+     "myapp.lilstrudel.io" = { ip = "10.69.65.50", zone = local.domain, expose = null }
    }
    ```
 
    Entries are keyed by FQDN, so a service can take a subdomain of any zone listed in
-   `local.zones` — or a bare apex, if it should own the whole domain.
-
-   `public = true` (with a `10.69.50.x` IP) also creates a Route53 record — dormant until
-   the internet last-mile (`local.public_ingress_ip`) exists. See
+   `local.zones` — or a bare apex, if it should own the whole domain. `expose` is the
+   single internet-facing switch; `null` keeps the service internal. See
    [DNS & Certificates](./dns-and-certificates.md).
 
-3. **Certificate** — reference `letsencrypt-prod` (DNS-01, no inbound needed). A trusted
+4. **Certificate** — reference `letsencrypt-prod` (DNS-01, no inbound needed). A trusted
    cert works even for internal-only services.
+
+## Hardening
+
+A workload in `apps/main/` is expected to match the baseline the existing apps run —
+non-root, dropped capabilities, `RuntimeDefault` seccomp, no service-account token, a
+namespace enforcing PSA `restricted`, and a default-deny `CiliumNetworkPolicy` with the
+flows it actually needs written back in. See [Applications](./applications.md).
 
 ## Secrets
 

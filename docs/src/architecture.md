@@ -15,7 +15,7 @@ committed to this repo:
         Talos Linux ────────►  6× bare-metal nodes (immutable OS + k8s)
             │
             ▼
-        Flux (GitOps) ──────►  in-cluster platform (Cilium, kube-vip, Rook-Ceph)
+        Flux (GitOps) ──────►  in-cluster platform + workloads
 ```
 
 ## 1. Network — Terraform
@@ -92,9 +92,13 @@ picking the right layer.
 | **Rook-Ceph operator** | controllers | Ceph operator + ceph-csi-operator + CRDs |
 | **Ceph-CSI drivers** | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
 | **cert-manager** | controllers | ACME (Let's Encrypt) certificate issuance + CRDs |
-| **Cilium BGP / LB pools** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
+| **Velero** | controllers | Off-cluster PVC backups to S3 |
+| **VictoriaMetrics / Loki / Grafana / Alloy** | controllers | Metrics, logs, dashboards, log shipping |
+| **ddns** | controllers | CronJob keeping Route53 pointed at the WAN address |
+| **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
 | **Rook `CephCluster`** | configs | The cluster CR + storage classes (need the operator) |
 | **ClusterIssuers** | configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
+| **`VMServiceScrape`s** | configs | Scrape targets for Ceph and Cilium (need the VM operator's CRDs) |
 
 ### Load balancing & the control-plane VIP
 
@@ -105,22 +109,21 @@ to the router at **AS 65100** (`10.69.60.1`).
 - **Control-plane VIP** — `10.69.60.10`, advertised by **kube-vip** (BGP mode,
   `svc_enable=false`) from the **control-plane** nodes. Service LB is off here.
 - **`LoadBalancer` service IPs** — advertised by **Cilium's BGP control plane** from
-  the **worker** nodes (`nodeSelector` excludes control-plane). Two pools split by
-  exposure class — `internal-pool` (`10.69.60.64/26`, Trusted) and `public-pool`
-  (`10.69.50.64/26`, DMZ) — each a slice of its VLAN's `/24`. A service lands in a pool
-  by the subnet of its pinned IP (`lbipam.cilium.io/ips`). See
+  the **worker** nodes (`nodeSelector` excludes control-plane). One pool,
+  `services-pool`, covering `10.69.65.1`–`10.69.65.254`. That range is deliberately not
+  a VLAN: it has no interface and no L2 segment, so it exists purely as the `/32`s
+  advertised here and no host ever treats a service address as directly connected. See
   `kubernetes/infrastructure/configs/cilium/bgp.yaml` and `lb-pool.yaml`, and
-  [Decisions → Service Networking](./decisions/service-networking.md) for why the pools
-  live inside the VLANs (and the accepted same-VLAN ARP trade-off).
+  [Decisions → Service Networking](./decisions/service-networking.md) for the full
+  reasoning and what it implies for firewall rules.
 
 Cilium advertises **every** `LoadBalancer` service by default; label a Service
 `bgp-advertise: "false"` to keep its IP off BGP. The router declares BGP peers for
 all six nodes in `terraform/main.tf`.
 
-Public-class services on `public-pool` are built out exactly as if internet-exposed
-(DMZ IP, prod cert, public-DNS machinery); only the internet **last-mile** — a tunnel /
-VPS plus the Route53 records that point at it — is left unbuilt, so today they route
-internally only.
+Nothing is exposed to the internet. Whether a service faces the WAN is a single
+declaration — the `expose` field on a service in `local.services` — not a property of the
+address it holds.
 
 See [Bootstrap → Network](./bootstrap/network.md) and [kube-vip Manifest](./decisions/kube-vip.md).
 
@@ -140,6 +143,15 @@ Two tiers:
 PVC data is backed up off-cluster to AWS S3 by **Velero**; cluster state itself is
 recovered from this repo via Flux. See [Operations → Backups](./operations/backups.md).
 
+### Observability
+
+Metrics (VictoriaMetrics), logs (Loki), log shipping (Grafana Alloy), and dashboards
+(Grafana) each get their own namespace and HelmRelease, all in **`infrastructure/`**
+rather than `apps/`: the stack watches the platform, so it has to reconcile before the
+things it watches, and `apps` is the last layer. The scrape CRs it needs from other
+namespaces live in `infrastructure/configs/observability/`, after the operator that
+defines them. See [Operations → Observability](./operations/observability.md).
+
 ## Secrets
 
 Secrets never hit git in plaintext. Everything sensitive is [SOPS](https://github.com/getsops/sops)-encrypted
@@ -148,5 +160,8 @@ Talos config scripts, and Flux. See [Operations → Secrets](./operations/secret
 
 ## Current scope
 
-Today the cluster runs the **platform only** — Cilium, kube-vip, Rook-Ceph, and Flux.
-User-facing workloads are not deployed yet.
+The platform (Cilium, kube-vip, Rook-Ceph, cert-manager, Velero, observability) and four
+user-facing workloads — Vaultwarden, Shlink, Minecraft, Factorio — run on the cluster.
+Their services are reachable from the Home and Management VLANs and over both WireGuard
+tunnels ([firewall matrix](./reference/network.md#firewall)); nothing is exposed to the
+internet. See [Operations → Applications](./operations/applications.md).

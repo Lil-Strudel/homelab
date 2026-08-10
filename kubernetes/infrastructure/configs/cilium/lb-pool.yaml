@@ -3,5 +3,9 @@ kind: CiliumLoadBalancerIPPool
 metadata:
   name: services-pool
 spec:
+  # start/stop rather than a bare cidr so the network and broadcast addresses stay out of
+  # the allocatable set — an unpinned service landing on 10.69.65.0 routes today but is a
+  # trap waiting on anything that treats the range as a real subnet.
   blocks:
-    - cidr: 10.69.65.0/24
+    - start: 10.69.65.1
+      stop: 10.69.65.254

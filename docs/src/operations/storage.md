@@ -42,8 +42,8 @@ them as Kubernetes Secrets it creates itself. There is nothing to SOPS-encrypt f
 
 The Ceph dashboard is enabled (HTTPS) and exposed on the LAN by
 `configs/rook-ceph/dashboard-lb.yaml` — a `LoadBalancer` Service following the active
-mgr on port 8443. It pins an internal IP (`10.69.60.64`, via `lbipam.cilium.io/ips`) from
-`internal-pool`, which Cilium's BGP control plane advertises to the MikroTik.
+mgr on port 8443. It pins `10.69.65.10` (via `lbipam.cilium.io/ips`) from `services-pool`,
+which Cilium's BGP control plane advertises to the MikroTik.
 
 ```bash
 kubectl -n rook-ceph get svc rook-ceph-mgr-lb

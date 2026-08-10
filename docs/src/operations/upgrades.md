@@ -46,6 +46,19 @@ and set `ceph-csi-drivers` to it. Re-fetch and diff the upstream `ceph-csi-drive
 values on a bump. Full procedure and verification commands are in
 [Decisions → Rook-Ceph Values](../decisions/rook-ceph.md).
 
+## Observability
+
+The four charts (`victoria-metrics-k8s-stack`, `loki`, `grafana`, `alloy`) are ordinary
+Renovate bumps with no manual step — but two details govern how they are wired:
+
+- The VictoriaMetrics stack ships its CRDs in Helm's `crds/` directory, which Helm alone
+  never updates on upgrade. Its `HelmRelease` sets `upgrade.crds: CreateReplace` so a
+  chart bump carries the operator's CRD changes with it; leaving that out silently pins
+  the CRDs at whatever the first install laid down.
+- Loki and Alloy come from the `grafana` Helm repo, Grafana itself from
+  `grafana-community`. A Renovate entry that points at the wrong one finds no versions
+  and quietly stops updating — see the entries in `renovate.json`.
+
 ## Flux
 
 Bump `--version` in the [bootstrap command](../bootstrap/cluster.md) and re-run

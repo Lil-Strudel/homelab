@@ -87,4 +87,84 @@ resource "aws_route53_record" "vpn" {
   type     = "A"
   ttl      = 300
   records  = [data.sops_file.secrets.data["vpn_public_ip"]]
+
+  lifecycle {
+    # The ddns CronJob owns the address; Terraform only owns the record's existence.
+    ignore_changes = [records]
+  }
+}
+
+locals {
+  # Records the in-cluster ddns CronJob keeps pointed at the current WAN address, as
+  # fqdn => hosted zone. This list is the IAM blast radius: the credential can rewrite
+  # exactly these names and nothing else. Adding one here also means adding a line to
+  # the `ddns-records` ConfigMap under kubernetes/infrastructure/controllers/ddns/.
+  ddns_records = {
+    "vpn.${local.domain}" = local.domain
+  }
+}
+
+resource "aws_iam_user" "ddns" {
+  provider = aws.dns
+  name     = "homelab-ddns"
+}
+
+resource "aws_iam_user_policy" "ddns" {
+  provider = aws.dns
+  name     = "homelab-ddns-route53"
+  user     = aws_iam_user.ddns.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "route53:ChangeResourceRecordSets"
+        Resource = [
+          for z in distinct(values(local.ddns_records)) :
+          "arn:aws:route53:::hostedzone/${data.aws_route53_zone.all[z].zone_id}"
+        ]
+        Condition = {
+          "ForAllValues:StringEquals" = {
+            # Normalized names are lowercase and carry no trailing dot.
+            "route53:ChangeResourceRecordSetsNormalizedRecordNames" = [
+              for name in keys(local.ddns_records) : lower(name)
+            ]
+            "route53:ChangeResourceRecordSetsRecordTypes" = ["A"]
+            "route53:ChangeResourceRecordSetsActions"     = ["UPSERT"]
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = "route53:ListResourceRecordSets"
+        Resource = [
+          for z in distinct(values(local.ddns_records)) :
+          "arn:aws:route53:::hostedzone/${data.aws_route53_zone.all[z].zone_id}"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = "route53:ListHostedZonesByName"
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_access_key" "ddns" {
+  provider = aws.dns
+  user     = aws_iam_user.ddns.name
+}
+
+output "ddns_access_key_id" {
+  description = "Access key ID for the ddns user. Copy into the ddns-aws-credentials SOPS secret."
+  value       = aws_iam_access_key.ddns.id
+  sensitive   = true
+}
+
+output "ddns_secret_access_key" {
+  description = "Secret access key for the ddns user. Copy into the ddns-aws-credentials SOPS secret."
+  value       = aws_iam_access_key.ddns.secret
+  sensitive   = true
 }

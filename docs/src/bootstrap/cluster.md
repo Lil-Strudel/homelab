@@ -32,7 +32,10 @@ helm install cilium cilium/cilium \
     --set bgpControlPlane.enabled=true \
     --set ingressController.enabled=true \
     --set ingressController.loadbalancerMode=dedicated \
-    --set ingressController.default=true
+    --set ingressController.default=true \
+    --set prometheus.enabled=true \
+    --set prometheus.metricsService=true \
+    --set operator.prometheus.metricsService=true
 ```
 
 ## Flux

@@ -93,6 +93,9 @@ raising a tunnel, or their routes collide. Non-NetworkManager hosts can use
 
 - The router's WAN must have a routable public IP. Behind CGNAT/double-NAT, forward the
   tunnel's UDP port upstream.
-- `vpn.lilstrudel.io` is a static A record ([`terraform/route53.tf`](../reference/network.md#wireguard--remote-access)).
-  If the ISP hands out a dynamic public IP, it needs a DDNS updater or the record (and
-  client `Endpoint`s) go stale.
+- `vpn.lilstrudel.io` is declared by Terraform (`route53.tf`) and its address is kept
+  current by the in-cluster [dynamic-DNS job](./dns-and-certificates.md#dynamic-dns), so
+  client `Endpoint`s survive an ISP address change without being rewritten.
+- The two tunnels are different planes: `wg-home` reaches Home and the cluster's service
+  range, `wg-management` reaches everything including router admin. Pick the tunnel by
+  what the client is for, per the [firewall matrix](../reference/network.md#firewall).

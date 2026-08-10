@@ -1,39 +1,64 @@
 # Service Networking
 
-Why cluster `LoadBalancer` IPs are laid out the way they are: two pools inside their
-VLANs, chosen by pinned IP, with public exposure fully built except the last mile.
+Why cluster `LoadBalancer` IPs are laid out the way they are: one pool, deliberately not
+a VLAN, that exists on the network only as BGP `/32`s.
 
-## Pools live *inside* the VLAN subnets
+## The services range is not a VLAN
 
-The LB pools are slices of real VLANs — `internal-pool` = `10.69.60.64/26` (Trusted),
-`public-pool` = `10.69.50.64/26` (DMZ) — not a dedicated out-of-band range. This makes
-the address plan self-consistent: Trusted *is* the services VLAN (it only ever holds
-services and the hosts that run them), and DMZ *is* where internet-facing services
-belong. A service's exposure class is legible from its IP.
+Every `LoadBalancer` IP comes from a single `CiliumLoadBalancerIPPool`, `services-pool`
+(`kubernetes/infrastructure/configs/cilium/lb-pool.yaml`), spanning `10.69.65.1` through
+`10.69.65.254`. `10.69.65.0/24` has no VLAN, no interface, no L2 segment, and no DHCP
+server. Its only existence on the network is the set of `/32` routes Cilium advertises
+over BGP from the Trusted-VLAN workers.
 
-The cost is a known BGP/L2 quirk: an IP advertised via BGP that sits inside a VLAN's own
-`/24` is unreachable from **other hosts on that same VLAN** — they see it as
-directly-connected and ARP for it on the segment, where nothing answers (Cilium
-announces it via BGP, not ARP). Everything **cross-VLAN** and over `wg-home` routes fine,
-because the router prefers the more-specific BGP `/32` over the connected route.
+The pool is declared as a `start`/`stop` block rather than a bare CIDR so the network and
+broadcast addresses stay out of the allocatable set — an unpinned service landing on
+`10.69.65.0` routes fine over BGP but is a trap for anything that later treats the range
+as a real subnet.
 
-## Accept the ARP trade-off; don't enable proxy-ARP
+Three properties follow, and they are the reason for the layout:
 
-The fix would be `local-proxy-arp` on the VLAN interface (the router answers ARP for the
-BGP `/32`s). We deliberately **don't**: neither Trusted nor DMZ holds hosts that reach LB
-IPs *by IP* from the same segment (pods use ClusterIP/DNS, not the LB IP), so the quirk
-never bites in practice. Enabling proxy-ARP would trade a non-problem for weaker L2
-isolation and router-hairpinned intra-subnet traffic. If a real same-VLAN → LB-IP flow
-ever appears, flipping `arp=local-proxy-arp` on that interface is the escape hatch.
+- **No host anywhere treats a service IP as directly connected.** Every client — on any
+  VLAN, including Trusted, and over WireGuard — routes to its gateway, which holds the
+  `/32`. There is no segment on which a host could ARP for a service IP and get silence,
+  so no `local-proxy-arp` escape hatch is needed and no VLAN's L2 isolation is weakened
+  to serve one.
+- **Firewall rules match on `dst-address`, never `out-interface`.** A packet to a service
+  IP leaves the router via `Trusted_VLAN` toward the node holding the backend, so an
+  `out-interface=Trusted_VLAN` rule would grant the *nodes* too — the Talos API, the
+  Kubernetes API, the kubelet, and the Zigbee Pi. Matching the destination range grants
+  exactly the services. See the [firewall matrix](../reference/network.md#firewall).
+- **The range is only ever a destination.** Pod traffic leaves the cluster SNAT'd to a
+  node address, so nothing on the network ever sources from `10.69.65.0/24` and no
+  source-side rule references it.
 
-## Pool = pinned IP, not a label
+## Exposure is a declaration, not an address
 
-Cilium propagates `lbipam.cilium.io/*` annotations from an `Ingress` to its generated
-Service, but **not** arbitrary labels — so pool selection can't rely on a label on an
-ingress-backed service. Instead the pools carry **no `serviceSelector`** and have
-disjoint CIDRs, and every service **pins** its IP (`lbipam.cilium.io/ips`). Membership
-falls out of which CIDR the pinned IP is in. Pinning is required anyway, since the
-Terraform `services` map needs a stable IP to write DNS against.
+The pool carries no exposure meaning: an IP says nothing about whether a service faces
+the internet. That decision lives in one field — `expose` on a service in `local.services`
+(`terraform/main.tf`) — which drives the dst-nat rule, the forward rule, and the public
+Route53 record together. A service that is not declared there cannot be reachable from
+the WAN.
+
+Every entry is `null` today. Nothing is exposed to the internet, and the DMZ VLAN is
+empty.
+
+Keeping exposure in a declaration rather than in the address plan is what makes it a
+single, reviewable switch instead of an emergent property of which IP someone picked.
+
+## Pin the IP; the services map is the allocation record
+
+With one pool and no `serviceSelector`, allocation would work without pinning — but
+every service pins anyway (`lbipam.cilium.io/ips`), because Terraform writes DNS against
+a stable address and a re-allocated IP would silently break the record. Cilium propagates
+`lbipam.cilium.io/*` annotations from an `Ingress` to its generated Service, so an
+ingress-backed service carries the annotation on the `Ingress`.
+
+`local.services` in `terraform/main.tf` is the allocation record: the one place to look
+up which addresses are taken and the one place to claim a free one. Addresses are grouped
+by role — platform services low, user-facing apps in the twenties and thirties,
+observability in the forties — which is a convention for readability, not something
+anything enforces.
 
 ## Raw L4 services bypass the Ingress entirely
 
@@ -55,40 +80,15 @@ a BGP speaker for its backend to be reachable at all. That holds because the spe
 — so a pod can only land on a node that advertises. Untainting a control plane would
 break it.
 
-## A DMZ IP is a claim about intent, not a live exposure
+## The Shlink admin UI is its own everything
 
-The `public-pool` IP and the `public` flag in the Terraform `services` map are
-independent, and the game servers use them apart: a DMZ IP so the eventual move to the
-internet is only the last mile, with `public = false` so no Route53 record is minted yet.
-
-They can't simply be flipped to `public = true` the way an HTTP service can.
-`aws_route53_record.public` points every public service at one shared
-`local.public_ingress_ip`, which assumes an HTTPS `:443` reverse proxy demultiplexing on
-SNI. A distinct L4 port per service doesn't fit that record shape, so exposing these
-needs its own path — a dst-nat rule, a WAN → DMZ forward rule ahead of the catch-all
-drop, and a stable WAN address, none of which exist today.
-
-## Some services must never take the last mile
-
-A DMZ IP normally means "ready to expose". Shlink's admin UI is the exception. The
+`admin.16e.link` has its own `Ingress`, its own IP, and its own certificate, entirely
+separate from `16e.link` — not a second host on a shared Ingress. The
 `shlink-web-client` SPA is fully client-side: `SHLINK_SERVER_API_KEY` is baked into what
-the browser downloads, so anyone who can load `admin.16e.link` holds an admin API key for
-the Shlink instance. It shares the short domain's DMZ IP and Ingress for convenience, but
-it is internal-only **by design**, not merely because the last mile is unbuilt.
+the browser downloads, so anyone who can load the admin host holds an admin API key for
+the Shlink instance.
 
-If `16e.link` is ever exposed, the `admin` host must be excluded from whatever forwards
-`:443` — or the UI moved behind real authentication first. The short-link host itself is
-safe to expose; only the admin host carries the key.
-
-## Public exposure: everything but the last mile
-
-Internet-facing services are built as if already exposed — a DMZ (`public-pool`) IP, a
-`letsencrypt-prod` cert (DNS-01 needs no inbound), and split-horizon DNS wired in
-Terraform. The **only** unbuilt piece is the internet last-mile: the tunnel / VPS and the
-Route53 records that point at it. Those records are coded but **dormant** — gated on
-`local.public_ingress_ip`, which is empty, so no public record is minted until a real
-entry point exists. Flipping a service to public later is: stand up the tunnel to forward
-`:443` → the service's DMZ IP, set `public_ingress_ip`, `terraform apply`.
-
-This keeps the awkward, security-sensitive decision (how to expose to the internet) as an
-isolated last step, while the whole internal pipeline is real and testable today.
+Separating them means the short-link host can be published without any chance of the
+admin host riding along on the same address or certificate. The short-link host is safe
+to expose; the admin host is internal-only permanently, and would need real
+authentication in front of it before that could change.
