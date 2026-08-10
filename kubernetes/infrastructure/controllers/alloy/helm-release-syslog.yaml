@@ -1,0 +1,98 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy-syslog
+  namespace: alloy
+spec:
+  interval: 1h
+  timeout: 15m
+  chart:
+    spec:
+      chart: alloy
+      version: "1.11.1"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: alloy
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+  values:
+    crds:
+      create: false
+
+    controller:
+      type: deployment
+      replicas: 1
+
+    rbac:
+      create: false # this receiver only listens on a socket; it discovers nothing from the API
+
+    service:
+      enabled: true
+      type: LoadBalancer
+      annotations:
+        lbipam.cilium.io/ips: "10.69.65.43"
+
+    alloy:
+      enableReporting: false
+      extraPorts:
+        - name: syslog
+          port: 514
+          targetPort: 1514
+          protocol: UDP
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 256Mi
+      configMap:
+        content: |-
+          logging {
+            level  = "info"
+            format = "logfmt"
+          }
+
+          loki.source.syslog "routeros" {
+            listener {
+              // 1514, not 514: the container runs unprivileged and the Service remaps the port
+              address       = "0.0.0.0:1514"
+              protocol      = "udp"
+              syslog_format = "rfc3164"
+              labels        = { job = "routeros" }
+            }
+
+            relabel_rules = loki.relabel.routeros.rules
+            forward_to    = [loki.write.default.receiver]
+          }
+
+          loki.relabel "routeros" {
+            forward_to = []
+
+            rule {
+              source_labels = ["__syslog_message_hostname"]
+              target_label  = "hostname"
+            }
+
+            rule {
+              source_labels = ["__syslog_message_severity"]
+              target_label  = "severity"
+            }
+
+            rule {
+              source_labels = ["__syslog_connection_ip_address"]
+              target_label  = "source_ip"
+            }
+          }
+
+          loki.write "default" {
+            endpoint {
+              url = "http://loki-gateway.loki.svc.cluster.local/loki/api/v1/push"
+            }
+          }

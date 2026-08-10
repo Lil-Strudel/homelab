@@ -29,6 +29,19 @@ and their own scoped IAM user. Velero writes under `velero/`.
 The bucket blocks all public access and encrypts objects with SSE (AES256). The Velero IAM user
 is scoped to the bucket's `velero/*` prefix only.
 
+### Deletion resistance
+
+The bucket is **versioned**, so a delete issued with the cluster's credentials writes a delete
+marker rather than destroying data — a compromised cluster cannot erase backup history with what
+it holds. Velero keeps `s3:DeleteObject` so its own TTL expiry behaves normally; what it does not
+have is `s3:DeleteObjectVersion`, `s3:PutBucketVersioning`, or `s3:PutLifecycleConfiguration`.
+Those three are also written as an explicit `Deny`, which no future widening of the `Allow`
+statements can override.
+
+Superseded versions are cleaned up by a lifecycle rule at **30 days** — long enough to notice a
+delete that should not have happened, short enough that old versions do not accumulate cost
+forever.
+
 ## Retention and cost
 
 Three tiers, each a schedule with its own TTL:
@@ -117,5 +130,7 @@ data before touching the live namespace.
 - **CSI Snapshot Data Movement** would give snapshot-consistent, pod-independent PVC backups
   (no need to include `pods`), but needs the external `snapshot-controller`, a Rook
   `VolumeSnapshotClass`, and Velero's `EnableCSI` feature. Left out to keep this lean.
-- **Object Lock / versioning** for ransomware immutability is not enabled — a future option if
-  the threat model warrants it.
+- **Object Lock** (a retention period S3 itself enforces, binding even on the bucket owner) is
+  not enabled. Versioning plus the scoped IAM `Deny` already covers the realistic threat — a
+  compromised cluster credential — without the operational cost of objects that genuinely cannot
+  be removed early.

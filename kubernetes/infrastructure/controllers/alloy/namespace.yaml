@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alloy
+  labels:
+    pod-security.kubernetes.io/enforce: privileged # tailing /var/log/pods needs a hostPath mount and root
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

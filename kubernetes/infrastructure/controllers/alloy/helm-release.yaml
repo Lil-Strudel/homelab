@@ -1,0 +1,123 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy
+  namespace: alloy
+spec:
+  interval: 1h
+  timeout: 15m
+  chart:
+    spec:
+      chart: alloy
+      version: "1.11.1"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: alloy
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+  values:
+    crds:
+      create: false # the PodLogs CRD is only used by loki.source.podlogs, which this config does not use
+
+    controller:
+      type: daemonset
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+
+    alloy:
+      enableReporting: false
+      mounts:
+        varlog: true
+      securityContext:
+        runAsUser: 0 # /var/log/pods is root-owned on Talos
+        runAsGroup: 0
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 512Mi
+      configMap:
+        content: |-
+          logging {
+            level  = "info"
+            format = "logfmt"
+          }
+
+          discovery.kubernetes "pods" {
+            role = "pod"
+
+            selectors {
+              role  = "pod"
+              // K8S_NODE_NAME is injected by the chart from the downward API
+              field = "spec.nodeName=" + sys.env("K8S_NODE_NAME")
+            }
+          }
+
+          discovery.relabel "pod_logs" {
+            targets = discovery.kubernetes.pods.targets
+
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              target_label  = "namespace"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              target_label  = "pod"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_name"]
+              target_label  = "container"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_node_name"]
+              target_label  = "node"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+              separator     = "/"
+              target_label  = "job"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+              separator     = "/"
+              action        = "replace"
+              replacement   = "/var/log/pods/*$1/*.log"
+              target_label  = "__path__"
+            }
+          }
+
+          local.file_match "pod_logs" {
+            path_targets = discovery.relabel.pod_logs.output
+          }
+
+          loki.source.file "pod_logs" {
+            targets    = local.file_match.pod_logs.targets
+            forward_to = [loki.process.pod_logs.receiver]
+          }
+
+          loki.process "pod_logs" {
+            stage.cri {}
+
+            forward_to = [loki.write.default.receiver]
+          }
+
+          loki.write "default" {
+            endpoint {
+              url = "http://loki-gateway.loki.svc.cluster.local/loki/api/v1/push"
+            }
+          }

@@ -22,8 +22,10 @@
 - [Secrets (SOPS + Age)](./operations/secrets.md)
 - [Storage (Rook-Ceph)](./operations/storage.md)
 - [Backups (Velero)](./operations/backups.md)
+- [Observability](./operations/observability.md)
 - [DNS & Certificates](./operations/dns-and-certificates.md)
 - [VPN Access](./operations/vpn-access.md)
+- [Applications](./operations/applications.md)
 - [Adding a Service](./operations/adding-a-service.md)
 - [Upgrades](./operations/upgrades.md)
 

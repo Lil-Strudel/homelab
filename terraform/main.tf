@@ -127,6 +127,10 @@ locals {
     "ceph.lilstrudel.io"      = { ip = "10.69.65.10", zone = local.domain, expose = null }
     "minecraft.lilstrudel.io" = { ip = "10.69.65.30", zone = local.domain, expose = null }
     "factorio.lilstrudel.io"  = { ip = "10.69.65.31", zone = local.domain, expose = null }
+    "grafana.lilstrudel.io"   = { ip = "10.69.65.40", zone = local.domain, expose = null }
+    "loki.lilstrudel.io"      = { ip = "10.69.65.41", zone = local.domain, expose = null }
+    "vmsingle.lilstrudel.io"  = { ip = "10.69.65.42", zone = local.domain, expose = null }
+    "syslog.lilstrudel.io"    = { ip = "10.69.65.43", zone = local.domain, expose = null }
     "16e.link"                = { ip = "10.69.65.21", zone = "16e.link", expose = null }
     "admin.16e.link"          = { ip = "10.69.65.22", zone = "16e.link", expose = null }
   }
@@ -192,7 +196,7 @@ module "router" {
 
   dns_records = { for fqdn, svc in local.services : fqdn => svc.ip }
 
-  enforce_firewall = false
+  enforce_firewall = true
 
   internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
 
@@ -389,4 +393,52 @@ module "access_point_2" {
     wifi1 = local.vlans["Management"]
     wifi2 = local.vlans["Management"]
   }
+}
+
+##########################################
+# Syslog: every device ships to Loki
+##########################################
+module "syslog_router" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.ccr2004
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_core_switch" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.crs326
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_ethernet_switch" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.crs312
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_access_point_1" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.cAPax-1
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_access_point_2" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.cAPax-2
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
 }

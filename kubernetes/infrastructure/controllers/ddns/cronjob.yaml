@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ddns
+  namespace: ddns
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 180
+      template:
+        metadata:
+          labels:
+            app: ddns
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: ddns
+              image: amazon/aws-cli:2.36.19
+              command: ["/bin/sh", "/script/ddns.sh"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: HOME
+                  value: /tmp # the aws CLI needs a writable home; the root filesystem is read-only
+                - name: AWS_DEFAULT_REGION
+                  value: us-east-1
+                - name: AWS_EC2_METADATA_DISABLED
+                  value: "true" # without this every call first waits out an IMDS probe that cannot succeed
+                - name: RECORDS_FILE
+                  value: /config/records
+              envFrom:
+                - secretRef:
+                    name: ddns-aws-credentials
+              volumeMounts:
+                - name: script
+                  mountPath: /script
+                  readOnly: true
+                - name: records
+                  mountPath: /config
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          volumes:
+            - name: script
+              configMap:
+                name: ddns-script
+            - name: records
+              configMap:
+                name: ddns-records
+            - name: tmp
+              emptyDir: {}

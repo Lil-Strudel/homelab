@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ddns-records
+  namespace: ddns
+data:
+  records: |
+    # <fqdn> <hosted zone name>
+    # Every name listed here must also appear in local.ddns_records in
+    # terraform/route53.tf, or the IAM policy will refuse the update.
+    vpn.lilstrudel.io lilstrudel.io

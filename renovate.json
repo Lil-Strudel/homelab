@@ -141,6 +141,56 @@
       "depNameTemplate": "velero/velero-plugin-for-aws",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/infrastructure/controllers/ddns/cronjob\\.yaml$/",
+        "/docs/src/reference/versions\\.md$/"
+      ],
+      "matchStrings": [
+        "image:\\s*amazon/aws-cli:(?<currentValue>[0-9.]+)",
+        "aws-cli \\| `(?<currentValue>[0-9.]+)`"
+      ],
+      "depNameTemplate": "amazon/aws-cli",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["victoria-metrics-k8s-stack \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "victoria-metrics-k8s-stack",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://victoriametrics.github.io/helm-charts/",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Loki \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "loki",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://grafana.github.io/helm-charts",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Grafana \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "grafana",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://grafana-community.github.io/helm-charts",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Grafana Alloy \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "alloy",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://grafana.github.io/helm-charts",
+      "versioningTemplate": "helm"
     }
   ],
   "packageRules": [
@@ -156,6 +206,22 @@
     {
       "matchPackageNames": ["cilium"],
       "groupName": "cilium"
+    },
+    {
+      "matchPackageNames": ["victoria-metrics-k8s-stack"],
+      "groupName": "victoria-metrics"
+    },
+    {
+      "matchPackageNames": ["loki"],
+      "groupName": "loki"
+    },
+    {
+      "matchPackageNames": ["grafana"],
+      "groupName": "grafana"
+    },
+    {
+      "matchPackageNames": ["alloy"],
+      "groupName": "alloy"
     },
     {
       "matchPackageNames": ["quay.io/jetstack/charts/cert-manager"],

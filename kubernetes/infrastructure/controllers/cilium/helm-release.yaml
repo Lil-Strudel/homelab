@@ -56,3 +56,9 @@ spec:
       enabled: true
       loadbalancerMode: dedicated
       default: true
+    prometheus:
+      enabled: true
+      metricsService: true # without a Service there is nothing for a VMServiceScrape to select — the agent is hostNetwork
+    operator:
+      prometheus:
+        metricsService: true

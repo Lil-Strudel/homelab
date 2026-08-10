@@ -19,6 +19,11 @@ in lockstep, so the two never drift.
 | cert-manager | `v1.21.0` | `controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.1.0` | `controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.2` | `controllers/velero/helm-release.yaml` (`initContainers` image tag) |
+| aws-cli | `2.36.19` | `controllers/ddns/cronjob.yaml` (image tag) |
+| victoria-metrics-k8s-stack | `0.90.2` | `controllers/victoria-metrics/helm-release.yaml` (chart version) |
+| Loki | `7.2.0` | `controllers/loki/helm-release.yaml` (chart version) |
+| Grafana | `12.10.4` | `controllers/grafana/helm-release.yaml` (chart version) |
+| Grafana Alloy | `1.11.1` | `controllers/alloy/helm-release.yaml` (chart version) |
 
 ## Pins that must move together
 
