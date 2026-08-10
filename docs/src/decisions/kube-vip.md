@@ -12,7 +12,7 @@ formatter** over them, or they drift from the generator.
 ## Generating `kube-vip.yaml`
 
 kube-vip ships a manifest generator in its image. We run `manifest daemonset`, then
-apply one deterministic fixup for the BGP router ID:
+apply two deterministic fixups — the BGP router ID, and the BGP timers:
 
 Use the **kube-vip** version from [Reference → Versions](../reference/versions.md) as
 the image tag (`<KUBE_VIP_VERSION>` below):
@@ -23,6 +23,7 @@ docker run --rm ghcr.io/kube-vip/kube-vip:<KUBE_VIP_VERSION> manifest daemonset 
   --inCluster --taint --controlplane --bgp \
   --localAS 65000 --peerAS 65100 --peerAddress 10.69.60.1 \
 | sed '/^        - name: bgp_routerid$/a\          valueFrom:\n            fieldRef:\n              fieldPath: status.podIP' \
+| sed '/^        - manager$/a\        - --bgpHoldTimer=90 # 30s default outruns RouterOS'"'"'s keepalive timer — session drops every 30s\n        - --bgpKeepAliveInterval=30' \
 > kubernetes/infrastructure/controllers/kube-vip/kube-vip.yaml
 ```
 
@@ -56,9 +57,34 @@ so the `sed` sets it per-pod from the pod IP via the downward API:
       fieldPath: status.podIP
 ```
 
-This is the only thing the generator can't express — its only option is a static
-`--bgpRouterID`, which would make all three control-plane speakers advertise the *same*
-ID and collide.
+Its only option is a static `--bgpRouterID`, which would make all three control-plane
+speakers advertise the *same* ID and collide.
+
+### The BGP timer fixup (the other edit)
+
+kube-vip defaults to a **30 s** hold timer. RouterOS leaves `keepalive-time` at its 3 m
+default on the `routeros_routing_bgp_connection` peers, and at a 30 s negotiated hold it
+sends nothing after the establishment burst — so kube-vip's hold timer expires, it emits
+a `code (4,0)` NOTIFICATION, and the session is torn down and rebuilt on a ~37 s loop
+(30 s hold + ~7 s reconnect).
+
+That matters because the VIP has **no L2 fallback** — `vip_arp=false` on `lo` means BGP
+is the only path to `10.69.60.10`. Each rebuild withdraws the route from that speaker,
+and when the three coincide the route leaves the router's table entirely, dropping the
+API VIP.
+
+`--bgpHoldTimer=90` puts the control-plane peers on the same 90 s hold as Cilium's
+worker peers, which are stable indefinitely against the same router;
+`--bgpKeepAliveInterval=30` keeps the conventional hold/3 ratio.
+
+The generator **accepts both flags and silently discards them** — it emits no
+corresponding `env` entry — so they have to be appended to the container `args`, hence
+the second `sed`. Verify a change landed by reading the negotiated hold back off the
+router; it should report `1m30s`, not `30s`:
+
+```bash
+/routing/bgp/session/print where name~"Makima"
+```
 
 ### Load-bearing details (don't "fix" these)
 

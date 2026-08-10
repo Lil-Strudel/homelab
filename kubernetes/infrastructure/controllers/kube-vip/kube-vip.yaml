@@ -29,6 +29,8 @@ spec:
       containers:
       - args:
         - manager
+        - --bgpHoldTimer=90 # 30s default outruns RouterOS's keepalive timer — session drops every 30s
+        - --bgpKeepAliveInterval=30
         env:
         - name: vip_arp
           value: "false"
