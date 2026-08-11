@@ -62,25 +62,17 @@ speakers advertise the *same* ID and collide.
 
 ### The BGP timer fixup (the other edit)
 
-kube-vip defaults to a **30 s** hold timer. RouterOS leaves `keepalive-time` at its 3 m
-default on the `routeros_routing_bgp_connection` peers, and at a 30 s negotiated hold it
-sends nothing after the establishment burst — so kube-vip's hold timer expires, it emits
-a `code (4,0)` NOTIFICATION, and the session is torn down and rebuilt on a ~37 s loop
-(30 s hold + ~7 s reconnect).
+kube-vip's default 30 s hold timer is too short for the rest of the network; why the
+cluster standardises on 90 s / 30 s is covered in [BGP Timers](bgp-timers.md).
 
-That matters because the VIP has **no L2 fallback** — `vip_arp=false` on `lo` means BGP
-is the only path to `10.69.60.10`. Each rebuild withdraws the route from that speaker,
-and when the three coincide the route leaves the router's table entirely, dropping the
-API VIP.
+The generator **accepts `--bgpHoldTimer` and `--bgpKeepAliveInterval` and silently
+discards them** — it emits no corresponding `env` entry — so they have to be appended to
+the container `args`, hence the second `sed`. This matters more here than for the worker
+peers: the VIP has no L2 fallback (`vip_arp=false` on `lo`), so BGP is the only path to
+`10.69.60.10`, and a speaker whose session is rebuilding is not advertising it.
 
-`--bgpHoldTimer=90` puts the control-plane peers on the same 90 s hold as Cilium's
-worker peers, which are stable indefinitely against the same router;
-`--bgpKeepAliveInterval=30` keeps the conventional hold/3 ratio.
-
-The generator **accepts both flags and silently discards them** — it emits no
-corresponding `env` entry — so they have to be appended to the container `args`, hence
-the second `sed`. Verify a change landed by reading the negotiated hold back off the
-router; it should report `1m30s`, not `30s`:
+Verify a change landed by reading the negotiated hold back off the router; it should
+report `1m30s`, not `30s`:
 
 ```bash
 /routing/bgp/session/print where name~"Makima"
