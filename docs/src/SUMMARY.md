@@ -33,6 +33,7 @@
 
 - [Service Networking](./decisions/service-networking.md)
 - [BGP Timers](./decisions/bgp-timers.md)
+- [WAN RA MTU Syslog](./decisions/wan-ra-mtu.md)
 - [kube-vip Manifest](./decisions/kube-vip.md)
 - [Rook-Ceph Values](./decisions/rook-ceph.md)
 - [Commenting](./decisions/commenting.md)

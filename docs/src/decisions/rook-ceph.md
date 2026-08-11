@@ -96,6 +96,7 @@ chart pin).
 | `placement.all.tolerations` | none | Tolerate the Talos control-plane taint so OSDs schedule on all six nodes. |
 | `storage` (`useAllDevices: false`, `deviceFilter: ^nvme0n1`) | `useAllDevices: true` | Claim only the 1 TB data NVMe, never the OS disk. |
 | `cephObjectStores: []` | one entry | Disable RGW/S3 + the `ceph-bucket` SC — nothing consumes buckets. |
+| `cephConfig.mon.mon_cluster_log_level: info` | `debug` | Ceph's default cluster-log level is `debug`, which makes the mons the largest log source in the cluster by a wide margin. See [Operations → Observability](../operations/observability.md#ceph-cluster-log-level). |
 
 ### What we deliberately **inherit** (removed from `values:`)
 
