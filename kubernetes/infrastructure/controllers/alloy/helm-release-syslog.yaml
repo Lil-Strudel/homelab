@@ -69,7 +69,16 @@ spec:
             }
 
             relabel_rules = loki.relabel.routeros.rules
-            forward_to    = [loki.write.default.receiver]
+            forward_to    = [loki.process.routeros.receiver]
+          }
+
+          loki.process "routeros" {
+            forward_to = [loki.write.default.receiver]
+
+            stage.drop {
+              expression          = "invalid mtu [0-9]+ on ether1 from fe80::"
+              drop_counter_reason = "routeros_wan_ra_mtu"
+            }
           }
 
           loki.relabel "routeros" {

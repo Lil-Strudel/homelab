@@ -80,6 +80,54 @@ Loki runs `SingleBinary` with `filesystem` storage on a `ceph-block` PVC — no 
 store, no read/write/backend split, no caches. Ceph already provides the replication and
 durability that a distributed Loki deployment would be reaching for.
 
+A second Alloy release, `alloy-syslog`, runs as a **Deployment** rather than a DaemonSet
+and does no discovery at all: it listens on UDP 514 (remapped to 1514 inside the
+unprivileged container) for syslog from the MikroTik devices and labels it `job=routeros`,
+plus `hostname`, `severity`, and `source_ip` off the syslog header. One message is dropped
+before it reaches Loki — see [WAN RA MTU Syslog](../decisions/wan-ra-mtu.md).
+
+## Keeping the log volume honest
+
+Three sources will drown the others if left on their defaults. Each is turned down at the
+source rather than filtered at query time, so the noise never costs ingest or storage.
+
+### Ceph cluster log level
+
+Ceph defaults `mon_cluster_log_level` to `debug`, which puts a `pgmap` line into the
+cluster log every couple of seconds and an audit line for every admin-socket liveness
+probe Rook makes against every mon. At `info` the mons emit the state changes, elections,
+and health transitions worth reading and nothing else. Set via `cephConfig` on the
+`CephCluster` — see [Rook-Ceph Values](../decisions/rook-ceph.md#ceph-cluster--the-divergences-we-keep).
+
+The `debug_mon` daemon log is left at its default. It is a fraction of the cluster-log
+volume and is what post-mortems are reconstructed from.
+
+### Loki gateway access log
+
+The gateway's nginx logs every request, and almost all of them are Alloy's own
+`POST /loki/api/v1/push` — a shipper writing an access-log line that the shipper then
+ships. `gateway.verboseLogging: false` switches nginx from unconditional logging to
+`access_log … if=$loggable`, where `$loggable` is false for 2xx and 3xx:
+
+```nginx
+map $status $loggable {
+  ~^[23]  0;
+  default 1;
+}
+```
+
+This is a **status filter, not a path or user-agent filter**, which is the reason to
+prefer it. Every failed push still logs — a 429 from rate limiting, a 400 from a malformed
+batch, a 500 from the backend — as does every failed query and every failed probe. Only
+requests that succeeded are dropped, and a successful push is fully accounted for by
+Loki's own ingest metrics.
+
+### MikroTik WAN syslog
+
+One upstream-generated warning accounts for the large majority of router syslog and is
+dropped at `alloy-syslog`. The reasoning and the ways to see it anyway are in
+[WAN RA MTU Syslog](../decisions/wan-ra-mtu.md).
+
 ## Health check
 
 ```bash

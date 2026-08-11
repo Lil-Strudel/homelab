@@ -26,6 +26,9 @@ spec:
     toolbox:
       enabled: true
     cephClusterSpec:
+      cephConfig:
+        mon:
+          mon_cluster_log_level: "info"
       dashboard:
         enabled: true
       placement:
