@@ -1,0 +1,25 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: server-egress
+  namespace: minecraft
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: minecraft-server
+      mc.lilstrudel.io/server: cobblemon
+  egress:
+    - toFQDNs:
+        - matchName: "api.modrinth.com"
+        - matchName: "cdn.modrinth.com"
+        - matchName: "meta.fabricmc.net"
+        - matchName: "maven.fabricmc.net"
+        - matchName: "repo1.maven.org"
+        - matchName: "libraries.minecraft.net"
+        - matchName: "piston-meta.mojang.com"
+        - matchName: "piston-data.mojang.com"
+        - matchName: "launchermeta.mojang.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

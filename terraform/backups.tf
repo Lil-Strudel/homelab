@@ -128,6 +128,66 @@ resource "aws_iam_access_key" "velero" {
   user = aws_iam_user.velero.name
 }
 
+resource "aws_iam_user" "minecraft_backup" {
+  name = "homelab-minecraft-backup"
+}
+
+resource "aws_iam_user_policy" "minecraft_backup" {
+  name = "homelab-minecraft-backup-s3"
+  user = aws_iam_user.minecraft_backup.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:AbortMultipartUpload",
+          "s3:ListMultipartUploadParts",
+        ]
+        Resource = "${aws_s3_bucket.backups.arn}/minecraft/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.backups.arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["minecraft", "minecraft/*"] }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetBucketLocation",
+          "s3:ListBucketMultipartUploads",
+        ]
+        Resource = aws_s3_bucket.backups.arn
+      },
+      # Same guard as the Velero user: an explicit Deny survives a future widening of the
+      # Allow statements above.
+      {
+        Effect = "Deny"
+        Action = [
+          "s3:DeleteObjectVersion",
+          "s3:PutBucketVersioning",
+          "s3:PutLifecycleConfiguration",
+        ]
+        Resource = [
+          aws_s3_bucket.backups.arn,
+          "${aws_s3_bucket.backups.arn}/*",
+        ]
+      },
+    ]
+  })
+}
+
+resource "aws_iam_access_key" "minecraft_backup" {
+  user = aws_iam_user.minecraft_backup.name
+}
+
 output "backups_bucket" {
   description = "Name of the S3 bucket holding off-cluster backups (Velero + future consumers)"
   value       = aws_s3_bucket.backups.bucket
@@ -142,5 +202,17 @@ output "velero_access_key_id" {
 output "velero_secret_access_key" {
   description = "Secret access key for the Velero backup user. Copy into the SOPS secret."
   value       = aws_iam_access_key.velero.secret
+  sensitive   = true
+}
+
+output "minecraft_backup_access_key_id" {
+  description = "Access key ID for the Minecraft restic backup user. Copy into the SOPS secret."
+  value       = aws_iam_access_key.minecraft_backup.id
+  sensitive   = true
+}
+
+output "minecraft_backup_secret_access_key" {
+  description = "Secret access key for the Minecraft restic backup user. Copy into the SOPS secret."
+  value       = aws_iam_access_key.minecraft_backup.secret
   sensitive   = true
 }

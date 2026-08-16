@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mc
+  namespace: minecraft
+  annotations:
+    mc-router.itzg.me/externalServerName: "cobblemon.mc.lilstrudel.io"
+    mc-router.itzg.me/autoScaleWaitTimeout: "10m" # a cold modpack download outruns the 60s default

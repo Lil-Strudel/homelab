@@ -21,19 +21,38 @@
       "transformTemplates": [
         "{ \"releases\": $spread(versions).*[$not($contains($, \"-\"))].{ \"version\": $ } }"
       ]
+    },
+    "modrinth": {
+      "defaultRegistryUrlTemplate": "https://api.modrinth.com/v2/project/{{packageName}}/version",
+      "format": "json",
+      "transformTemplates": [
+        "{ \"releases\": $[version_type=\"release\"].{ \"version\": version_number, \"releaseTimestamp\": date_published } }"
+      ]
     }
   },
   "customManagers": [
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/kubernetes/apps/main/minecraft/deployment\\.yaml$/"
+        "/kubernetes/apps/minecraft/servers/survival-.+/statefulset\\.yaml$/"
       ],
       "matchStrings": [
         "-\\s*name:\\s*VERSION\\s+value:\\s*\"(?<currentValue>[0-9.]+)\""
       ],
       "depNameTemplate": "papermc",
       "datasourceTemplate": "custom.papermc",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/apps/minecraft/servers/cobblemon/statefulset\\.yaml$/"
+      ],
+      "matchStrings": [
+        "-\\s*name:\\s*MODRINTH_MODPACK\\s+value:\\s*(?<packageName>[a-z0-9-]+)\\s+-\\s*name:\\s*MODRINTH_VERSION\\s+value:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "cobblemon-fabric",
+      "datasourceTemplate": "custom.modrinth",
       "versioningTemplate": "loose"
     },
     {
@@ -194,6 +213,15 @@
     }
   ],
   "packageRules": [
+    {
+      "matchPackageNames": [
+        "itzg/minecraft-server",
+        "itzg/mc-router",
+        "itzg/mc-backup",
+        "itzg/mc-monitor"
+      ],
+      "groupName": "minecraft"
+    },
     {
       "matchPackageNames": [
         "rook-ceph",

@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mc
+  namespace: minecraft
+spec:
+  # spec.replicas is deliberately absent — mc-router scales this set 0<->1, and declaring the
+  # field here would make Flux's server-side apply own it and revert every wake.
+  serviceName: mc
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: minecraft-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: minecraft-server
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mc
+          image: itzg/minecraft-server:2026.7.2-java25
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          envFrom:
+            - configMapRef:
+                name: mc-common
+          env:
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft
+                  key: RCON_PASSWORD
+          ports:
+            - name: minecraft
+              containerPort: 25565
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          startupProbe:
+            exec:
+              command: ["mc-health"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: ["mc-health"]
+            periodSeconds: 15
+          livenessProbe:
+            exec:
+              command: ["mc-health"]
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2560Mi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+
+        - name: mc-monitor
+          image: itzg/mc-monitor:0.17.1
+          args: ["export-for-prometheus"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: EXPORT_SERVERS
+              value: "127.0.0.1"
+            - name: EXPORT_PORT
+              value: "8080"
+          ports:
+            - name: metrics
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+
+        - name: mc-backup
+          image: itzg/mc-backup:2026.8.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: BACKUP_METHOD
+              value: restic
+            - name: SRC_DIR
+              value: /data
+            - name: BACKUP_INTERVAL
+              value: "1h"
+            - name: INITIAL_DELAY
+              value: "2m"
+            - name: PAUSE_IF_NO_PLAYERS
+              value: "true"
+            - name: PRUNE_RESTIC_RETENTION
+              value: "--keep-daily 7 --keep-weekly 4 --keep-monthly 3"
+            - name: RCON_HOST
+              value: 127.0.0.1
+            - name: RCON_PORT
+              value: "25575"
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft
+                  key: RCON_PASSWORD
+            - name: AWS_DEFAULT_REGION
+              value: us-west-2
+            - name: HOME
+              value: /tmp
+            - name: RESTIC_CACHE_DIR
+              value: /tmp/restic-cache
+            - name: RESTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft-backup
+                  key: RESTIC_PASSWORD
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft-backup
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minecraft-backup
+                  key: AWS_SECRET_ACCESS_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              readOnly: true
+            - name: scratch
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+        - name: scratch
+          emptyDir:
+            sizeLimit: 2Gi

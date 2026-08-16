@@ -51,6 +51,12 @@ variable "dns_records" {
   default     = {}
 }
 
+variable "dns_subdomain_records" {
+  description = "Internal static DNS A records that also answer for every subdomain beneath them, keyed by FQDN -> IP"
+  type        = map(string)
+  default     = {}
+}
+
 variable "dhcp_leases" {
   description = "Static DHCP reservations, keyed by a stable name"
   type = map(object({

@@ -51,6 +51,10 @@ spec:
           defaultVolumesToFsBackup: true
           includedNamespaces:
             - "*"
+          # Minecraft servers sit at zero replicas most of the time, and file-system backup
+          # only finds volumes through running pods — see docs/src/decisions/minecraft-backups.md
+          excludedNamespaces:
+            - minecraft
           includedResources:
             - pods
             - persistentvolumeclaims
@@ -64,6 +68,10 @@ spec:
           defaultVolumesToFsBackup: true
           includedNamespaces:
             - "*"
+          # Minecraft servers sit at zero replicas most of the time, and file-system backup
+          # only finds volumes through running pods — see docs/src/decisions/minecraft-backups.md
+          excludedNamespaces:
+            - minecraft
           includedResources:
             - pods
             - persistentvolumeclaims
@@ -77,6 +85,10 @@ spec:
           defaultVolumesToFsBackup: true
           includedNamespaces:
             - "*"
+          # Minecraft servers sit at zero replicas most of the time, and file-system backup
+          # only finds volumes through running pods — see docs/src/decisions/minecraft-backups.md
+          excludedNamespaces:
+            - minecraft
           includedResources:
             - pods
             - persistentvolumeclaims

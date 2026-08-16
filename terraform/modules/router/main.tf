@@ -37,6 +37,16 @@ resource "routeros_ip_dns_record" "static" {
   ttl     = "5m"
 }
 
+resource "routeros_ip_dns_record" "subdomain" {
+  for_each = var.dns_subdomain_records
+
+  name            = each.key
+  match_subdomain = true
+  address         = each.value
+  type            = "A"
+  ttl             = "5m"
+}
+
 resource "routeros_ip_firewall_nat" "nat_rule" {
   action        = "masquerade"
   chain         = "srcnat"

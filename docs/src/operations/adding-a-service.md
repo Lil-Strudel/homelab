@@ -21,6 +21,16 @@ something from an earlier layer (a CRD, a secret, an operator), confirm that lay
 Kustomization owns it. For finer ordering than the three layers give, add a `dependsOn`
 to the Kustomization in `clusters/main/`.
 
+> **A scrape CR for your own app belongs with the app, not in `configs/observability/`.**
+>
+> The rule above is about *CRDs*, and a `VMServiceScrape` satisfies it either way — the
+> VictoriaMetrics operator installs its CRDs in the controllers layer. What matters is the
+> **namespace**. The existing scrapes live in `configs/` because they target `rook-ceph` and
+> `kube-system`, namespaces earlier layers already created. A scrape targeting a namespace
+> that *your app* creates cannot go there: configs reconcile before apps, the namespace does
+> not exist yet, and the failed apply takes the whole `infra-configs` Kustomization — and
+> therefore every app behind it — down with it.
+
 ## 2. Confirm Renovate coverage
 
 New pinned versions must be monitored or they rot. Check that what you added is picked

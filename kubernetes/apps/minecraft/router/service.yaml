@@ -1,17 +1,19 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: minecraft
+  name: mc-router
   namespace: minecraft
+  labels:
+    app.kubernetes.io/name: mc-router
   annotations:
     lbipam.cilium.io/ips: "10.69.65.30"
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
   selector:
-    app: minecraft
+    app.kubernetes.io/name: mc-router
   ports:
     - name: minecraft
       port: 25565
-      protocol: TCP
       targetPort: minecraft
+      protocol: TCP

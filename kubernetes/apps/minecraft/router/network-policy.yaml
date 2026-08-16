@@ -1,0 +1,47 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: mc-router
+  namespace: minecraft
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: mc-router
+  ingress:
+    - fromEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "25565"
+              protocol: TCP
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: victoria-metrics
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: minecraft-server
+      toPorts:
+        - ports:
+            - port: "25565"
+              protocol: TCP
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            # socket-LB rewrites the ClusterIP to a node address before the policy check, so the
+            # backend port has to be allowed alongside 443.
+            - port: "443"
+              protocol: TCP
+            - port: "6443"
+              protocol: TCP

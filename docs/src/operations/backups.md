@@ -19,6 +19,15 @@ ConfigMaps, namespaces, and the rest are **not** backed up — they come back fr
 
 So a recovery is two moves: Flux redeploys the workloads, and Velero restores their PVC data.
 
+### The `minecraft` exception
+
+The schedules carry `excludedNamespaces: [minecraft]`. Discovering volumes through running
+pods cannot work for servers that sit at zero replicas most of the day, and file-system backup
+does not quiesce a world it copies. Those worlds are backed up from inside their own pods
+instead — see
+[Decisions → Minecraft Scale-to-Zero](../decisions/minecraft-scale-to-zero.md#velero-cannot-back-up-a-sleeping-server).
+The same blind spot would apply to any future workload that scales to zero.
+
 ## The S3 bucket
 
 One bucket holds all off-cluster backups, created by Terraform (`terraform/backups.tf`) in the

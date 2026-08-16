@@ -63,7 +63,7 @@ anything enforces.
 ## Raw L4 services bypass the Ingress entirely
 
 Cilium's ingress controller is HTTP(S)-only, so anything speaking a non-HTTP protocol —
-the game servers on TCP `25565` and UDP `34197` — cannot use it. Those get a
+the Minecraft router on TCP `25565` and Factorio on UDP `34197` — cannot use it. Those get a
 `type: LoadBalancer` Service carrying `lbipam.cilium.io/ips` **directly** (the shape
 `rook-ceph/dashboard-lb.yaml` uses) rather than an `Ingress` that carries the annotation
 for them. No `Ingress` also means no cert-manager and no TLS: there is nothing in a

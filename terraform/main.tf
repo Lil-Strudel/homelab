@@ -123,16 +123,16 @@ locals {
   #     enabled  = true                           # false keeps the path built but closed
   #   }
   services = {
-    "vault.lilstrudel.io"     = { ip = "10.69.65.20", zone = local.domain, expose = null }
-    "ceph.lilstrudel.io"      = { ip = "10.69.65.10", zone = local.domain, expose = null }
-    "minecraft.lilstrudel.io" = { ip = "10.69.65.30", zone = local.domain, expose = null }
-    "factorio.lilstrudel.io"  = { ip = "10.69.65.31", zone = local.domain, expose = null }
-    "grafana.lilstrudel.io"   = { ip = "10.69.65.40", zone = local.domain, expose = null }
-    "loki.lilstrudel.io"      = { ip = "10.69.65.41", zone = local.domain, expose = null }
-    "vmsingle.lilstrudel.io"  = { ip = "10.69.65.42", zone = local.domain, expose = null }
-    "syslog.lilstrudel.io"    = { ip = "10.69.65.43", zone = local.domain, expose = null }
-    "16e.link"                = { ip = "10.69.65.21", zone = "16e.link", expose = null }
-    "admin.16e.link"          = { ip = "10.69.65.22", zone = "16e.link", expose = null }
+    "vault.lilstrudel.io"    = { ip = "10.69.65.20", zone = local.domain, expose = null }
+    "ceph.lilstrudel.io"     = { ip = "10.69.65.10", zone = local.domain, expose = null }
+    "mc.lilstrudel.io"       = { ip = "10.69.65.30", zone = local.domain, expose = null, match_subdomain = true }
+    "factorio.lilstrudel.io" = { ip = "10.69.65.31", zone = local.domain, expose = null }
+    "grafana.lilstrudel.io"  = { ip = "10.69.65.40", zone = local.domain, expose = null }
+    "loki.lilstrudel.io"     = { ip = "10.69.65.41", zone = local.domain, expose = null }
+    "vmsingle.lilstrudel.io" = { ip = "10.69.65.42", zone = local.domain, expose = null }
+    "syslog.lilstrudel.io"   = { ip = "10.69.65.43", zone = local.domain, expose = null }
+    "16e.link"               = { ip = "10.69.65.21", zone = "16e.link", expose = null }
+    "admin.16e.link"         = { ip = "10.69.65.22", zone = "16e.link", expose = null }
   }
 
   # WAN-side entry point for exposed services: the DMZ edge host, reached via dst-nat.
@@ -194,7 +194,8 @@ module "router" {
   vlans         = local.vlans
   services_cidr = local.services_cidr
 
-  dns_records = { for fqdn, svc in local.services : fqdn => svc.ip }
+  dns_records           = { for fqdn, svc in local.services : fqdn => svc.ip if !try(svc.match_subdomain, false) }
+  dns_subdomain_records = { for fqdn, svc in local.services : fqdn => svc.ip if try(svc.match_subdomain, false) }
 
   enforce_firewall = true
 
