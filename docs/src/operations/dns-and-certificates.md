@@ -137,7 +137,7 @@ the helper (writes a managed block into `~/.aws/config`, then logs in):
 ./scripts/aws_sso_setup.sh
 ```
 
-Refresh an expired session any time with `aws sso login --sso-session homelab`.
+Refresh an expired session any time with `aws sso login --sso-session strudel`.
 
 ## Credentials → SOPS
 

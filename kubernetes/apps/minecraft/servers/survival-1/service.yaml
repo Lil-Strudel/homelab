@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mc
+  namespace: minecraft
+  annotations:
+    # defaultServer only, never alongside externalServerName: mc-router reads the two in an
+    # if/else and silently ignores the default when both are present.
+    mc-router.itzg.me/defaultServer: "true"
+    mc-router.itzg.me/autoScaleWaitTimeout: "3m"

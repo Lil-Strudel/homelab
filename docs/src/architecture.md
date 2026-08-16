@@ -162,6 +162,8 @@ Talos config scripts, and Flux. See [Operations → Secrets](./operations/secret
 
 The platform (Cilium, kube-vip, Rook-Ceph, cert-manager, Velero, observability) and four
 user-facing workloads — Vaultwarden, Shlink, Minecraft, Factorio — run on the cluster.
+Minecraft is a fleet rather than a single server: several worlds behind one router that
+wakes them on demand and scales them back to zero when idle.
 Their services are reachable from the Home and Management VLANs and over both WireGuard
 tunnels ([firewall matrix](./reference/network.md#firewall)); nothing is exposed to the
 internet. See [Operations → Applications](./operations/applications.md).

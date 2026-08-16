@@ -1,0 +1,79 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: default-deny
+  namespace: minecraft
+spec:
+  endpointSelector: {}
+  # An empty rule selects no peer, so it allows nothing while still putting every endpoint in
+  # the namespace into default-deny. Cilium needs the stanza to be present, not just non-empty.
+  ingress:
+    - {}
+  egress:
+    - {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: dns
+  namespace: minecraft
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          # Every toFQDNs rule in this namespace depends on the DNS proxy seeing the lookup
+          # here — removing this turns all of them into silent drops.
+          rules:
+            dns:
+              - matchPattern: "*"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: server-common
+  namespace: minecraft
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: minecraft-server
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: mc-router
+      toPorts:
+        - ports:
+            - port: "25565"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: victoria-metrics
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toFQDNs:
+        - matchName: "sessionserver.mojang.com"
+        - matchName: "api.mojang.com"
+        - matchName: "api.minecraftservices.com"
+        - matchName: "textures.minecraft.net"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: "s3.us-west-2.amazonaws.com"
+        - matchPattern: "*.s3.us-west-2.amazonaws.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

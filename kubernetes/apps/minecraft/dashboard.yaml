@@ -1,0 +1,219 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minecraft-dashboard
+  namespace: minecraft
+  labels:
+    grafana_dashboard: "1"
+data:
+  minecraft.json: |
+    {
+      "title": "Minecraft",
+      "uid": "minecraft",
+      "tags": ["minecraft"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Servers awake",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "count(kube_statefulset_status_replicas{namespace=\"minecraft\"} > 0) or vector(0)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "text", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Players online",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(minecraft_status_players_online_count{namespace=\"minecraft\"}) or vector(0)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "text", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Healthy",
+          "gridPos": { "h": 4, "w": 12, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "minecraft_status_healthy{namespace=\"minecraft\"}",
+              "legendFormat": "{{mc_server}}"
+            }
+          ],
+          "options": { "colorMode": "background" },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "starting", "color": "orange", "index": 0 },
+                    "1": { "text": "up", "color": "green", "index": 1 }
+                  }
+                }
+              ],
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "state-timeline",
+          "title": "Awake / asleep",
+          "description": "Replicas of each server's StatefulSet. mc-router scales these 0<->1.",
+          "gridPos": { "h": 7, "w": 12, "x": 0, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "kube_statefulset_status_replicas{namespace=\"minecraft\"}",
+              "legendFormat": "{{statefulset}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "asleep", "color": "blue", "index": 0 },
+                    "1": { "text": "awake", "color": "green", "index": 1 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Players online by server",
+          "gridPos": { "h": 7, "w": 12, "x": 12, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (mc_server) (minecraft_status_players_online_count{namespace=\"minecraft\"})",
+              "legendFormat": "{{mc_server}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "custom": { "fillOpacity": 15, "showPoints": "never" }, "min": 0 },
+            "overrides": []
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory (working set)",
+          "gridPos": { "h": 7, "w": 8, "x": 0, "y": 11 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"minecraft\", container=\"mc\"})",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "bytes", "min": 0 }, "overrides": [] }
+        },
+        {
+          "type": "timeseries",
+          "title": "CPU",
+          "gridPos": { "h": 7, "w": 8, "x": 8, "y": 11 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"minecraft\", container=\"mc\"}[5m]))",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 }, "overrides": [] }
+        },
+        {
+          "type": "timeseries",
+          "title": "Status ping latency",
+          "gridPos": { "h": 7, "w": 8, "x": 16, "y": 11 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "minecraft_status_response_time_seconds{namespace=\"minecraft\"}",
+              "legendFormat": "{{mc_server}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "s", "min": 0 }, "overrides": [] }
+        },
+        {
+          "type": "timeseries",
+          "title": "Joins / leaves",
+          "gridPos": { "h": 7, "w": 24, "x": 0, "y": 18 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (pod) (count_over_time({namespace=\"minecraft\", container=\"mc\"} |~ `joined the game` [5m]))",
+              "legendFormat": "join {{pod}}"
+            },
+            {
+              "refId": "B",
+              "expr": "sum by (pod) (count_over_time({namespace=\"minecraft\", container=\"mc\"} |~ `left the game` [5m]))",
+              "legendFormat": "leave {{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60 }, "min": 0 },
+            "overrides": []
+          }
+        },
+        {
+          "type": "logs",
+          "title": "Server logs",
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 25 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "{namespace=\"minecraft\", container=\"mc\"}"
+            }
+          ]
+        }
+      ]
+    }

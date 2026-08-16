@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mc
+  namespace: minecraft
+spec:
+  template:
+    spec:
+      containers:
+        - name: mc
+          env:
+            - name: TYPE
+              value: PAPER
+            - name: VERSION
+              value: "26.2"
+            - name: MEMORY
+              value: 2G
+            - name: MOTD
+              value: "§3LilStrudel.io§r\n§7A world for friends. §4❤"
+        - name: mc-backup
+          env:
+            - name: RESTIC_REPOSITORY
+              value: "s3:s3.us-west-2.amazonaws.com/homelab-backups-827aa035/minecraft/survival-1"

@@ -26,6 +26,7 @@
 - [DNS & Certificates](./operations/dns-and-certificates.md)
 - [VPN Access](./operations/vpn-access.md)
 - [Applications](./operations/applications.md)
+- [Minecraft](./operations/minecraft.md)
 - [Adding a Service](./operations/adding-a-service.md)
 - [Upgrades](./operations/upgrades.md)
 
@@ -36,6 +37,7 @@
 - [WAN RA MTU Syslog](./decisions/wan-ra-mtu.md)
 - [kube-vip Manifest](./decisions/kube-vip.md)
 - [Rook-Ceph Values](./decisions/rook-ceph.md)
+- [Minecraft Scale-to-Zero](./decisions/minecraft-scale-to-zero.md)
 - [Commenting](./decisions/commenting.md)
 
 # Archive

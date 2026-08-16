@@ -1,0 +1,22 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: server-egress
+  namespace: minecraft
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: minecraft-server
+      mc.lilstrudel.io/server: survival-1
+  egress:
+    - toFQDNs:
+        - matchName: "api.papermc.io"
+        - matchName: "fill.papermc.io"
+        - matchName: "piston-meta.mojang.com"
+        - matchName: "piston-data.mojang.com"
+        - matchName: "launchermeta.mojang.com"
+        - matchName: "libraries.minecraft.net"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

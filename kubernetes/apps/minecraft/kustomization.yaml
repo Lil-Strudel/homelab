@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - secret.sops.yaml
+  - backup-secret.sops.yaml
+  - network-policy.yaml
+  - scrape.yaml
+  - dashboard.yaml
+  - router
+  - servers/survival-1
+  - servers/survival-2
+  - servers/cobblemon
+configMapGenerator:
+  - name: mc-common
+    namespace: minecraft
+    envs:
+      - config/common.env

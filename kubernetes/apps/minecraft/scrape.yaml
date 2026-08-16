@@ -1,0 +1,33 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: minecraft-servers
+  namespace: minecraft
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: minecraft-server
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      relabelConfigs:
+        # mc-monitor probes 127.0.0.1 in every pod, so server_host is identical across all
+        # three — the Service name is the only thing that tells the worlds apart.
+        - sourceLabels: [__meta_kubernetes_service_name]
+          targetLabel: mc_server
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: mc-router
+  namespace: minecraft
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mc-router
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: api
+      path: /metrics
+      interval: 30s
