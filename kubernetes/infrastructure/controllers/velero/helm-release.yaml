@@ -52,7 +52,7 @@ spec:
           includedNamespaces:
             - "*"
           # Minecraft servers sit at zero replicas most of the time, and file-system backup
-          # only finds volumes through running pods — see docs/src/decisions/minecraft-backups.md
+          # only finds volumes through running pods — see docs/src/decisions/minecraft-scale-to-zero.md
           excludedNamespaces:
             - minecraft
           includedResources:
@@ -69,7 +69,7 @@ spec:
           includedNamespaces:
             - "*"
           # Minecraft servers sit at zero replicas most of the time, and file-system backup
-          # only finds volumes through running pods — see docs/src/decisions/minecraft-backups.md
+          # only finds volumes through running pods — see docs/src/decisions/minecraft-scale-to-zero.md
           excludedNamespaces:
             - minecraft
           includedResources:
@@ -86,7 +86,7 @@ spec:
           includedNamespaces:
             - "*"
           # Minecraft servers sit at zero replicas most of the time, and file-system backup
-          # only finds volumes through running pods — see docs/src/decisions/minecraft-backups.md
+          # only finds volumes through running pods — see docs/src/decisions/minecraft-scale-to-zero.md
           excludedNamespaces:
             - minecraft
           includedResources:

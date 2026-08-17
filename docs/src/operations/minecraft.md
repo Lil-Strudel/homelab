@@ -38,12 +38,28 @@ everything running permanently.
 
 Two consequences worth knowing:
 
-- **The first connect to a cold server is slow**, and slowest of all for Cobblemon, which
-  downloads the whole modpack on a fresh volume. Each Service carries
+- **The first connect to a cold server is slow**, and slowest of all for Cobblemon, whose
+  measured first boot on an empty volume is around 14 minutes — scheduling, then the modpack
+  download, then world gen. Later wakes are about a minute. Each Service carries
   `mc-router.itzg.me/autoScaleWaitTimeout` sized for its own cold start; the default is 60
   seconds, which a modpack will never meet.
 - **Servers see mc-router's pod IP, not the player's.** Fine while this is LAN-only behind a
   whitelist; it would need the PROXY protocol before publishing.
+
+## Fleet capacity
+
+The three workers have roughly 15Gi allocatable each and carry about 10Gi of baseline
+requests, so only about 5Gi per node is free for Minecraft. A survival pod requests ~2.7Gi and
+Cobblemon requests ~5.2Gi, which means:
+
+- **Cobblemon fits only on a worker that no survival server is currently awake on.** If every
+  node is occupied it stays `Pending` and the waking player just waits — the symptom is a pod
+  in `Pending` with `Insufficient memory`, not an error anywhere in mc-router.
+- Two survival servers plus Cobblemon awake at once does not fit today.
+
+This is the practical ceiling on how many servers can be *awake* together; it does not limit
+how many can exist, since sleeping servers request nothing. Growing the fleet past this means
+either more node memory or smaller heaps.
 
 ## Adding a server
 
@@ -96,10 +112,17 @@ Velero does **not** back these worlds up, and is explicitly excluded from the na
 
 Instead each pod runs an `mc-backup` sidecar that quiesces the world over RCON
 (`save-off` → `save-all` → snapshot → `save-on`) and pushes to a per-server restic repository
-under the `minecraft/` prefix of the backups bucket. It backs up on startup, then hourly while
-players are online. Because it lives in the pod, it runs exactly when the world is changing:
-a sleeping server has nothing to back up, and the first wake captures whatever the last
-session left behind.
+under the `minecraft/` prefix of the backups bucket. Each server gets its own repository, so two
+servers waking together never contend for a lock. It snapshots two minutes into a session and
+hourly after that, and only while players are online — an awake but empty server re-uploads
+nothing.
+
+Because it lives in the pod, it runs exactly when the world is changing. That has one edge worth
+knowing: **the sidecar does not snapshot on shutdown.** When mc-router scales a server to zero it
+sends `SIGTERM`, and mc-backup's only exit handler is the RCON `save-on` that unwinds a
+quiesce — so play between the last hourly snapshot and sleep is not captured. Shortening
+`BACKUP_INTERVAL` narrows that window; restic deduplicates, so frequent snapshots of a mostly
+unchanged world are cheap.
 
 The repository password is in the `minecraft-backup` SOPS secret. **Keep a copy in the password
 manager** — restic snapshots are unreadable without it, and the cluster is not a safe sole
