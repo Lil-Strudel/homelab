@@ -11,6 +11,7 @@ download takes longer than any timeout the shared one should carry.
 
 | App | Hostname | Shape |
 | --- | --- | --- |
+| Dashy | `dashy.lilstrudel.io` | HTTPS via a Cilium `Ingress`; the lab's landing page — see [Dashboard](./dashboard.md) |
 | Vaultwarden | `vault.lilstrudel.io` | HTTPS via a Cilium `Ingress` + `letsencrypt-prod` cert |
 | Shlink | `16e.link` | HTTPS via a Cilium `Ingress`; short-link API and redirects |
 | Shlink admin UI | `admin.16e.link` | Its own `Ingress`, IP, and certificate — internal-only permanently |
@@ -38,7 +39,7 @@ Namespaces enforce Pod Security Admission `restricted`, with one exception:
 
 | Namespace | Enforce | Why |
 | --- | --- | --- |
-| `vaultwarden`, `minecraft`, `factorio` | `restricted` | — |
+| `dashy`, `vaultwarden`, `minecraft`, `factorio` | `restricted` | — |
 | `shlink` | `baseline` | The `shlink-web-client` nginx entrypoint writes `servers.json` into the image's html directory, which a non-root UID cannot create. `warn`/`audit` stay at `restricted` so the gap stays visible. |
 
 Each namespace also carries a **default-deny `CiliumNetworkPolicy`** covering ingress and
@@ -47,7 +48,9 @@ written back in explicitly: DNS to `kube-dns` for all of them, the app's own lis
 port from the entities that legitimately reach it, and per-app egress by FQDN where a
 workload genuinely needs the internet — each Minecraft server reaches only the host it
 downloads its own server jar or modpack from, plus Mojang for player authentication, and
-Factorio talks to `*.factorio.com`.
+Factorio talks to `*.factorio.com`. Dashy needs no internet at all — its egress is DNS plus
+the handful of in-cluster endpoints it status-checks, listed in
+[Dashboard](./dashboard.md#status-checks).
 
 ## The Shlink admin UI is internal-only
 
