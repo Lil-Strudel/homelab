@@ -47,13 +47,6 @@ spec:
             memory: 512Mi
           limits:
             memory: 2Gi
-        serviceSpec:
-          useAsDefault: true
-          metadata:
-            annotations:
-              lbipam.cilium.io/ips: "10.69.65.42"
-          spec:
-            type: LoadBalancer
 
     vmagent:
       spec:

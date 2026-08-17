@@ -40,18 +40,25 @@ them as Kubernetes Secrets it creates itself. There is nothing to SOPS-encrypt f
 
 ## Dashboard
 
-The Ceph dashboard is enabled (HTTPS) and exposed on the LAN by
-`configs/rook-ceph/dashboard-lb.yaml` — a `LoadBalancer` Service following the active
-mgr on port 8443. It pins `10.69.65.10` (via `lbipam.cilium.io/ips`) from `services-pool`,
-which Cilium's BGP control plane advertises to the MikroTik.
+The Ceph dashboard is enabled and reached at `https://ceph.lilstrudel.io`, through the
+Cilium `Ingress` in `configs/rook-ceph/dashboard-ingress.yaml`. The Ingress pins
+`10.69.65.10` (via `lbipam.cilium.io/ips`) from `services-pool`, which Cilium's BGP control
+plane advertises to the MikroTik, and carries a Let's Encrypt certificate — see
+[DNS & Certificates](./dns-and-certificates.md).
+
+The mgr itself serves the dashboard over **plain HTTP on port 7000** (`dashboard.ssl:
+false` on the `CephCluster`). TLS is terminated once, at the Ingress, with a certificate
+browsers actually trust; the mgr's own certificate is self-signed and would not be. The
+Ingress backs onto `rook-ceph-mgr-dashboard`, the Service Rook maintains against the
+active mgr, so a mgr failover needs nothing here.
 
 ```bash
-kubectl -n rook-ceph get svc rook-ceph-mgr-lb
+kubectl -n rook-ceph get ingress rook-ceph-dashboard
 kubectl -n rook-ceph get secret rook-ceph-dashboard-password \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-Then browse to `https://<assigned-LB-IP>:8443` and log in as `admin`.
+Log in as `admin`.
 
 ## Health check
 

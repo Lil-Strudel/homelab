@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alloy-syslog
+  namespace: alloy
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.44"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - alloy.lilstrudel.io
+      secretName: alloy-syslog-tls
+  rules:
+    - host: alloy.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alloy-syslog
+                port:
+                  number: 12345

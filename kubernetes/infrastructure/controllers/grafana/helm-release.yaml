@@ -34,11 +34,6 @@ spec:
       storageClassName: ceph-block
       size: 10Gi
 
-    service:
-      type: LoadBalancer
-      annotations:
-        lbipam.cilium.io/ips: "10.69.65.40"
-
     resources:
       requests:
         cpu: 100m
@@ -72,6 +67,9 @@ spec:
             url: http://loki-gateway.loki.svc
 
     grafana.ini:
+      server:
+        domain: grafana.lilstrudel.io
+        root_url: https://grafana.lilstrudel.io # without this Grafana builds redirects and share links from the request host as http://
       analytics:
         check_for_updates: false
         reporting_enabled: false

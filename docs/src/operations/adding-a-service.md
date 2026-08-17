@@ -89,6 +89,17 @@ carries no exposure meaning (see
 4. **Certificate** — reference `letsencrypt-prod` (DNS-01, no inbound needed). A trusted
    cert works even for internal-only services.
 
+**Anything speaking HTTP goes behind an `Ingress`, never a raw `LoadBalancer`.** Keep the
+workload's own Service `ClusterIP`, put the pinned IP and the `cert-manager` annotation on
+the `Ingress`, and let it terminate TLS; in-cluster callers keep using the `ClusterIP`
+Service over cluster DNS. Internal-only is not a reason to skip this — DNS-01 issues
+without any inbound path, so plaintext buys nothing. Only a non-HTTP protocol, which an
+`Ingress` cannot carry, justifies exposing a `LoadBalancer` directly: Minecraft and
+Factorio on their game ports, `alloy-syslog` on UDP 514.
+
+An `Ingress` naming a `ClusterIssuer` belongs in `infrastructure/configs/` (or
+`apps/`) — never `infrastructure/controllers/`, which reconciles before the issuers exist.
+
 ## Hardening
 
 A workload in `apps/main/` is expected to match the baseline the existing apps run —

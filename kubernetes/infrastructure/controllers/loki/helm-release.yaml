@@ -78,10 +78,6 @@ spec:
     gateway:
       replicas: 1
       verboseLogging: false
-      service:
-        type: LoadBalancer
-        annotations:
-          lbipam.cilium.io/ips: "10.69.65.41"
       resources:
         requests:
           cpu: 50m

@@ -18,9 +18,12 @@ and where to look when something is missing.
 | `grafana` | `grafana` | controllers | Dashboards and query UI |
 | `alloy` | `alloy` | controllers | DaemonSet shipping pod logs to Loki |
 | `VMServiceScrape`s | `rook-ceph`, `kube-system` | configs | Scrape targets for Ceph and Cilium |
+| `Ingress`es | `grafana`, `loki`, `victoria-metrics`, `alloy` | configs | HTTPS front door for each web endpoint |
 
 The scrape CRs are `configs`, not `controllers`, because they are custom resources of the
-VictoriaMetrics operator and would fail against CRDs that do not exist yet.
+VictoriaMetrics operator and would fail against CRDs that do not exist yet. The Ingresses
+sit in `configs` for the neighbouring reason: they name a `ClusterIssuer`, which is itself
+a `configs` resource.
 
 Grafana is a **separate release** from the `victoria-metrics-k8s-stack` chart's bundled
 Grafana subchart, which is disabled. Running it standalone keeps its version, storage, and
@@ -28,6 +31,29 @@ datasources independent of the metrics stack's release cycle. The stack's dashbo
 ConfigMaps still land, because Grafana's dashboard sidecar watches all namespaces for the
 `grafana_dashboard` label and the stack's dashboards are rewritten to the `VictoriaMetrics`
 datasource UID.
+
+## Access
+
+Every web endpoint in the stack is reached over HTTPS through a Cilium `Ingress` holding a
+Let's Encrypt certificate — see
+[DNS & Certificates](./dns-and-certificates.md). The backing Services are `ClusterIP`; the
+Ingress pins the LoadBalancer IP the hostname resolves to.
+
+| URL | Backend | What it is |
+| --- | --- | --- |
+| `https://grafana.lilstrudel.io` | `grafana:80` | Dashboards and query UI |
+| `https://vmsingle.lilstrudel.io` | `vmsingle-vm:8428` | VictoriaMetrics API and `vmui` |
+| `https://loki.lilstrudel.io` | `loki-gateway:80` | Loki query and push API |
+| `https://alloy.lilstrudel.io` | `alloy-syslog:12345` | `alloy-syslog` component UI and metrics |
+
+`syslog.lilstrudel.io` (`10.69.65.43`) is the one endpoint that is not fronted this way. It
+is the UDP 514 sink for the MikroTik devices, and an Ingress cannot carry UDP, so
+`alloy-syslog` keeps a `LoadBalancer` Service. The Alloy chart publishes port 12345 on that
+same Service, so the component UI stays reachable in plaintext on the LAN at
+`http://10.69.65.43:12345` alongside the HTTPS route above.
+
+In-cluster traffic does not go through any of this: Grafana's datasources and Alloy's
+`loki.write` address the `ClusterIP` Services directly over cluster DNS.
 
 Each service pins its LoadBalancer IP from the services range like anything else — see
 `local.services` in `terraform/main.tf` for the allocations.
@@ -134,7 +160,8 @@ dropped at `alloy-syslog`. The reasoning and the ways to see it anyway are in
 kubectl -n victoria-metrics get pods
 kubectl -n loki get pods
 kubectl -n alloy get daemonset alloy
-kubectl -n grafana get svc grafana
+kubectl -n grafana get ingress grafana
+kubectl get certificate -A
 ```
 
 The Grafana admin credentials come from the `grafana-admin` SOPS secret in

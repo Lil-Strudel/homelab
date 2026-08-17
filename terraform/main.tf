@@ -131,6 +131,7 @@ locals {
     "loki.lilstrudel.io"     = { ip = "10.69.65.41", zone = local.domain, expose = null }
     "vmsingle.lilstrudel.io" = { ip = "10.69.65.42", zone = local.domain, expose = null }
     "syslog.lilstrudel.io"   = { ip = "10.69.65.43", zone = local.domain, expose = null }
+    "alloy.lilstrudel.io"    = { ip = "10.69.65.44", zone = local.domain, expose = null }
     "16e.link"               = { ip = "10.69.65.21", zone = "16e.link", expose = null }
     "admin.16e.link"         = { ip = "10.69.65.22", zone = "16e.link", expose = null }
   }

@@ -63,14 +63,18 @@ anything enforces.
 ## Raw L4 services bypass the Ingress entirely
 
 Cilium's ingress controller is HTTP(S)-only, so anything speaking a non-HTTP protocol —
-the Minecraft router on TCP `25565` and Factorio on UDP `34197` — cannot use it. Those get a
-`type: LoadBalancer` Service carrying `lbipam.cilium.io/ips` **directly** (the shape
-`rook-ceph/dashboard-lb.yaml` uses) rather than an `Ingress` that carries the annotation
-for them. No `Ingress` also means no cert-manager and no TLS: there is nothing in a
-Minecraft or Factorio handshake for a web certificate to secure.
+the Minecraft router on TCP `25565`, Factorio on UDP `34197`, `alloy-syslog` on UDP `514` —
+cannot use it. Those get a `type: LoadBalancer` Service carrying `lbipam.cilium.io/ips`
+**directly**, rather than an `Ingress` that carries the annotation for them. No `Ingress`
+also means no cert-manager and no TLS: there is nothing in a Minecraft handshake or a
+syslog datagram for a web certificate to secure.
 
-These Services set **`externalTrafficPolicy: Local`**, which the HTTP services don't need
-and don't set. Two reasons. It preserves the client source IP — the default `Cluster`
+This is the **only** reason to expose a `LoadBalancer` directly. Everything that speaks
+HTTP goes behind an `Ingress` and is reached over HTTPS, internal-only or not — DNS-01
+issues without any inbound path, so plaintext would buy nothing.
+
+The game Services set **`externalTrafficPolicy: Local`**, which the HTTP services don't
+need and don't set. Two reasons. It preserves the client source IP — the default `Cluster`
 SNATs it to a node address, which would make a game server's own ban lists and logs
 useless. And Cilium's BGP control plane only advertises a `Local` service's IP from nodes
 that actually hold a backend, so the `/32` follows the pod instead of every worker
