@@ -31,6 +31,7 @@ spec:
           mon_cluster_log_level: "info"
       dashboard:
         enabled: true
+        ssl: false # the Ingress terminates TLS; mgr's own cert is self-signed and browsers reject it
       placement:
         all:
           tolerations:

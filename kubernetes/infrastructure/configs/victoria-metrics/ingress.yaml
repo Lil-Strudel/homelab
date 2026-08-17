@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vmsingle
+  namespace: victoria-metrics
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.42"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - vmsingle.lilstrudel.io
+      secretName: vmsingle-tls
+  rules:
+    - host: vmsingle.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vmsingle-vm
+                port:
+                  number: 8428
