@@ -70,9 +70,14 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # restic resolves the *dualstack* endpoint, not the plain one, and Cilium's `*` never
+    # crosses a dot — so the plain patterns below do not cover it and every backup silently
+    # hangs until it is killed. Both spellings must stay listed.
     - toFQDNs:
         - matchName: "s3.us-west-2.amazonaws.com"
         - matchPattern: "*.s3.us-west-2.amazonaws.com"
+        - matchName: "s3.dualstack.us-west-2.amazonaws.com"
+        - matchPattern: "*.s3.dualstack.us-west-2.amazonaws.com"
       toPorts:
         - ports:
             - port: "443"

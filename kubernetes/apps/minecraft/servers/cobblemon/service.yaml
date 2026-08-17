@@ -5,4 +5,6 @@ metadata:
   namespace: minecraft
   annotations:
     mc-router.itzg.me/externalServerName: "cobblemon.mc.lilstrudel.io"
-    mc-router.itzg.me/autoScaleWaitTimeout: "10m" # a cold modpack download outruns the 60s default
+    # A measured first boot on an empty volume took ~14m: waiting for a node with 5Gi free,
+    # then the modpack download, then world gen. Later wakes are ~1m.
+    mc-router.itzg.me/autoScaleWaitTimeout: "20m"
