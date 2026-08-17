@@ -1,0 +1,244 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashy-config
+  namespace: dashy
+data:
+  conf.yml: |
+    ---
+    pageInfo:
+      title: Homelab
+      description: Every service, device, and endpoint in the lab
+      navLinks:
+        - title: Source
+          path: https://github.com/Lil-Strudel/homelab
+        - title: Docs
+          path: https://github.com/Lil-Strudel/homelab/tree/main/docs/src
+
+    appConfig:
+      theme: nord
+      layout: auto
+      iconSize: medium
+      defaultOpeningMethod: newtab
+      enableMaterialDesignIcons: true
+      statusCheck: false
+      statusCheckInterval: 60
+      preventWriteToDisk: true # the config is GitOps-managed and mounted read-only; a save would only ever fail
+      disableUpdateChecks: true
+
+    sections:
+      - name: Applications
+        icon: mdi-apps
+        items:
+          - title: Vaultwarden
+            description: Password vault, Bitwarden-compatible
+            icon: si-bitwarden
+            url: https://vault.lilstrudel.io
+          - title: Shlink
+            description: Short-link redirects and REST API on 16e.link
+            icon: mdi-link-variant
+            url: https://16e.link
+          - title: Shlink Admin
+            description: Short-link management UI, internal-only permanently
+            icon: mdi-link-plus
+            url: https://admin.16e.link
+          - title: Dashy
+            description: This dashboard
+            icon: mdi-view-dashboard
+            url: https://dashy.lilstrudel.io
+
+      - name: Observability
+        icon: mdi-chart-areaspline
+        items:
+          - title: Grafana
+            description: Dashboards and query UI for metrics and logs
+            icon: si-grafana
+            url: https://grafana.lilstrudel.io
+            statusCheck: true
+            statusCheckUrl: http://grafana.grafana.svc.cluster.local/
+          - title: VictoriaMetrics
+            description: Metrics store, API, and vmui
+            icon: mdi-chart-line
+            url: https://vmsingle.lilstrudel.io/vmui/
+            statusCheck: true
+            statusCheckUrl: http://vmsingle-vm.victoria-metrics.svc.cluster.local:8428/
+          - title: Loki
+            description: Log store, query and push API through the gateway
+            icon: mdi-text-box-search
+            url: https://loki.lilstrudel.io
+            statusCheck: true
+            statusCheckUrl: http://loki-gateway.loki.svc.cluster.local/
+          - title: Alloy (syslog)
+            description: alloy-syslog component UI and metrics
+            icon: mdi-pipe
+            url: https://alloy.lilstrudel.io
+            statusCheck: true
+            statusCheckUrl: http://alloy-syslog.alloy.svc.cluster.local:12345/
+          - title: Alloy (LAN)
+            description: The same component UI in plaintext on the syslog LoadBalancer
+            icon: mdi-lan-connect
+            url: http://10.69.65.43:12345
+          - title: Syslog sink
+            description: UDP 514 sink for the MikroTik devices, labelled job=routeros in Loki
+            icon: mdi-console-network
+            url: 10.69.65.43:514
+            target: clipboard
+
+      - name: Storage
+        icon: mdi-harddisk
+        items:
+          - title: Ceph Dashboard
+            description: Rook-Ceph cluster health, OSDs, pools
+            icon: mdi-database
+            url: https://ceph.lilstrudel.io
+            statusCheck: true
+            statusCheckUrl: http://rook-ceph-mgr-dashboard.rook-ceph.svc.cluster.local:7000/
+          - title: NAS
+            description: Dell R730xd, 8x1 TB across two ZFS pools, bulk and NFS storage
+            icon: mdi-nas
+            url: http://10.69.100.32
+
+      - name: Games
+        icon: mdi-gamepad-variant
+        items:
+          - title: Minecraft
+            description: mc-router on 10.69.65.30:25565, wakes servers on connect
+            icon: mdi-minecraft
+            url: mc.lilstrudel.io
+            target: clipboard
+          - title: survival-1
+            description: Paper survival, the default route for mc.lilstrudel.io
+            icon: mdi-minecraft
+            url: mc.lilstrudel.io
+            target: clipboard
+          - title: survival-2
+            description: Paper survival
+            icon: mdi-minecraft
+            url: survival-2.mc.lilstrudel.io
+            target: clipboard
+          - title: cobblemon
+            description: Cobblemon Fabric modpack, cold start takes about 14 minutes
+            icon: mdi-minecraft
+            url: cobblemon.mc.lilstrudel.io
+            target: clipboard
+          - title: Factorio
+            description: UDP 34197 on 10.69.65.31
+            icon: mdi-factory
+            url: factorio.lilstrudel.io:34197
+            target: clipboard
+
+      - name: Network
+        icon: mdi-lan
+        items:
+          - title: Router
+            description: CCR2004-16G-2S+, WAN gateway, inter-VLAN routing, BGP AS 65100
+            icon: mdi-router-network
+            url: https://10.69.100.1:6729
+          - title: Core Switch
+            description: CRS326-24S+2Q+RM, SFP+ aggregation
+            icon: mdi-switch
+            url: https://10.69.100.10:6729
+          - title: 10G Switch
+            description: CRS312-4C+8XG-RM, 10G copper distribution
+            icon: mdi-switch
+            url: https://10.69.100.11:6729
+          - title: Access Point 1
+            description: cAPax, CAPsMAN manager, hosts the SprinklerAct Studios SSID
+            icon: mdi-access-point
+            url: https://10.69.100.20:6729
+          - title: Access Point 2
+            description: cAPax, CAPsMAN client
+            icon: mdi-access-point
+            url: https://10.69.100.21:6729
+          - title: WireGuard
+            description: wg-home UDP 51820 and wg-management UDP 51821 at vpn.lilstrudel.io
+            icon: mdi-vpn
+            url: vpn.lilstrudel.io
+            target: clipboard
+
+      - name: Cluster
+        icon: mdi-kubernetes
+        items:
+          - title: Kubernetes API
+            description: kube-vip control-plane VIP
+            icon: si-kubernetes
+            url: https://10.69.60.10:6443
+          - title: makima-1
+            description: Control plane, OptiPlex Micro 7070, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.11
+            target: clipboard
+          - title: makima-2
+            description: Control plane, OptiPlex Micro 7070, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.12
+            target: clipboard
+          - title: makima-3
+            description: Control plane, OptiPlex Micro 7070, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.13
+            target: clipboard
+          - title: rem-1
+            description: Worker, OptiPlex Micro 7080, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.21
+            target: clipboard
+          - title: rem-2
+            description: Worker, OptiPlex Micro 7080, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.22
+            target: clipboard
+          - title: rem-3
+            description: Worker, OptiPlex Micro 7080, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.23
+            target: clipboard
+
+      - name: Out-of-band
+        icon: mdi-power-plug
+        items:
+          - title: PiKVM
+            description: IP-KVM on a Raspberry Pi 4
+            icon: mdi-monitor-dashboard
+            url: https://10.69.100.30
+          - title: KVM Switch
+            description: TESmart 8-port
+            icon: mdi-swap-horizontal
+            url: http://10.69.100.13
+          - title: UPS
+            description: APC SMT1000RM2UC
+            icon: mdi-battery-charging
+            url: http://10.69.100.77
+          - title: Zigbee Controller
+            description: Raspberry Pi 4 with a SONOFF ZBDongle-E
+            icon: mdi-zigbee
+            url: 10.69.60.30
+            target: clipboard
+
+      - name: Documentation
+        icon: mdi-book-open-variant
+        items:
+          - title: Repository
+            description: Infrastructure-as-code for the whole lab
+            icon: si-github
+            url: https://github.com/Lil-Strudel/homelab
+          - title: Docs
+            description: mdBook source, the written-up version of everything here
+            icon: mdi-book-open-page-variant
+            url: https://github.com/Lil-Strudel/homelab/tree/main/docs/src
+          - title: Architecture
+            description: How the three domains fit together
+            icon: mdi-sitemap
+            url: https://github.com/Lil-Strudel/homelab/blob/main/docs/src/architecture.md
+          - title: Systems
+            description: The hardware fleet and every management address
+            icon: mdi-table-of-contents
+            url: https://github.com/Lil-Strudel/homelab/blob/main/docs/src/reference/systems.md
+          - title: Network
+            description: VLANs, addressing, BGP, firewall
+            icon: mdi-ip-network
+            url: https://github.com/Lil-Strudel/homelab/blob/main/docs/src/reference/network.md
+          - title: Versions
+            description: Every pinned version and the file that pins it
+            icon: mdi-tag-multiple
+            url: https://github.com/Lil-Strudel/homelab/blob/main/docs/src/reference/versions.md

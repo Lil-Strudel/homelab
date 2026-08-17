@@ -26,6 +26,7 @@
 - [DNS & Certificates](./operations/dns-and-certificates.md)
 - [VPN Access](./operations/vpn-access.md)
 - [Applications](./operations/applications.md)
+- [Dashboard (Dashy)](./operations/dashboard.md)
 - [Minecraft](./operations/minecraft.md)
 - [Adding a Service](./operations/adding-a-service.md)
 - [Upgrades](./operations/upgrades.md)
