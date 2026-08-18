@@ -1,0 +1,155 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: immich-server
+  namespace: immich
+spec:
+  endpointSelector:
+    matchLabels:
+      app: immich-server
+  ingress:
+    # `ingress` is the reserved identity Cilium gives its Envoy ingress proxy; `host` is
+    # the kubelet running the /api/server/ping probes.
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "2283"
+              protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: victoria-metrics
+            app.kubernetes.io/name: vmagent
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+            - port: "8082"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          # The toFQDNs rule below depends on the DNS proxy seeing the lookup here.
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: immich-pg
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: immich-valkey
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: immich-machine-learning
+      toPorts:
+        - ports:
+            - port: "3003"
+              protocol: TCP
+    # The admin UI's "new version available" check.
+    - toFQDNs:
+        - matchName: "github.com"
+        - matchName: "api.github.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: immich-machine-learning
+  namespace: immich
+spec:
+  endpointSelector:
+    matchLabels:
+      app: immich-machine-learning
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: immich-server
+      toPorts:
+        - ports:
+            - port: "3003"
+              protocol: TCP
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "3003"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    # Model weights, downloaded on first use of each CLIP / face-recognition model. Every
+    # level must be listed separately — Cilium's `*` never crosses a dot.
+    - toFQDNs:
+        - matchName: "huggingface.co"
+        - matchPattern: "*.huggingface.co"
+        - matchName: "hf.co"
+        - matchPattern: "*.hf.co"
+        - matchPattern: "*.xethub.hf.co"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: immich-valkey
+  namespace: immich
+spec:
+  endpointSelector:
+    matchLabels:
+      app: immich-valkey
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: immich-server
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"

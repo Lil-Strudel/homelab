@@ -202,7 +202,7 @@ resource "aws_iam_access_key" "minecraft_backup" {
 
 locals {
   # Each app gets its own Postgres cluster, so each gets its own prefix and its own user.
-  cnpg_apps = toset(["vaultwarden", "shlink"])
+  cnpg_apps = toset(["vaultwarden", "shlink", "immich"])
 }
 
 resource "aws_iam_user" "cnpg" {

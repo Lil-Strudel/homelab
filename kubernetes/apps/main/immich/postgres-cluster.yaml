@@ -1,0 +1,52 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich-pg
+  namespace: immich
+spec:
+  instances: 2
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-standard-trixie
+    major: 18
+  storage:
+    storageClass: ceph-block
+    size: 10Gi
+  inheritedMetadata:
+    labels:
+      velero.io/exclude-from-backup: "true" # a file-system copy of a live PGDATA is not a backup; barman owns this data
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+  postgresql:
+    shared_preload_libraries:
+      - vchord.so
+    extensions:
+      - name: vchord
+        image:
+          reference: ghcr.io/tensorchord/vchord-scratch:pg18-v1.1.1 # a tag, not a digest: ImageVolumeWithDigest is alpha and off on this cluster
+        dynamic_library_path:
+          - /usr/lib/postgresql/18/lib
+        extension_control_path:
+          - /usr/share/postgresql/18/
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      # postInitApplicationSQL, not postInitSQL: it runs after the role and database exist.
+      postInitApplicationSQL:
+        - ALTER ROLE immich SUPERUSER
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE
+        - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: immich-backup
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi

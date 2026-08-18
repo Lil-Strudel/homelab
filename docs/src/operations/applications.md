@@ -13,6 +13,7 @@ download takes longer than any timeout the shared one should carry.
 | --- | --- | --- |
 | Dashy | `dashy.lilstrudel.io` | HTTPS via a Cilium `Ingress`; the lab's landing page — see [Dashboard](./dashboard.md) |
 | Vaultwarden | `vault.lilstrudel.io` | HTTPS via a Cilium `Ingress` + `letsencrypt-prod` cert; Postgres backing store |
+| Immich | `immich.lilstrudel.io` | HTTPS via a Cilium `Ingress`; photo library on 100Gi of `ceph-block`, Postgres backing store |
 | Shlink | `16e.link` | HTTPS via a Cilium `Ingress`; short-link API and redirects; Postgres backing store |
 | Shlink admin UI | `admin.16e.link` | Its own `Ingress`, IP, and certificate — internal-only permanently |
 | Minecraft | `*.mc.lilstrudel.io` | Raw TCP `25565` `LoadBalancer` fronting a fleet of servers — see [Minecraft](./minecraft.md) |
@@ -23,10 +24,10 @@ DNS source of truth and the allocation record.
 
 ## Databases
 
-Vaultwarden and Shlink each own a CloudNativePG `Cluster` in their own namespace, declared
-beside the Deployment they back. Neither keeps application state on a PVC any more —
-Shlink has no volume at all, and Vaultwarden's remaining PVC holds only attachments and
-icons. Credentials come from the CNPG-generated `<cluster>-app` Secret via `secretKeyRef`,
+Vaultwarden, Shlink, and Immich each own a CloudNativePG `Cluster` in their own namespace,
+declared beside the Deployment they back. Only Immich keeps bulk state on a PVC — Shlink has
+no volume at all, and Vaultwarden's remaining PVC holds only attachments and icons.
+Credentials come from the CNPG-generated `<cluster>-app` Secret via `secretKeyRef`,
 so no database password is committed. See [Postgres](./postgres.md).
 
 ### Vaultwarden runs the Debian image, not Alpine
@@ -40,6 +41,41 @@ makes it *less* frequent but does not fix it, which is what points at musl rathe
 configuration.
 
 The Alpine image is fine on SQLite; this only shows up against Postgres.
+
+### Immich needs VectorChord, which the standard Postgres image does not carry
+
+Immich stores CLIP and face-recognition embeddings in Postgres and checks the extension at
+startup — outside `vchord >= 0.3 < 2` it refuses to run. Immich ships its own Postgres
+image for this, but that image is not CloudNativePG-compatible, so `immich-pg` stays on the
+same `postgresql-standard-trixie` operand as every other cluster and mounts VectorChord as
+an image volume instead. The mechanics are in [Postgres](./postgres.md#shape).
+
+The `immich` role is granted `SUPERUSER`. That is the configuration Immich documents and
+expects: it creates the extension itself, and on a VectorChord bump it runs
+`ALTER EXTENSION vchord UPDATE` and reindexes `face_index` and `clip_index` without
+intervention. On a large library that first start after a bump is slow, not instant. The
+alternative — an unprivileged role with the extensions pre-created — turns every bump into
+a manual `psql` session, which upstream marks advanced-users-only.
+
+Immich's own database backup stays off. It shells out to `pg_dumpall` and would write dumps
+into the photo volume, duplicating what barman-cloud already ships to S3.
+
+### Immich splits one volume three ways
+
+`immich-library` is a single 100Gi RWO claim mounted at `/data`; Immich lays out `upload/`,
+`library/`, `thumbs/`, `encoded-video/`, `profile/`, and `backups/` beneath it and writes a
+`.immich` marker into each at startup to prove the mount is present. Because the volume is
+RWO the server Deployment uses `strategy: Recreate`, and because it is large it sets
+`fsGroupChangePolicy: OnRootMismatch` — the default would recursively chown the whole
+library on every pod start.
+
+The machine-learning pod mounts a separate `immich-model-cache` claim at `/cache`, labelled
+`velero.io/exclude-from-backup` since the model weights re-download from Hugging Face. That
+download is also the one piece of app egress that has to be allowed by FQDN, and each label
+depth is listed separately because Cilium's `*` never crosses a dot.
+
+Valkey backs the job queue on an `emptyDir`. A restart drops queued jobs; the "missing
+thumbnails" and "missing ML" jobs rebuild the backlog from the database.
 
 ## The hardening baseline
 
@@ -59,7 +95,7 @@ Namespaces enforce Pod Security Admission `restricted`, with one exception:
 
 | Namespace | Enforce | Why |
 | --- | --- | --- |
-| `dashy`, `vaultwarden`, `minecraft`, `factorio` | `restricted` | — |
+| `dashy`, `vaultwarden`, `immich`, `minecraft`, `factorio` | `restricted` | — |
 | `shlink` | `baseline` | The `shlink-web-client` nginx entrypoint writes `servers.json` into the image's html directory, which a non-root UID cannot create. `warn`/`audit` stay at `restricted` so the gap stays visible. |
 
 Each namespace also carries a **default-deny `CiliumNetworkPolicy`** covering ingress and

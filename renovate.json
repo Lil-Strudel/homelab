@@ -242,6 +242,17 @@
       "depNameTemplate": "ghcr.io/cloudnative-pg/postgresql",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/apps/main/immich/postgres-cluster\\.yaml$/"
+      ],
+      "matchStrings": [
+        "reference:\\s*(?<depName>ghcr\\.io/tensorchord/vchord-scratch):(?<currentValue>pg[0-9]+-v[0-9.]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^pg(?<compatibility>\\d+)-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$"
     }
   ],
   "packageRules": [
@@ -302,6 +313,14 @@
         "ghcr.io/cloudnative-pg/postgresql"
       ],
       "groupName": "cnpg"
+    },
+    {
+      "matchPackageNames": [
+        "ghcr.io/immich-app/immich-server",
+        "ghcr.io/immich-app/immich-machine-learning",
+        "ghcr.io/tensorchord/vchord-scratch"
+      ],
+      "groupName": "immich"
     },
     {
       "matchManagers": ["flux", "custom.regex"],
