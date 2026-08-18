@@ -60,45 +60,58 @@ so ordering is explicit rather than a single flat apply:
 kubernetes/
 ├── clusters/main/          # bootstrap entry point (--path)
 │   ├── flux-system/        # gotk-components + gotk-sync (Flux itself)
-│   ├── infrastructure.yaml # → infra-controllers, then infra-configs
-│   └── apps.yaml           # → apps  (dependsOn infra-configs)
+│   ├── infrastructure.yaml # → the four infrastructure stages
+│   └── apps.yaml           # → apps  (dependsOn platform-configs)
 ├── infrastructure/
-│   ├── controllers/        # CNI, operators, controllers (install CRDs)
-│   └── configs/            # custom resources that use those CRDs
+│   ├── core/               # primitives: networking, VIP, certificates, storage
+│   │   ├── controllers/    #   installs them (and their CRDs)
+│   │   └── configs/        #   the resources those CRDs define
+│   └── platform/           # services built on the primitives
+│       ├── controllers/    #   observability, backups, ddns
+│       └── configs/        #   scrapes and ingresses
 └── apps/main/              # user-facing workloads
 ```
 
-Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage
-only starts once the one it depends on is applied — and `infra-controllers` uses
-`wait: true`, meaning it isn't considered Ready until its HelmReleases
-(Cilium, Rook) are actually healthy:
+Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage only
+starts once the one before it is applied. Every stage but the last also uses
+`wait: true`, meaning it isn't Ready until the HelmReleases inside it are healthy:
 
 ```
-flux-system ─► infra-controllers ─► infra-configs ─► apps
- (Flux)        (Cilium, kube-vip,    (Cilium BGP +    (workloads)
-                Rook operator)        LB pool, Ceph
-                                      cluster + SCs)
+flux-system ─► core-controllers ─► core-configs ─► platform-controllers ─► platform-configs ─► apps
+ (Flux)        (Cilium, kube-vip,   (BGP + LB pool,   (observability,        (scrapes,          (workloads)
+                cert-manager,        ClusterIssuers,    Velero, ddns)        ingresses)
+                Rook operator)       CephCluster+SCs)
 ```
 
-This is what lets, say, the Rook `CephCluster` (a config) reliably land *after*
-the Rook operator and its CRDs (a controller), instead of racing it. This
-ordering is also why [adding a service](./operations/adding-a-service.md) means
-picking the right layer.
+**The single rule this encodes: a resource may depend on anything in its own stage or
+an earlier one, never a later one.** Stage 1 of a tier installs the things that provide
+APIs; stage 2 holds whatever needs them — *including HelmReleases*. The Rook
+`CephCluster` is a HelmRelease and lives in `core/configs` because it consumes the
+operator's CRDs, and that is the rule working, not a compromise.
+
+The two tiers exist because one boundary was not enough. With a single
+controllers/configs pair, everything that depended on anything landed in `configs`
+regardless of what it was, and anything genuinely needing storage or certificates had
+nowhere to go at all. Splitting core from platform gives those dependencies a home in
+front of them. See
+[Decisions → Infrastructure Layering](./decisions/infrastructure-layering.md), and
+[adding a service](./operations/adding-a-service.md) for picking the stage.
 
 | Component | Stage | Role |
 | --- | --- | --- |
-| **Cilium** | controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
-| **kube-vip** | controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
-| **Rook-Ceph operator** | controllers | Ceph operator + ceph-csi-operator + CRDs |
-| **Ceph-CSI drivers** | controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
-| **cert-manager** | controllers | ACME (Let's Encrypt) certificate issuance + CRDs |
-| **Velero** | controllers | Off-cluster PVC backups to S3 |
-| **VictoriaMetrics / Loki / Grafana / Alloy** | controllers | Metrics, logs, dashboards, log shipping |
-| **ddns** | controllers | CronJob keeping Route53 pointed at the WAN address |
-| **Cilium BGP / LB pool** | configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
-| **Rook `CephCluster`** | configs | The cluster CR + storage classes (need the operator) |
-| **ClusterIssuers** | configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
-| **`VMServiceScrape`s** | configs | Scrape targets for Ceph and Cilium (need the VM operator's CRDs) |
+| **Cilium** | core-controllers | CNI + kube-proxy replacement + ingress controller + BGP service LB |
+| **kube-vip** | core-controllers | Control-plane API VIP (`10.69.60.10`) over BGP |
+| **cert-manager** | core-controllers | ACME (Let's Encrypt) certificate issuance + CRDs |
+| **Rook-Ceph operator** | core-controllers | Ceph operator + ceph-csi-operator + CRDs |
+| **Ceph-CSI drivers** | core-controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
+| **Cilium BGP / LB pool** | core-configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
+| **ClusterIssuers** | core-configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
+| **Rook `CephCluster`** | core-configs | The cluster CR and storage classes (need the operator) |
+| **VictoriaMetrics / Loki / Grafana / Alloy** | platform-controllers | Metrics, logs, dashboards, log shipping |
+| **Velero** | platform-controllers | Off-cluster PVC backups to S3 |
+| **ddns** | platform-controllers | CronJob keeping Route53 pointed at the WAN address |
+| **`VMServiceScrape`s** | platform-configs | Scrape targets for Ceph and Cilium (need the VM operator's CRDs) |
+| **Ingresses** | platform-configs | Observability hostnames (need the ClusterIssuers from core) |
 
 ### Load balancing & the control-plane VIP
 
@@ -113,7 +126,7 @@ to the router at **AS 65100** (`10.69.60.1`).
   `services-pool`, covering `10.69.65.1`–`10.69.65.254`. That range is deliberately not
   a VLAN: it has no interface and no L2 segment, so it exists purely as the `/32`s
   advertised here and no host ever treats a service address as directly connected. See
-  `kubernetes/infrastructure/configs/cilium/bgp.yaml` and `lb-pool.yaml`, and
+  `kubernetes/infrastructure/core/configs/cilium/bgp.yaml` and `lb-pool.yaml`, and
   [Decisions → Service Networking](./decisions/service-networking.md) for the full
   reasoning and what it implies for firewall rules.
 
@@ -149,7 +162,7 @@ Metrics (VictoriaMetrics), logs (Loki), log shipping (Grafana Alloy), and dashbo
 (Grafana) each get their own namespace and HelmRelease, all in **`infrastructure/`**
 rather than `apps/`: the stack watches the platform, so it has to reconcile before the
 things it watches, and `apps` is the last layer. The scrape CRs it needs from other
-namespaces live in `infrastructure/configs/observability/`, after the operator that
+namespaces live in `infrastructure/platform/configs/observability/`, after the operator that
 defines them. See [Operations → Observability](./operations/observability.md).
 
 ## Secrets

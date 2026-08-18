@@ -41,7 +41,7 @@ them as Kubernetes Secrets it creates itself. There is nothing to SOPS-encrypt f
 ## Dashboard
 
 The Ceph dashboard is enabled and reached at `https://ceph.lilstrudel.io`, through the
-Cilium `Ingress` in `configs/rook-ceph/dashboard-ingress.yaml`. The Ingress pins
+Cilium `Ingress` in `core/configs/rook-ceph/dashboard-ingress.yaml`. The Ingress pins
 `10.69.65.10` (via `lbipam.cilium.io/ips`) from `services-pool`, which Cilium's BGP control
 plane advertises to the MikroTik, and carries a Let's Encrypt certificate — see
 [DNS & Certificates](./dns-and-certificates.md).

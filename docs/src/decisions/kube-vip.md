@@ -2,7 +2,7 @@
 
 [kube-vip](https://kube-vip.io/) owns the control-plane API VIP (`10.69.60.10`) and
 advertises it over **BGP** from the control-plane nodes. It's deployed by Flux from
-[`controllers/kube-vip/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/infrastructure/controllers/kube-vip),
+[`core/controllers/kube-vip/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/infrastructure/core/controllers/kube-vip),
 which holds two committed files — `kube-vip.yaml` (the DaemonSet) and `rbac.yaml`.
 
 Both are produced **verbatim** by the commands below, so re-running either shows zero
@@ -24,7 +24,7 @@ docker run --rm ghcr.io/kube-vip/kube-vip:<KUBE_VIP_VERSION> manifest daemonset 
   --localAS 65000 --peerAS 65100 --peerAddress 10.69.60.1 \
 | sed '/^        - name: bgp_routerid$/a\          valueFrom:\n            fieldRef:\n              fieldPath: status.podIP' \
 | sed '/^        - manager$/a\        - --bgpHoldTimer=90 # 30s default outruns RouterOS'"'"'s keepalive timer — session drops every 30s\n        - --bgpKeepAliveInterval=30' \
-> kubernetes/infrastructure/controllers/kube-vip/kube-vip.yaml
+> kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml
 ```
 
 The tag is the version pin and is also the DaemonSet's image, so bumping it here (to the
@@ -99,7 +99,7 @@ Fetched verbatim from the kube-vip project's published manifest — the `Service
 
 ```bash
 curl -sL https://kube-vip.io/manifests/rbac.yaml \
-  -o kubernetes/infrastructure/controllers/kube-vip/rbac.yaml
+  -o kubernetes/infrastructure/core/controllers/kube-vip/rbac.yaml
 ```
 
 Committed byte-for-byte, so re-fetching shows zero diff.

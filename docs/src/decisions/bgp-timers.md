@@ -20,8 +20,8 @@ do not agree:
 
 | Speaker | Configured in | Default hold | Default keepalive |
 | --- | --- | --- | --- |
-| kube-vip (control-plane VIP) | `controllers/kube-vip/kube-vip.yaml` container `args` | 30 s | 10 s |
-| Cilium (service IPs) | `configs/cilium/bgp.yaml` | 90 s | 30 s |
+| kube-vip (control-plane VIP) | `core/controllers/kube-vip/kube-vip.yaml` container `args` | 30 s | 10 s |
+| Cilium (service IPs) | `core/configs/cilium/bgp.yaml` | 90 s | 30 s |
 | RouterOS (all six peers) | on the device, per connection | 3 m | 3 m |
 
 RouterOS's default keepalive of 3 m is longer than either speaker's default hold, so a

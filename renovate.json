@@ -58,7 +58,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/kubernetes/infrastructure/controllers/kube-vip/kube-vip\\.yaml$/",
+        "/kubernetes/infrastructure/core/controllers/kube-vip/kube-vip\\.yaml$/",
         "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [
@@ -119,7 +119,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/kubernetes/infrastructure/configs/rook-ceph/cluster\\.yaml$/",
+        "/kubernetes/infrastructure/core/configs/rook-ceph/cluster\\.yaml$/",
         "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [
@@ -150,7 +150,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/kubernetes/infrastructure/controllers/velero/helm-release\\.yaml$/",
+        "/kubernetes/infrastructure/platform/controllers/velero/helm-release\\.yaml$/",
         "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [
@@ -164,7 +164,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/kubernetes/infrastructure/controllers/ddns/cronjob\\.yaml$/",
+        "/kubernetes/infrastructure/platform/controllers/ddns/cronjob\\.yaml$/",
         "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [

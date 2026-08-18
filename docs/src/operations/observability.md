@@ -6,7 +6,7 @@ Metrics, logs, and dashboards for the cluster. Versions are in
 [Architecture → Observability](../architecture.md#observability).
 
 There is **nothing to run by hand** — Flux brings all four pieces up from
-`kubernetes/infrastructure/controllers/`. This page is day-2: what runs, what it keeps,
+`kubernetes/infrastructure/platform/controllers/`. This page is day-2: what runs, what it keeps,
 and where to look when something is missing.
 
 ## What runs where
@@ -165,4 +165,4 @@ kubectl get certificate -A
 ```
 
 The Grafana admin credentials come from the `grafana-admin` SOPS secret in
-`controllers/grafana/`; see [Secrets](./secrets.md).
+`platform/controllers/grafana/`; see [Secrets](./secrets.md).

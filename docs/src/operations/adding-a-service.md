@@ -5,31 +5,41 @@ Two things must both be right, or the service silently breaks or drifts: the
 (so its pinned versions don't rot). The layering these build on is in
 [Architecture → Flux GitOps](../architecture.md#3-in-cluster-platform--flux-gitops).
 
-## 1. Pick the layer
+## 1. Pick the stage
 
-Decide which layer the manifest belongs to and register it in that layer's
+Decide which stage the manifest belongs to and register it in that stage's
 `kustomization.yaml` — Flux only sees what Kustomize includes.
 
 | The manifest is… | Goes in | Reconciles |
 | --- | --- | --- |
-| An operator / CRD-provider / HelmRelease others depend on | `infrastructure/controllers/<name>/` | first |
-| A custom resource of an operator (references a CRD) | `infrastructure/configs/<name>/` | after controllers |
+| A cluster primitive — networking, the VIP, certificates, storage | `infrastructure/core/controllers/<name>/` | 1st |
+| A resource those primitives define (`CiliumBGP*`, `ClusterIssuer`, `CephCluster`) | `infrastructure/core/configs/<name>/` | 2nd |
+| A platform service that *uses* storage, certificates, or buckets | `infrastructure/platform/controllers/<name>/` | 3rd |
+| A resource a platform service defines (`VMServiceScrape`), or an `Ingress` for one | `infrastructure/platform/configs/<name>/` | 4th |
 | An ordinary workload | `apps/main/` | last |
 
-Configs reconcile *after* controllers, so their CRDs exist by then. If a resource needs
-something from an earlier layer (a CRD, a secret, an operator), confirm that layer's
-Kustomization owns it. For finer ordering than the three layers give, add a `dependsOn`
-to the Kustomization in `clusters/main/`.
+The rule behind the table: **a resource may depend on anything in its own stage or an
+earlier one, never a later one.** So a `HelmRelease` that needs a StorageClass goes in
+`platform/controllers`, *after* `core/configs` creates it — and a `HelmRelease` that
+needs the Rook operator's CRDs goes in `core/configs`, which is why that stage holds
+HelmReleases and not only custom resources. See
+[Decisions → Infrastructure Layering](../decisions/infrastructure-layering.md).
 
-> **A scrape CR for your own app belongs with the app, not in `configs/observability/`.**
+Depending on a *later* stage does not merely retry — it deadlocks. Every stage but the
+last runs with `wait: true`, so a workload in `core/controllers` that waits on something
+from `core/configs` never goes Ready, `core/configs` never reconciles, and the thing it
+was waiting for is never created. If you need finer ordering than the stages give, add a
+`dependsOn` to the Kustomization in `clusters/main/`.
+
+> **A scrape CR for your own app belongs with the app, not in `platform/configs/observability/`.**
 >
 > The rule above is about *CRDs*, and a `VMServiceScrape` satisfies it either way — the
-> VictoriaMetrics operator installs its CRDs in the controllers layer. What matters is the
-> **namespace**. The existing scrapes live in `configs/` because they target `rook-ceph` and
-> `kube-system`, namespaces earlier layers already created. A scrape targeting a namespace
-> that *your app* creates cannot go there: configs reconcile before apps, the namespace does
-> not exist yet, and the failed apply takes the whole `infra-configs` Kustomization — and
-> therefore every app behind it — down with it.
+> VictoriaMetrics operator installs its CRDs in `platform/controllers`. What matters is the
+> **namespace**. The existing scrapes live in `platform/configs/` because they target
+> `rook-ceph` and `kube-system`, namespaces earlier stages already created. A scrape
+> targeting a namespace that *your app* creates cannot go there: it reconciles before
+> `apps`, the namespace does not exist yet, and the failed apply takes the whole
+> `platform-configs` Kustomization — and therefore every app behind it — down with it.
 
 ## 2. Confirm Renovate coverage
 
@@ -97,8 +107,8 @@ without any inbound path, so plaintext buys nothing. Only a non-HTTP protocol, w
 `Ingress` cannot carry, justifies exposing a `LoadBalancer` directly: Minecraft and
 Factorio on their game ports, `alloy-syslog` on UDP 514.
 
-An `Ingress` naming a `ClusterIssuer` belongs in `infrastructure/configs/` (or
-`apps/`) — never `infrastructure/controllers/`, which reconciles before the issuers exist.
+An `Ingress` naming a `ClusterIssuer` belongs in `infrastructure/platform/` or `apps/` —
+never `infrastructure/core/controllers/`, which reconciles before the issuers exist.
 
 ## Hardening
 

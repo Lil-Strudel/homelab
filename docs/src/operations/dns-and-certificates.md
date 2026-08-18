@@ -61,7 +61,7 @@ the list if it should never be cluster-writable.
 ## Dynamic DNS
 
 The ISP does not hand out a static WAN address, so every public record that points at
-home is kept current by a **CronJob** (`kubernetes/infrastructure/controllers/ddns/`)
+home is kept current by a **CronJob** (`kubernetes/infrastructure/platform/controllers/ddns/`)
 running every five minutes:
 
 1. It asks `https://checkip.amazonaws.com` for the address it is seen from. The cluster

@@ -28,7 +28,7 @@ Roll nodes one at a time; Talos handles the rest.
 
 ## Cilium
 
-The chart version in `controllers/cilium/helm-release.yaml` and the `--version` in the
+The chart version in `core/controllers/cilium/helm-release.yaml` and the `--version` in the
 [bootstrap `helm install`](../bootstrap/cluster.md) must stay identical. Renovate's
 custom manager updates both; if you bump by hand, change both.
 

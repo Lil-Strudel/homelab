@@ -6,7 +6,7 @@ a VLAN, that exists on the network only as BGP `/32`s.
 ## The services range is not a VLAN
 
 Every `LoadBalancer` IP comes from a single `CiliumLoadBalancerIPPool`, `services-pool`
-(`kubernetes/infrastructure/configs/cilium/lb-pool.yaml`), spanning `10.69.65.1` through
+(`kubernetes/infrastructure/core/configs/cilium/lb-pool.yaml`), spanning `10.69.65.1` through
 `10.69.65.254`. `10.69.65.0/24` has no VLAN, no interface, no L2 segment, and no DHCP
 server. Its only existence on the network is the set of `/32` routes Cilium advertises
 over BGP from the Trusted-VLAN workers.
