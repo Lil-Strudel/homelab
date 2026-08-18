@@ -188,6 +188,74 @@ resource "aws_iam_access_key" "minecraft_backup" {
   user = aws_iam_user.minecraft_backup.name
 }
 
+locals {
+  # Each app gets its own Postgres cluster, so each gets its own prefix and its own user.
+  cnpg_apps = toset(["vaultwarden", "shlink"])
+}
+
+resource "aws_iam_user" "cnpg" {
+  for_each = local.cnpg_apps
+  name     = "homelab-cnpg-${each.key}"
+}
+
+resource "aws_iam_user_policy" "cnpg" {
+  for_each = local.cnpg_apps
+  name     = "homelab-cnpg-${each.key}-s3"
+  user     = aws_iam_user.cnpg[each.key].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:AbortMultipartUpload",
+          "s3:ListMultipartUploadParts",
+        ]
+        Resource = "${aws_s3_bucket.backups.arn}/cnpg/${each.key}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.backups.arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["cnpg/${each.key}", "cnpg/${each.key}/*"] }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetBucketLocation",
+          "s3:ListBucketMultipartUploads",
+        ]
+        Resource = aws_s3_bucket.backups.arn
+      },
+      # Same guard as the Velero user: an explicit Deny survives a future widening of the
+      # Allow statements above.
+      {
+        Effect = "Deny"
+        Action = [
+          "s3:DeleteObjectVersion",
+          "s3:PutBucketVersioning",
+          "s3:PutLifecycleConfiguration",
+        ]
+        Resource = [
+          aws_s3_bucket.backups.arn,
+          "${aws_s3_bucket.backups.arn}/*",
+        ]
+      },
+    ]
+  })
+}
+
+resource "aws_iam_access_key" "cnpg" {
+  for_each = local.cnpg_apps
+  user     = aws_iam_user.cnpg[each.key].name
+}
+
 output "backups_bucket" {
   description = "Name of the S3 bucket holding off-cluster backups (Velero + future consumers)"
   value       = aws_s3_bucket.backups.bucket
@@ -214,5 +282,17 @@ output "minecraft_backup_access_key_id" {
 output "minecraft_backup_secret_access_key" {
   description = "Secret access key for the Minecraft restic backup user. Copy into the SOPS secret."
   value       = aws_iam_access_key.minecraft_backup.secret
+  sensitive   = true
+}
+
+output "cnpg_access_key_ids" {
+  description = "Access key IDs for the per-app CloudNativePG backup users. Copy into each app's SOPS secret."
+  value       = { for k, v in aws_iam_access_key.cnpg : k => v.id }
+  sensitive   = true
+}
+
+output "cnpg_secret_access_keys" {
+  description = "Secret access keys for the per-app CloudNativePG backup users. Copy into each app's SOPS secret."
+  value       = { for k, v in aws_iam_access_key.cnpg : k => v.secret }
   sensitive   = true
 }

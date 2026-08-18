@@ -32,8 +32,17 @@ The same blind spot would apply to any future workload that scales to zero.
 
 One bucket holds all off-cluster backups, created by Terraform (`terraform/backups.tf`) in the
 `strudelan` account. It is deliberately generic (`homelab-backups-<suffix>`) and partitioned by
-key prefix so future consumers — the NAS, another cluster — can share it under their own prefix
-and their own scoped IAM user. Velero writes under `velero/`.
+key prefix so consumers share it under their own prefix and their own scoped IAM user:
+
+| Prefix | Written by | User |
+| --- | --- | --- |
+| `velero/` | Velero file-system backups | `homelab-velero` |
+| `minecraft/` | In-pod restic backups of the worlds | `homelab-minecraft-backup` |
+| `cnpg/<app>/` | CloudNativePG WAL archive + base backups | `homelab-cnpg-<app>` |
+
+Postgres gets a user *per app* rather than one shared `cnpg` user, so a leaked database
+credential reaches only that app's backups. The users are generated from a `for_each` over
+`local.cnpg_apps`, so adding a database means adding one string.
 
 The bucket blocks all public access and encrypts objects with SSE (AES256). The Velero IAM user
 is scoped to the bucket's `velero/*` prefix only.
@@ -83,6 +92,17 @@ Instant Retrieval (GIR)** after 14 days. The reasoning depends on how the Kopia 
   are still immediate and Velero's own maintenance never breaks. Steady-state retrieval cost is
   effectively zero; a full disaster restore reads GIR at roughly $0.03/GB — a few dollars for
   the whole dataset.
+
+### Why the `cnpg/` prefix gets no transition
+
+The Glacier rule is filtered to `velero/` on purpose. A Postgres WAL archive is a large
+number of small objects, and Glacier Instant Retrieval bills a **128 KB minimum per
+object** — transitioning WAL segments would cost *more* than leaving them in Standard, not
+less. Retention there is Barman's job instead: each `ObjectStore` carries a
+`retentionPolicy`, and obsolete backups are removed after the next backup completes.
+
+The unfiltered `expire-noncurrent-versions` rule does apply to `cnpg/`, so the same 30-day
+delete-marker recovery window protects Postgres backups too.
 
 Deep Archive is deliberately *not* used: its objects need an asynchronous restore before they
 can be read, which would break Kopia's maintenance on the shared repo, and the extra saving
