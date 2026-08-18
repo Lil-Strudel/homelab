@@ -12,6 +12,7 @@ spec:
     name: flux-system
   path: ./kubernetes/infrastructure/controllers
   prune: true
+  deletionPolicy: Orphan # these are replaced by the core/platform tiers; their inventories must survive the swap
   wait: true
   decryption:
     provider: sops
@@ -34,6 +35,7 @@ spec:
     name: flux-system
   path: ./kubernetes/infrastructure/configs
   prune: true
+  deletionPolicy: Orphan # these are replaced by the core/platform tiers; their inventories must survive the swap
   decryption:
     provider: sops
     secretRef:
