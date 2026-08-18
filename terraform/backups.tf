@@ -217,13 +217,14 @@ resource "aws_iam_user_policy" "cnpg" {
         ]
         Resource = "${aws_s3_bucket.backups.arn}/cnpg/${each.key}/*"
       },
+      # Unconditioned on purpose. barman-cloud opens with a HeadBucket call, which is
+      # governed by s3:ListBucket but carries no s3:prefix key — a prefix condition can
+      # never match it, and every backup fails 403. Listing keys is all this grants; reads
+      # and writes stay pinned to cnpg/${each.key}/ by the statement above.
       {
         Effect   = "Allow"
         Action   = "s3:ListBucket"
         Resource = aws_s3_bucket.backups.arn
-        Condition = {
-          StringLike = { "s3:prefix" = ["cnpg/${each.key}", "cnpg/${each.key}/*"] }
-        }
       },
       {
         Effect = "Allow"

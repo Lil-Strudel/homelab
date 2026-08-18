@@ -69,6 +69,21 @@ Postgres gets a user *per app* rather than one shared `cnpg` user, so a leaked d
 credential reaches only that app's backups. The users are generated from a `for_each` over
 `local.cnpg_apps`, so adding a database means adding one string.
 
+### Why the Postgres users can list the whole bucket
+
+Velero and Minecraft hold `s3:ListBucket` conditioned on their own key prefix. The Postgres
+users deliberately do **not**: theirs is unconditioned on the bucket.
+
+barman-cloud opens every WAL archive operation with a `HeadBucket` call. `HeadBucket` is
+governed by `s3:ListBucket` but carries no `s3:prefix` context, so a prefix condition can
+never match it — the request is denied and every backup fails with a 403 that surfaces only
+as `exit status 4` from `barman-cloud-check-wal-archive`. AWS offers no way to scope a
+bucket-level existence check to a prefix.
+
+What this grants is key *listing* across the bucket, nothing more. `GetObject` and
+`PutObject` stay pinned to `cnpg/<app>/`, so a compromised database credential can see that
+other backups exist and when they ran, but cannot read, write, or delete any of them.
+
 The bucket blocks all public access and encrypts objects with SSE (AES256). The Velero IAM user
 is scoped to the bucket's `velero/*` prefix only.
 
