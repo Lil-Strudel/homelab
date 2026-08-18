@@ -12,14 +12,22 @@ download takes longer than any timeout the shared one should carry.
 | App | Hostname | Shape |
 | --- | --- | --- |
 | Dashy | `dashy.lilstrudel.io` | HTTPS via a Cilium `Ingress`; the lab's landing page — see [Dashboard](./dashboard.md) |
-| Vaultwarden | `vault.lilstrudel.io` | HTTPS via a Cilium `Ingress` + `letsencrypt-prod` cert |
-| Shlink | `16e.link` | HTTPS via a Cilium `Ingress`; short-link API and redirects |
+| Vaultwarden | `vault.lilstrudel.io` | HTTPS via a Cilium `Ingress` + `letsencrypt-prod` cert; Postgres backing store |
+| Shlink | `16e.link` | HTTPS via a Cilium `Ingress`; short-link API and redirects; Postgres backing store |
 | Shlink admin UI | `admin.16e.link` | Its own `Ingress`, IP, and certificate — internal-only permanently |
 | Minecraft | `*.mc.lilstrudel.io` | Raw TCP `25565` `LoadBalancer` fronting a fleet of servers — see [Minecraft](./minecraft.md) |
 | Factorio | `factorio.lilstrudel.io` | Raw UDP `34197` `LoadBalancer`, no ingress, no TLS |
 
 Every hostname is a pinned IP in `local.services` (`terraform/main.tf`), which is both the
 DNS source of truth and the allocation record.
+
+## Databases
+
+Vaultwarden and Shlink each own a CloudNativePG `Cluster` in their own namespace, declared
+beside the Deployment they back. Neither keeps application state on a PVC any more —
+Shlink has no volume at all, and Vaultwarden's remaining PVC holds only attachments and
+icons. Credentials come from the CNPG-generated `<cluster>-app` Secret via `secretKeyRef`,
+so no database password is committed. See [Postgres](./postgres.md).
 
 ## The hardening baseline
 

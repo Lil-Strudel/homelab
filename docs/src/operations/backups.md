@@ -19,6 +19,31 @@ ConfigMaps, namespaces, and the rest are **not** backed up — they come back fr
 
 So a recovery is two moves: Flux redeploys the workloads, and Velero restores their PVC data.
 
+### The Postgres exception
+
+CloudNativePG databases are **excluded from Velero entirely**. Each `Cluster` carries
+
+```yaml
+inheritedMetadata:
+  labels:
+    velero.io/exclude-from-backup: "true"
+```
+
+which CNPG propagates to the pods *and* PVCs it creates, and which Velero honours over any
+inclusion filter. Two reasons, and the second is the important one:
+
+- It would store the same data twice. Kopia deduplicates *within* the `velero/` repo only,
+  so a Postgres volume copied there is entirely separate from what barman already wrote
+  under `cnpg/`.
+- **A file-system copy of a live `PGDATA` is not a backup.** Velero's FSB walks the tree
+  while Postgres is writing it — no `pg_start_backup`, no WAL consistency, no PITR.
+  Restoring from one is a coin flip. Postgres backs itself up properly; see
+  [Postgres](./postgres.md#backups).
+
+The label travels with the `Cluster`, which is why it is preferred over adding namespaces to
+`excludedNamespaces` — Vaultwarden's attachment PVC lives in the same namespace and *is*
+still backed up.
+
 ### The `minecraft` exception
 
 The schedules carry `excludedNamespaces: [minecraft]`. Discovering volumes through running
