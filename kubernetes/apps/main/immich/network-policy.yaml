@@ -65,8 +65,7 @@ spec:
               protocol: TCP
     # The admin UI's "new version available" check.
     - toFQDNs:
-        - matchName: "github.com"
-        - matchName: "api.github.com"
+        - matchName: "version.immich.cloud"
       toPorts:
         - ports:
             - port: "443"
