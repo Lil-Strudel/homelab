@@ -102,9 +102,21 @@ reads container logs from `/var/log/pods`, parses them with the CRI stage, and w
 the Loki gateway. Labels are `namespace`, `pod`, `container`, `node`, and a
 `namespace/container` `job`.
 
-Loki runs `SingleBinary` with `filesystem` storage on a `ceph-block` PVC — no object
-store, no read/write/backend split, no caches. Ceph already provides the replication and
-durability that a distributed Loki deployment would be reaching for.
+Loki runs `SingleBinary` against the **Ceph RGW object store** — no read/write/backend
+split, no caches. Chunks and the ruler share one bucket, claimed by an
+`ObjectBucketClaim` (`loki-bucket`) beside the `HelmRelease`; the small `ceph-block` PVC
+that remains holds only the ingester WAL and the tsdb cache.
+
+Object storage is where log chunks belong here for a concrete reason: the RGW data pool
+is **erasure-coded 2+1**, so a gigabyte of logs costs 1.5 GB raw instead of the 3 GB it
+would cost on a replicated RBD volume. Loki is the largest bulk consumer in the cluster,
+so that is the difference worth having.
+
+The bucket name, endpoint, and credentials are never committed. The OBC writes them into
+the `loki` namespace as a ConfigMap and a Secret, both injected with `extraEnvFrom`, and
+the chart config references them as `${BUCKET_NAME}`, `${BUCKET_HOST}`, and friends —
+expanded at startup by `-config.expand-env=true`. Claiming a bucket is covered in
+[Storage](./storage.md#claiming-a-bucket).
 
 A second Alloy release, `alloy-syslog`, runs as a **Deployment** rather than a DaemonSet
 and does no discovery at all: it listens on UDP 514 (remapped to 1514 inside the
