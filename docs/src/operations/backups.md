@@ -100,6 +100,10 @@ Superseded versions are cleaned up by a lifecycle rule at **30 days** — long e
 delete that should not have happened, short enough that old versions do not accumulate cost
 forever.
 
+A second unfiltered rule aborts **incomplete multipart uploads after 7 days**. It covers the
+whole bucket rather than one prefix because Barman ships base backups as multipart uploads:
+an interrupted one leaves orphaned parts that are billed but appear in no object listing.
+
 ## Retention and cost
 
 Three tiers, each a schedule with its own TTL:
