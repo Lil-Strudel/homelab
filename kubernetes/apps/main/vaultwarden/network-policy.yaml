@@ -29,3 +29,10 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: vaultwarden-pg
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP

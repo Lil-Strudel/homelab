@@ -3,8 +3,13 @@ kind: Kustomization
 resources:
 - namespace.yaml
 - secret.sops.yaml
+- postgres-backup-secret.sops.yaml
+- postgres-objectstore.yaml
+- postgres-cluster.yaml
+- postgres-scheduled-backup.yaml
 - pvc.yaml
 - deployment.yaml
 - service.yaml
 - ingress.yaml
 - network-policy.yaml
+- postgres-network-policy.yaml

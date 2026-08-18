@@ -1,0 +1,23 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: vaultwarden-backup
+  namespace: vaultwarden
+spec:
+  retentionPolicy: 30d
+  configuration:
+    destinationPath: s3://homelab-backups-827aa035/cnpg/vaultwarden
+    s3Credentials:
+      accessKeyId:
+        name: vaultwarden-pg-backup
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: vaultwarden-pg-backup
+        key: ACCESS_SECRET_KEY
+      region:
+        name: vaultwarden-pg-backup
+        key: AWS_REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip

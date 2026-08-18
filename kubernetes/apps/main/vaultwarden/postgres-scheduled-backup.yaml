@@ -1,0 +1,14 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: vaultwarden-pg-daily
+  namespace: vaultwarden
+spec:
+  schedule: "0 0 3 * * *" # six fields: CNPG uses the Go cron spec, which leads with seconds
+  immediate: true
+  backupOwnerReference: self
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+  cluster:
+    name: vaultwarden-pg

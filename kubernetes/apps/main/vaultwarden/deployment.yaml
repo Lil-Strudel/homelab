@@ -45,6 +45,11 @@ spec:
 
             - name: IP_HEADER
               value: X-Forwarded-For # without this every failed login is attributed to the ingress pod
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: vaultwarden-pg-app
+                  key: uri
             - name: ADMIN_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -1,0 +1,70 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vaultwarden-postgres
+  namespace: vaultwarden
+spec:
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: vaultwarden-pg
+  ingress:
+    # Postgres from the app, and from the other instance for streaming replication.
+    - fromEndpoints:
+        - {}
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # The instance manager's HTTP API: 8000 is the operator's status/liveness channel,
+    # 9187 is the metrics endpoint.
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: cnpg-system
+        - {}
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+            - port: "9187"
+              protocol: TCP
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          # Every toFQDNs rule below depends on the DNS proxy seeing the lookup here.
+          rules:
+            dns:
+              - matchPattern: "*"
+    # The instance manager watches its own Cluster resource.
+    - toEntities:
+        - kube-apiserver
+    - toEndpoints:
+        - {}
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # barman-cloud shipping WAL and base backups. Both the plain and dualstack spellings
+    # must stay listed — Cilium's `*` never crosses a dot, so one does not cover the other.
+    - toFQDNs:
+        - matchName: "s3.us-west-2.amazonaws.com"
+        - matchPattern: "*.s3.us-west-2.amazonaws.com"
+        - matchName: "s3.dualstack.us-west-2.amazonaws.com"
+        - matchPattern: "*.s3.dualstack.us-west-2.amazonaws.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
