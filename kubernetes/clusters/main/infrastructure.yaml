@@ -78,6 +78,7 @@ spec:
     name: flux-system
   path: ./kubernetes/infrastructure/platform/configs
   prune: true
+  wait: true
   decryption:
     provider: sops
     secretRef:
