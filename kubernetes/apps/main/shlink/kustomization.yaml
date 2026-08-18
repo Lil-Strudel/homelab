@@ -7,6 +7,7 @@ resources:
 - postgres-objectstore.yaml
 - postgres-cluster.yaml
 - postgres-scheduled-backup.yaml
+- postgres-scrape.yaml
 - deployment.yaml
 - service.yaml
 - web-client-deployment.yaml
