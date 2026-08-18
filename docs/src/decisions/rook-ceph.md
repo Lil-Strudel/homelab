@@ -95,11 +95,17 @@ chart pin).
 | `dashboard.enabled: true` | `true` | **Pin.** Explicit requirement; kept so a default change can't disable it. |
 | `placement.all.tolerations` | none | Tolerate the Talos control-plane taint so OSDs schedule on all six nodes. |
 | `storage` (`useAllDevices: false`, `deviceFilter: ^nvme0n1`) | `useAllDevices: true` | Claim only the 1 TB data NVMe, never the OS disk. |
-| `cephObjectStores: []` | one entry | Disable RGW/S3 + the `ceph-bucket` SC — nothing consumes buckets. |
 | `cephConfig.mon.mon_cluster_log_level: info` | `debug` | Ceph's default cluster-log level is `debug`, which makes the mons the largest log source in the cluster by a wide margin. See [Operations → Observability](../operations/observability.md#ceph-cluster-log-level). |
 
 ### What we deliberately **inherit** (removed from `values:`)
 
+- **The object store.** The chart default is exactly what we want: a `ceph-objectstore`
+  with a **3× replicated metadata pool** and an **erasure-coded 2+1 data pool**, one RGW
+  gateway, and the `ceph-bucket` StorageClass for `ObjectBucketClaim`s. EC 2+1 stores
+  1.5× rather than 3×, which is why bulk consumers like Loki's log chunks live here
+  instead of on an RBD volume. The gateway is reached in-cluster at
+  `rook-ceph-rgw-ceph-objectstore.rook-ceph.svc`; there is no Ingress, because nothing
+  outside the cluster uses it.
 - **The block pool and filesystem.** The chart default already defines exactly what we
   want: `ceph-blockpool` → `ceph-block` (RWO, cluster-default SC) and `ceph-filesystem`
   (RWX), both `size: 3` / `failureDomain: host`. The previous config re-specified both

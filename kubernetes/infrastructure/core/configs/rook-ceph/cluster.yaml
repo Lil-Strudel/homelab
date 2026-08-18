@@ -42,4 +42,3 @@ spec:
         useAllNodes: true
         useAllDevices: false
         deviceFilter: "^nvme0n1"
-    cephObjectStores: []
