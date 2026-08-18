@@ -20,7 +20,6 @@ spec:
         runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
-        fsGroup: 1001 # without this the fresh RBD volume is root-owned and the installer cannot create the SQLite file
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -42,14 +41,33 @@ spec:
               value: America/Denver
             - name: TRUSTED_PROXIES
               value: 10.244.0.0/16 # pod CIDR only — else anything in RFC1918 can spoof X-Forwarded-For
+            - name: DB_DRIVER
+              value: postgres
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: shlink-pg-app
+                  key: host
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: shlink-pg-app
+                  key: dbname
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shlink-pg-app
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shlink-pg-app
+                  key: password
             - name: INITIAL_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: shlink
                   key: INITIAL_API_KEY
-          volumeMounts:
-            - name: data
-              mountPath: /etc/shlink/data
           startupProbe:
             httpGet:
               path: /rest/health
@@ -72,7 +90,3 @@ spec:
               memory: 256Mi
             limits:
               memory: 1Gi
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: shlink-data

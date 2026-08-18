@@ -1,0 +1,23 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: shlink-backup
+  namespace: shlink
+spec:
+  retentionPolicy: 30d
+  configuration:
+    destinationPath: s3://homelab-backups-827aa035/cnpg/shlink
+    s3Credentials:
+      accessKeyId:
+        name: shlink-pg-backup
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: shlink-pg-backup
+        key: ACCESS_SECRET_KEY
+      region:
+        name: shlink-pg-backup
+        key: AWS_REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
