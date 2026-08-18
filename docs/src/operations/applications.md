@@ -29,6 +29,18 @@ Shlink has no volume at all, and Vaultwarden's remaining PVC holds only attachme
 icons. Credentials come from the CNPG-generated `<cluster>-app` Secret via `secretKeyRef`,
 so no database password is committed. See [Postgres](./postgres.md).
 
+### Vaultwarden runs the Debian image, not Alpine
+
+`vaultwarden/server:1.37.0`, deliberately without the `-alpine` suffix. On Postgres the
+Alpine build crashes at startup with `SIGSEGV`/`SIGBUS` (exit 139/135) before Rocket
+finishes launching — non-deterministically, so it sometimes survives one start and dies on
+the next. The database itself is fine: schema migrations complete, and the same
+`DATABASE_URL` works on the Debian image with zero restarts. `RUST_MIN_STACK=8388608`
+makes it *less* frequent but does not fix it, which is what points at musl rather than
+configuration.
+
+The Alpine image is fine on SQLite; this only shows up against Postgres.
+
 ## The hardening baseline
 
 Every app pod runs the same posture, and a new one is expected to match it:
