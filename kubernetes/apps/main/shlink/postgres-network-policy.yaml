@@ -51,11 +51,16 @@ spec:
     # The instance manager watches its own Cluster resource.
     - toEntities:
         - kube-apiserver
+    # 8000 alongside 5432: the primary polls each peer's instance-manager API to decide
+    # whether a failover is safe. Without it that check is denied and every switchover
+    # falls back to "the API server is reachable", which cannot see the replica at all.
     - toEndpoints:
         - {}
       toPorts:
         - ports:
             - port: "5432"
+              protocol: TCP
+            - port: "8000"
               protocol: TCP
     # barman-cloud shipping WAL and base backups. Both the plain and dualstack spellings
     # must stay listed — Cilium's `*` never crosses a dot, so one does not cover the other.
