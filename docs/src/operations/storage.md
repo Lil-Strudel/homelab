@@ -1,30 +1,75 @@
 # Storage (Rook-Ceph)
 
-In-cluster storage is [Rook](https://rook.io/)-managed [Ceph](https://ceph.com/),
-backing PersistentVolumes with replicated block and shared-filesystem storage.
-Versions are in [Reference → Versions](../reference/versions.md); the storage design
+In-cluster storage is [Rook](https://rook.io/)-managed [Ceph](https://ceph.com/), serving
+all three of its datastore types: replicated block, shared filesystem, and S3 object
+storage. Versions are in [Reference → Versions](../reference/versions.md); the storage design
 (OSD layout, replication, StorageClasses) is in
 [Architecture → Storage](../architecture.md#storage); the value choices are in
 [Decisions → Rook-Ceph Values](../decisions/rook-ceph.md).
 
 There is **nothing to run by hand** — Flux brings the whole stack up from
-`kubernetes/infrastructure/{controllers,configs}/rook-ceph/` once the cluster is
+`kubernetes/infrastructure/core/{controllers,configs}/rook-ceph/` once the cluster is
 bootstrapped. This page is day-2: what runs, how to reach the dashboard, and how to
 check health.
 
 ## What runs where
 
-Rook v1.20 splits into three Helm charts, wired across the two Flux stages so nothing
+Rook v1.20 splits into three Helm charts, wired across the two core stages so nothing
 races its CRDs:
 
 | HelmRelease | Chart | Stage | Role |
 | --- | --- | --- | --- |
-| `ceph-operator` | `rook-ceph` | controllers | Operator + ceph-csi-operator subchart + all CRDs |
-| `ceph-csi-drivers` | `ceph-csi-drivers` | controllers | RBD/CephFS `Driver` CRs (`dependsOn` the operator) |
-| `ceph-cluster` | `rook-ceph-cluster` | configs | The `CephCluster` CR, pools, and StorageClasses |
+| `ceph-operator` | `rook-ceph` | core-controllers | Operator + ceph-csi-operator subchart + all CRDs |
+| `ceph-csi-drivers` | `ceph-csi-drivers` | core-controllers | RBD/CephFS `Driver` CRs (`dependsOn` the operator) |
+| `ceph-cluster` | `rook-ceph-cluster` | core-configs | The `CephCluster` CR, pools, StorageClasses, and object store |
 
-`infra-controllers` runs with `wait: true`, so the operator and CSI drivers are healthy
-before `infra-configs` reconciles the `CephCluster`.
+`core-controllers` runs with `wait: true`, so the operator and CSI drivers are healthy
+before `core-configs` reconciles the `CephCluster`.
+
+## What you can claim
+
+| Want | Use | Backed by |
+| --- | --- | --- |
+| An RWO volume (the default) | StorageClass `ceph-block` | RBD pool, 3× replicated |
+| An RWX volume shared by many pods | StorageClass `ceph-filesystem` | CephFS, 3× replicated |
+| An S3 bucket | An `ObjectBucketClaim` on StorageClass `ceph-bucket` | RGW, **erasure-coded 2+1** |
+
+`ceph-block` is the cluster default, so a PVC with no `storageClassName` lands there.
+
+### Claiming a bucket
+
+An `ObjectBucketClaim` provisions a bucket and writes its coordinates into **the OBC's own
+namespace** — a ConfigMap and a Secret, both named after the claim:
+
+```yaml
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: myapp-bucket
+  namespace: myapp
+spec:
+  generateBucketName: myapp
+  storageClassName: ceph-bucket
+```
+
+The ConfigMap carries `BUCKET_NAME`, `BUCKET_HOST`, and `BUCKET_PORT`; the Secret carries
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Consume both with `envFrom` rather than
+hardcoding anything — the bucket name is generated and the credentials are per-claim, so
+nothing needs to be committed. Loki does exactly this; see
+[Observability](./observability.md#logs).
+
+**An OBC belongs no earlier than `platform/controllers`.** It needs the `ceph-bucket`
+StorageClass, which `core-configs` creates — claiming one from an earlier stage deadlocks.
+See [Decisions → Infrastructure Layering](../decisions/infrastructure-layering.md).
+
+The gateway is in-cluster only, at `rook-ceph-rgw-ceph-objectstore.rook-ceph.svc` over
+plain HTTP on port 80. There is no Ingress and no LAN endpoint, because nothing outside the
+cluster uses it. Inspect buckets from the toolbox:
+
+```bash
+kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- radosgw-admin bucket list
+kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph df
+```
 
 ## Fresh disks
 
@@ -69,3 +114,7 @@ kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph status
 ```
 
 A healthy fresh cluster reports `HEALTH_OK`, 6 OSDs `up`/`in`, and 3 mons in quorum.
+
+The object store adds several pools of its own (metadata, data, index, control) on the same
+six OSDs. The PG autoscaler sizes them, but a `TOO_MANY_PGS` or `POOL_TOO_FEW_PGS` warning
+in `ceph status` after a pool count change is worth reading rather than ignoring.

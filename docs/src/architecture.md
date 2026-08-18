@@ -106,7 +106,7 @@ front of them. See
 | **Ceph-CSI drivers** | core-controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
 | **Cilium BGP / LB pool** | core-configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
 | **ClusterIssuers** | core-configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
-| **Rook `CephCluster`** | core-configs | The cluster CR and storage classes (need the operator) |
+| **Rook `CephCluster`** | core-configs | The cluster CR, storage classes, and object store (need the operator) |
 | **VictoriaMetrics / Loki / Grafana / Alloy** | platform-controllers | Metrics, logs, dashboards, log shipping |
 | **Velero** | platform-controllers | Off-cluster PVC backups to S3 |
 | **ddns** | platform-controllers | CronJob keeping Route53 pointed at the WAN address |
@@ -147,8 +147,10 @@ Two tiers:
 - **Rook-Ceph** (Ceph Tentacle) — replicated block/file storage backing cluster
   PersistentVolumes. Each of the six nodes contributes its 1 TB NVMe SSD as a single
   OSD (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication, `host` failure domain.
-  Two StorageClasses — `ceph-block` (RBD, the cluster default) and `ceph-filesystem`
-  (CephFS, RWX). No object store (RGW/S3) — nothing consumes buckets. See
+  All three Ceph datastore types are enabled: `ceph-block` (RBD, the cluster default),
+  `ceph-filesystem` (CephFS, RWX), and an RGW object store with `ceph-bucket` for
+  `ObjectBucketClaim`s. The object store's data pool is **erasure-coded 2+1** rather than
+  3× replicated, so bulk data costs 1.5× raw instead of 3×. See
   [Operations → Storage](./operations/storage.md).
 - **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster:
   8× 1 TB Samsung 870 across two ZFS pools, served over NFS.
