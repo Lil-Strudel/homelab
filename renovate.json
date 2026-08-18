@@ -232,7 +232,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/kubernetes/infrastructure/platform/controllers/cnpg/image-catalog\\.yaml$/",
+        "/kubernetes/infrastructure/platform/configs/cnpg/image-catalog\\.yaml$/",
         "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [

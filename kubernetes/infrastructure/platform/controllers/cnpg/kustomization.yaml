@@ -5,4 +5,3 @@ resources:
 - helm-repo.yaml
 - operator.yaml
 - plugin-barman-cloud.yaml
-- image-catalog.yaml
