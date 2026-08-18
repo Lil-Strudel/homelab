@@ -101,6 +101,29 @@ its pods and PVCs. A file-system copy of a live `PGDATA` is not a valid backup �
 consistency, no PITR — and storing one would also duplicate the data in S3. See
 [Backups](./backups.md).
 
+## Monitoring
+
+Both the operator and every instance are scraped by VictoriaMetrics. Each is a
+`VMPodScrape` rather than a `VMServiceScrape`: the operator chart publishes only its webhook
+Service, and CNPG's generated `-rw`/`-ro`/`-r` Services expose 5432 alone, so in both cases
+the metrics port exists on the pod and nowhere else.
+
+| Scrape | Target | Lives in |
+| --- | --- | --- |
+| `cloudnative-pg` | Operator, port 8080 | `platform/configs/cnpg/` |
+| `<app>-pg` | Instances, port 9187 | `apps/main/<app>/` |
+
+The instance scrapes sit with their apps because they target namespaces `apps` creates —
+a scrape in `platform/configs/` would reconcile before that namespace exists and fail the
+whole stage. See [Adding a Service](./adding-a-service.md).
+
+vmagent scrapes from the `victoria-metrics` namespace, so each app's
+`CiliumNetworkPolicy` opens 9187 to it explicitly; the same-namespace rule that covers the
+instance-to-instance traffic does not reach across.
+
+There is no alerting yet — `vmalert` and Alertmanager are both disabled, so these metrics
+are collected and graphable but nothing pages on them.
+
 ## Health check
 
 ```bash

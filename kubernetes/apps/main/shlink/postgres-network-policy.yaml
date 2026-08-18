@@ -33,6 +33,16 @@ spec:
         - ports:
             - port: "8000"
               protocol: TCP
+    # vmagent scrapes 9187 from its own namespace, so the same-namespace `{}` above
+    # cannot reach it. Metrics only — 8000 stays closed to everything but cnpg-system.
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: victoria-metrics
+            app.kubernetes.io/name: vmagent
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:

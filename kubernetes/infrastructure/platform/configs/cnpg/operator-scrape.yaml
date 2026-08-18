@@ -1,0 +1,15 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cloudnative-pg
+  namespace: cnpg-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudnative-pg
+  podMetricsEndpoints:
+    # A pod scrape, not a service scrape: the chart publishes only the webhook Service,
+    # so 8080 is reachable on the pod alone.
+    - port: metrics
+      path: /metrics
+      interval: 30s
