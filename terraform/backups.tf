@@ -36,6 +36,9 @@ resource "aws_s3_bucket_versioning" "backups" {
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
 
+  # Only the monthly backups live long enough to reach this. Dailies (72h) and weeklies
+  # (14d) age out at or before the transition, and GLACIER_IR bills a 90-day minimum, so
+  # transitioning anything shorter-lived would cost more than leaving it in STANDARD.
   rule {
     id     = "velero-glacier-ir"
     status = "Enabled"
@@ -48,6 +51,15 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
       days          = 14
       storage_class = "GLACIER_IR"
     }
+  }
+
+  # Bucket-wide, not per-prefix: barman-cloud ships base backups as multipart uploads, and
+  # an aborted one leaves parts that are billed but invisible to every list operation.
+  rule {
+    id     = "abort-incomplete-multipart"
+    status = "Enabled"
+
+    filter {}
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
