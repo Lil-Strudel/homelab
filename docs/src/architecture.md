@@ -67,7 +67,7 @@ kubernetes/
 │   │   ├── controllers/    #   installs them (and their CRDs)
 │   │   └── configs/        #   the resources those CRDs define
 │   └── platform/           # services built on the primitives
-│       ├── controllers/    #   observability, backups, ddns
+│       ├── controllers/    #   observability, databases, backups, ddns
 │       └── configs/        #   scrapes and ingresses
 └── apps/main/              # user-facing workloads
 ```
@@ -79,8 +79,8 @@ starts once the one before it is applied. Every stage but the last also uses
 ```
 flux-system ─► core-controllers ─► core-configs ─► platform-controllers ─► platform-configs ─► apps
  (Flux)        (Cilium, kube-vip,   (BGP + LB pool,   (observability,        (scrapes,          (workloads)
-                cert-manager,        ClusterIssuers,    Velero, ddns)        ingresses)
-                Rook operator)       CephCluster+SCs)
+                cert-manager,        ClusterIssuers,    CNPG, Velero,        ingresses)
+                Rook operator)       CephCluster+SCs)   ddns)
 ```
 
 **The single rule this encodes: a resource may depend on anything in its own stage or
@@ -108,6 +108,7 @@ front of them. See
 | **ClusterIssuers** | core-configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
 | **Rook `CephCluster`** | core-configs | The cluster CR, storage classes, and object store (need the operator) |
 | **VictoriaMetrics / Loki / Grafana / Alloy** | platform-controllers | Metrics, logs, dashboards, log shipping |
+| **CloudNativePG** | platform-controllers | Postgres operator, barman-cloud backup plugin, and the image catalog |
 | **Velero** | platform-controllers | Off-cluster PVC backups to S3 |
 | **ddns** | platform-controllers | CronJob keeping Route53 pointed at the WAN address |
 | **`VMServiceScrape`s** | platform-configs | Scrape targets for Ceph and Cilium (need the VM operator's CRDs) |

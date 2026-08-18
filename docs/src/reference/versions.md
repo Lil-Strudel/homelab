@@ -24,6 +24,9 @@ in lockstep, so the two never drift.
 | Loki | `7.2.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
 | Grafana | `12.10.4` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
 | Grafana Alloy | `1.11.1` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
+| CloudNativePG | `0.29.0` | `platform/controllers/cnpg/operator.yaml` (chart version) |
+| plugin-barman-cloud | `0.7.1` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
+| PostgreSQL | `18-standard-trixie` | `platform/controllers/cnpg/image-catalog.yaml` (tag + digest) |
 
 ## Pins that must move together
 

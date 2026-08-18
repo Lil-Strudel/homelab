@@ -210,6 +210,38 @@
       "datasourceTemplate": "helm",
       "registryUrlTemplate": "https://grafana.github.io/helm-charts",
       "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["CloudNativePG \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "cloudnative-pg",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://cloudnative-pg.github.io/charts",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["plugin-barman-cloud \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "plugin-barman-cloud",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://cloudnative-pg.github.io/charts",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kubernetes/infrastructure/platform/controllers/cnpg/image-catalog\\.yaml$/",
+        "/docs/src/reference/versions\\.md$/"
+      ],
+      "matchStrings": [
+        "image:\\s*ghcr\\.io/cloudnative-pg/postgresql:(?<currentValue>[0-9a-z.-]+)@(?<currentDigest>sha256:[a-f0-9]+)",
+        "PostgreSQL \\| `(?<currentValue>[0-9a-z.-]+)`"
+      ],
+      "depNameTemplate": "ghcr.io/cloudnative-pg/postgresql",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -262,6 +294,14 @@
     {
       "matchPackageNames": ["shlinkio/shlink", "shlinkio/shlink-web-client"],
       "groupName": "shlink"
+    },
+    {
+      "matchPackageNames": [
+        "cloudnative-pg",
+        "plugin-barman-cloud",
+        "ghcr.io/cloudnative-pg/postgresql"
+      ],
+      "groupName": "cnpg"
     },
     {
       "matchManagers": ["flux", "custom.regex"],
