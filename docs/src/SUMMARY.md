@@ -22,6 +22,7 @@
 - [Secrets (SOPS + Age)](./operations/secrets.md)
 - [Storage (Rook-Ceph)](./operations/storage.md)
 - [Backups (Velero)](./operations/backups.md)
+- [Postgres (CloudNativePG)](./operations/postgres.md)
 - [Observability](./operations/observability.md)
 - [DNS & Certificates](./operations/dns-and-certificates.md)
 - [VPN Access](./operations/vpn-access.md)

@@ -118,6 +118,12 @@ the chart config references them as `${BUCKET_NAME}`, `${BUCKET_HOST}`, and frie
 expanded at startup by `-config.expand-env=true`. Claiming a bucket is covered in
 [Storage](./storage.md#claiming-a-bucket).
 
+> **Resizing Loki's PVC needs the StatefulSet deleted first.** `volumeClaimTemplates` is
+> immutable, so a Helm upgrade that changes the size fails with *"updates to statefulset
+> spec for fields other than 'replicas', … are forbidden"* and rolls back. Delete the
+> StatefulSet and the PVC, then let Flux recreate them — which also means accepting the loss
+> of whatever is still local. Chunks in object storage are unaffected.
+
 A second Alloy release, `alloy-syslog`, runs as a **Deployment** rather than a DaemonSet
 and does no discovery at all: it listens on UDP 514 (remapped to 1514 inside the
 unprivileged container) for syslog from the MikroTik devices and labels it `job=routeros`,
