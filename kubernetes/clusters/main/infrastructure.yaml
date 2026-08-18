@@ -1,7 +1,7 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: infra-controllers
+  name: core-controllers
   namespace: flux-system
 spec:
   interval: 1h
@@ -10,9 +10,8 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./kubernetes/infrastructure/controllers
+  path: ./kubernetes/infrastructure/core/controllers
   prune: true
-  deletionPolicy: Orphan # these are replaced by the core/platform tiers; their inventories must survive the swap
   wait: true
   decryption:
     provider: sops
@@ -22,20 +21,63 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: infra-configs
+  name: core-configs
   namespace: flux-system
 spec:
   dependsOn:
-    - name: infra-controllers
+    - name: core-controllers
+  interval: 1h
+  retryInterval: 2m
+  timeout: 20m # OSD provisioning on a cold bring-up outlasts the 10m the other stages use
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./kubernetes/infrastructure/core/configs
+  prune: true
+  wait: true
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform-controllers
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: core-configs
   interval: 1h
   retryInterval: 2m
   timeout: 10m
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./kubernetes/infrastructure/configs
+  path: ./kubernetes/infrastructure/platform/controllers
   prune: true
-  deletionPolicy: Orphan # these are replaced by the core/platform tiers; their inventories must survive the swap
+  wait: true
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform-configs
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: platform-controllers
+  interval: 1h
+  retryInterval: 2m
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./kubernetes/infrastructure/platform/configs
+  prune: true
   decryption:
     provider: sops
     secretRef:

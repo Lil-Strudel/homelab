@@ -1,7 +1,7 @@
 # Creating a kube-vip Manifest (archived)
 
 > ⚠️ **Superseded.** This was for the old Debian + `kubeadm` cluster. kube-vip is now
-> deployed by Flux from [`kubernetes/infrastructure/controllers/kube-vip/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/infrastructure/controllers/kube-vip).
+> deployed by Flux from [`kubernetes/infrastructure/core/controllers/kube-vip/`](https://github.com/Lil-Strudel/homelab/tree/main/kubernetes/infrastructure/core/controllers/kube-vip).
 > Kept for reference only.
 
 ```

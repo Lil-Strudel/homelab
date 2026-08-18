@@ -33,6 +33,7 @@
 
 # Decisions & Lessons
 
+- [Infrastructure Layering](./decisions/infrastructure-layering.md)
 - [Service Networking](./decisions/service-networking.md)
 - [BGP Timers](./decisions/bgp-timers.md)
 - [WAN RA MTU Syslog](./decisions/wan-ra-mtu.md)

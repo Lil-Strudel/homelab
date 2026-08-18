@@ -8,12 +8,12 @@ With the control plane bootstrapped ([Talos](./talos.md)), install Cilium so nod
 
 This bootstrap `helm install` mirrors the Flux-managed `HelmRelease`; once Flux takes
 over it reconciles the same values plus the BGP resources under
-`kubernetes/infrastructure/configs/cilium/`.
+`kubernetes/infrastructure/core/configs/cilium/`.
 
 > Set `--version` to the **Cilium** version in
 > [Reference → Versions](../reference/versions.md) — it must equal
 > `spec.chart.spec.version` in
-> `kubernetes/infrastructure/controllers/cilium/helm-release.yaml`.
+> `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml`.
 
 ```bash
 helm repo add cilium https://helm.cilium.io/

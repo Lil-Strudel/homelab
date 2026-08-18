@@ -35,16 +35,36 @@ Key `patch.yaml` invariants (do not change without understanding the fallout):
 
 ## Kubernetes / Flux (`kubernetes/`)
 
-Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is `kubernetes/clusters/main` (`--path` at bootstrap):
+Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is
+`kubernetes/clusters/main` (`--path` at bootstrap):
 
-`clusters/main` → **infra-controllers** (`infrastructure/controllers`) → **infra-configs** (`infrastructure/configs`, `dependsOn` controllers) → **apps** (`apps/main`, `dependsOn` configs).
+`clusters/main` → **core-controllers** → **core-configs** → **platform-controllers** →
+**platform-configs** → **apps** (`apps/main`), each `dependsOn` the one before it.
 
-The controllers/configs split matters: **controllers** install operators/CRDs (Cilium, kube-vip, Rook-Ceph HelmReleases); **configs** apply the custom resources those operators define (Cilium BGP peering + LB IP pools, Rook `CephCluster`). A config that lands before its controller's CRDs exist will fail — keep new CRs in `configs` and their operator in `controllers`.
+`infrastructure/` is split into two tiers, each with two stages:
 
-- **Cilium** (`controllers/cilium/helm-release.yaml`) is CNI + kube-proxy replacement + default ingress controller + BGP control plane. Its Helm values must mirror the bootstrap `helm install` in `docs/src/bootstrap/cluster.md`, and the chart version must match what's used at bootstrap.
-- **BGP** (`configs/cilium/bgp.yaml`): workers (non-control-plane nodes) peer ASN 65000 → MikroTik ASN 65100 at `10.69.60.1` to advertise LoadBalancer service IPs. kube-vip advertises the control-plane VIP separately.
-- **Rook-Ceph** (`configs/rook-ceph/cluster.yaml`): OSDs consume `nvme0n1` (`deviceFilter: "^nvme0n1"`) on all nodes, tolerating control-plane taints.
-- `apps/main/kustomization.yaml` currently has no resources — this is where workloads go.
+- **`core/`** — the primitives nothing else can run without. `core/controllers` installs
+  Cilium, kube-vip, cert-manager, and the Rook operator + CSI drivers; `core/configs`
+  applies what those define: Cilium BGP peering + LB IP pools, the `ClusterIssuer`s, and
+  the Rook `CephCluster` with its StorageClasses.
+- **`platform/`** — services built on the primitives, free to depend on storage and
+  certificates. `platform/controllers` holds the observability stack, Velero, and ddns;
+  `platform/configs` holds their `VMServiceScrape`s and `Ingress`es.
+
+**The rule: a resource may depend on anything in its own stage or an earlier one, never a
+later one.** Stage 1 of a tier installs things that provide APIs; stage 2 holds whatever
+consumes them — *including HelmReleases*. The `CephCluster` is a HelmRelease in
+`core/configs` because it needs the operator's CRDs, and that is the rule working, not an
+exception. Depending on a later stage deadlocks rather than retries: every stage but the
+last uses `wait: true`, so it never goes Ready and the stage it was waiting on never runs.
+
+**Renaming or removing a Flux `Kustomization` prunes everything it owns.** Set
+`deletionPolicy: Orphan` on the outgoing one, push it, verify it is live on the cluster,
+and only then swap it out — see `docs/src/decisions/infrastructure-layering.md`.
+
+- **Cilium** (`core/controllers/cilium/helm-release.yaml`) is CNI + kube-proxy replacement + default ingress controller + BGP control plane. Its Helm values must mirror the bootstrap `helm install` in `docs/src/bootstrap/cluster.md`, and the chart version must match what's used at bootstrap.
+- **BGP** (`core/configs/cilium/bgp.yaml`): workers (non-control-plane nodes) peer ASN 65000 → MikroTik ASN 65100 at `10.69.60.1` to advertise LoadBalancer service IPs. kube-vip advertises the control-plane VIP separately.
+- **Rook-Ceph** (`core/configs/rook-ceph/cluster.yaml`): OSDs consume `nvme0n1` (`deviceFilter: "^nvme0n1"`) on all nodes, tolerating control-plane taints.
 
 There is no build/test tooling; changes are validated by Flux reconciliation. `flux reconcile kustomization <name> --with-source` forces a sync; the `flux`/`kubectl` CLIs operate against the live cluster.
 
@@ -52,11 +72,13 @@ There is no build/test tooling; changes are validated by Flux reconciliation. `f
 
 Two things must both be right, or the service silently breaks or drifts:
 
-1. **Dependency chain.** Decide which layer the manifest belongs to and register it so it reconciles in the right order:
-   - Operator / CRD-provider / HelmRelease that others depend on → `infrastructure/controllers/<name>/`, added to `controllers/kustomization.yaml`.
-   - Custom resources of an operator (anything referencing a CRD) → `infrastructure/configs/<name>/`, added to `configs/kustomization.yaml`. These reconcile *after* controllers, so their CRDs exist.
-   - Ordinary workloads → `apps/main/`, added to `apps/main/kustomization.yaml` (reconciles last, after configs).
-   Every new directory must be listed in its parent `kustomization.yaml` — Flux only sees what Kustomize includes. If a resource depends on something in an earlier layer (a CRD, a secret, an operator), confirm that layer's Kustomization owns it; if you need finer ordering than the three layers give, add a `dependsOn` to the Kustomization in `clusters/main/`.
+1. **Dependency chain.** Decide which stage the manifest belongs to and register it so it reconciles in the right order:
+   - A cluster primitive — networking, the VIP, certificates, storage → `infrastructure/core/controllers/<name>/`.
+   - A resource those primitives define (`CiliumBGP*`, `ClusterIssuer`, `CephCluster`) → `infrastructure/core/configs/<name>/`.
+   - A platform service that *uses* storage, certificates, or buckets → `infrastructure/platform/controllers/<name>/`.
+   - A resource a platform service defines (`VMServiceScrape`), or an `Ingress` for one → `infrastructure/platform/configs/<name>/`.
+   - Ordinary workloads → `apps/main/` (reconciles last).
+   Every new directory must be listed in its parent `kustomization.yaml` — Flux only sees what Kustomize includes. Apply the rule above: a resource may depend on anything in its own stage or an earlier one, never a later one. Depending on a later stage **deadlocks** rather than retrying, because every stage but the last uses `wait: true`. If you need finer ordering than the stages give, add a `dependsOn` to the Kustomization in `clusters/main/`.
 
 2. **Renovate coverage.** New pinned versions must be monitored, or they rot. Check that whatever you added is actually picked up:
    - **Flux-native sources** (`HelmRelease` chart versions, `HelmRepository`/`OCIRepository` refs, image tags in `kubernetes/**`) are covered automatically by the `flux` manager (`managerFilePatterns` matches `kubernetes/**.yaml`). Prefer these — they need no extra config.

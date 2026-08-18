@@ -10,20 +10,20 @@ in lockstep, so the two never drift.
 | --- | --- | --- |
 | Talos Linux | `v1.13.7` | `talos/patch.yaml` (installer image tag) |
 | Kubernetes | `1.36.2` | `talos/gen-talos-objects.sh` (`--kubernetes-version`) + `talos/patch.yaml` installer tag |
-| Cilium | `1.19.6` | `kubernetes/infrastructure/controllers/cilium/helm-release.yaml` |
+| Cilium | `1.19.6` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
 | Flux | `v2.9.3` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
-| kube-vip | `v1.2.1` | `kubernetes/infrastructure/controllers/kube-vip/kube-vip.yaml` (image tag) |
-| Rook (operator + cluster) | `v1.20.2` | `controllers/rook-ceph/operator.yaml` + `configs/rook-ceph/cluster.yaml` |
-| ceph-csi-drivers | `1.0.4` | `controllers/rook-ceph/csi-drivers.yaml` |
-| Ceph | `v20.2.2` (Tentacle) | `configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
-| cert-manager | `v1.21.0` | `controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
-| Velero | `12.1.0` | `controllers/velero/helm-release.yaml` (chart version) |
-| velero-plugin-for-aws | `v1.14.2` | `controllers/velero/helm-release.yaml` (`initContainers` image tag) |
-| aws-cli | `2.36.19` | `controllers/ddns/cronjob.yaml` (image tag) |
-| victoria-metrics-k8s-stack | `0.90.2` | `controllers/victoria-metrics/helm-release.yaml` (chart version) |
-| Loki | `7.2.0` | `controllers/loki/helm-release.yaml` (chart version) |
-| Grafana | `12.10.4` | `controllers/grafana/helm-release.yaml` (chart version) |
-| Grafana Alloy | `1.11.1` | `controllers/alloy/helm-release.yaml` (chart version) |
+| kube-vip | `v1.2.1` | `kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml` (image tag) |
+| Rook (operator + cluster) | `v1.20.2` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
+| ceph-csi-drivers | `1.0.4` | `core/controllers/rook-ceph/csi-drivers.yaml` |
+| Ceph | `v20.2.2` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
+| cert-manager | `v1.21.0` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
+| Velero | `12.1.0` | `platform/controllers/velero/helm-release.yaml` (chart version) |
+| velero-plugin-for-aws | `v1.14.2` | `platform/controllers/velero/helm-release.yaml` (`initContainers` image tag) |
+| aws-cli | `2.36.19` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
+| victoria-metrics-k8s-stack | `0.90.2` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
+| Loki | `7.2.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
+| Grafana | `12.10.4` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
+| Grafana Alloy | `1.11.1` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
 
 ## Pins that must move together
 

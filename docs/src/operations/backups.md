@@ -6,7 +6,7 @@ inside PersistentVolumes (Rook-Ceph) needs off-site protection. Versions are in
 [Reference → Versions](../reference/versions.md).
 
 There is **nothing to run by hand** day-to-day — Flux brings Velero up from
-`kubernetes/infrastructure/controllers/velero/`, and the `schedules` in its `HelmRelease` run
+`kubernetes/infrastructure/platform/controllers/velero/`, and the `schedules` in its `HelmRelease` run
 the backups. This page covers what it captures, the S3 cost design, and how to restore.
 
 ## What it captures
@@ -94,7 +94,7 @@ fees.
 
 The Velero IAM access key is created by Terraform and surfaced as two `sensitive` outputs
 (`velero_access_key_id` / `velero_secret_access_key`). They are copied by hand into
-`controllers/velero/secret.sops.yaml` (a `cloud` credentials file, SOPS-encrypted to the admin
+`platform/controllers/velero/secret.sops.yaml` (a `cloud` credentials file, SOPS-encrypted to the admin
 + cluster keys); Flux decrypts it in-cluster. See [Secrets](./secrets.md). Terraform never
 writes secrets into the cluster.
 
@@ -108,8 +108,8 @@ terraform output -raw velero_secret_access_key
 ```
 
 Put `$BUCKET` into the `backupStorageLocation.bucket` field of
-`controllers/velero/helm-release.yaml`, put the keys into the secret
-(`sops controllers/velero/secret.sops.yaml`), commit, then
+`platform/controllers/velero/helm-release.yaml`, put the keys into the secret
+(`sops platform/controllers/velero/secret.sops.yaml`), commit, then
 `flux reconcile kustomization infra-controllers --with-source`.
 
 ## Health check
