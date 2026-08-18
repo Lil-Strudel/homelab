@@ -55,7 +55,10 @@ Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is
 later one.** Stage 1 of a tier installs things that provide APIs; stage 2 holds whatever
 consumes them — *including HelmReleases*. The `CephCluster` is a HelmRelease in
 `core/configs` because it needs the operator's CRDs, and that is the rule working, not an
-exception. Depending on a later stage deadlocks rather than retries: every stage but the
+exception. **A CR's CRD must come from a strictly earlier stage** — Flux dry-runs the whole
+Kustomization, so one unknown `Kind` fails the dry-run and nothing in that stage applies.
+Sharing a stage is only safe when the CRD already exists and just the backing is async (the
+Loki `ObjectBucketClaim`). Depending on a later stage deadlocks rather than retries: every stage but the
 last uses `wait: true`, so it never goes Ready and the stage it was waiting on never runs.
 
 **Renaming or removing a Flux `Kustomization` prunes everything it owns.** Set

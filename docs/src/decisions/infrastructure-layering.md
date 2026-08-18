@@ -30,6 +30,27 @@ Splitting core from platform puts the primitives in front. Anything in `platform
 freely depend on networking, certificates, and storage, because all three are finished
 before it starts.
 
+## A CRD must come from a *strictly earlier* stage
+
+"Its own stage or earlier" has one sharp edge worth stating separately: **the CRD behind
+a custom resource has to come from an earlier stage, never the same one.**
+
+Flux dry-runs an entire `Kustomization` before applying any of it. One unknown `Kind`
+fails the dry-run, and *nothing* in that stage is applied — not the offending resource,
+not the twenty healthy ones beside it. A `ClusterImageCatalog` sitting next to the
+CloudNativePG `HelmRelease` that installs its CRD takes the whole stage down with it:
+
+```
+Ready=False: ClusterImageCatalog/... dry-run failed:
+  no matches for kind "ClusterImageCatalog" in version "postgresql.cnpg.io/v1"
+```
+
+Same-stage placement *is* fine when the CRD already exists and only the resource's
+**backing** is asynchronous. Loki's `ObjectBucketClaim` sits beside its `HelmRelease` in
+`platform/controllers` because the OBC CRD came from the Rook operator back in
+`core-controllers`; the bucket takes a few seconds to provision and Loki simply retries.
+The distinction is *"does the API exist yet"*, not *"is the thing ready yet"*.
+
 ## `configs` holds HelmReleases, and that is correct
 
 The stage names describe **ordering**, not resource kinds. Stage 1 of a tier installs

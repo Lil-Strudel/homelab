@@ -25,6 +25,14 @@ needs the Rook operator's CRDs goes in `core/configs`, which is why that stage h
 HelmReleases and not only custom resources. See
 [Decisions → Infrastructure Layering](../decisions/infrastructure-layering.md).
 
+**A custom resource must be at least one stage behind the thing that installs its CRD.**
+Flux dry-runs a whole `Kustomization` before applying any of it, so one unknown `Kind`
+fails the dry-run and nothing in that stage is applied. Placing a CR beside the
+`HelmRelease` that defines it takes down every other resource in the stage. Sharing a
+stage is only safe when the CRD already exists and merely the *backing* is async — Loki's
+`ObjectBucketClaim` sits beside its `HelmRelease` because the OBC CRD came from Rook two
+stages earlier.
+
 Depending on a *later* stage does not merely retry — it deadlocks. Every stage but the
 last runs with `wait: true`, so a workload in `core/controllers` that waits on something
 from `core/configs` never goes Ready, `core/configs` never reconciles, and the thing it
