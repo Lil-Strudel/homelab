@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- namespace.yaml
+- postgres-backup-secret.sops.yaml
+- postgres-objectstore.yaml
+- postgres-cluster.yaml
+- postgres-scheduled-backup.yaml
+- postgres-scrape.yaml
+- pvc.yaml
+- valkey-deployment.yaml
+- valkey-service.yaml
+- ml-deployment.yaml
+- ml-service.yaml
+- server-deployment.yaml
+- server-service.yaml
+- server-scrape.yaml
+- ingress.yaml
+- network-policy.yaml
+- postgres-network-policy.yaml

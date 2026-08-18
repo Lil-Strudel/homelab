@@ -1,0 +1,16 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: immich-server
+  namespace: immich
+spec:
+  selector:
+    matchLabels:
+      app: immich-server
+  endpoints:
+    - port: metrics-api
+      path: /metrics
+      interval: 30s
+    - port: metrics-ms
+      path: /metrics
+      interval: 30s

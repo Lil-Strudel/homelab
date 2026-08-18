@@ -125,6 +125,7 @@ locals {
   services = {
     "vault.lilstrudel.io"    = { ip = "10.69.65.20", zone = local.domain, expose = null }
     "dashy.lilstrudel.io"    = { ip = "10.69.65.24", zone = local.domain, expose = null }
+    "immich.lilstrudel.io"   = { ip = "10.69.65.25", zone = local.domain, expose = null }
     "ceph.lilstrudel.io"     = { ip = "10.69.65.10", zone = local.domain, expose = null }
     "mc.lilstrudel.io"       = { ip = "10.69.65.30", zone = local.domain, expose = null, match_subdomain = true }
     "factorio.lilstrudel.io" = { ip = "10.69.65.31", zone = local.domain, expose = null }

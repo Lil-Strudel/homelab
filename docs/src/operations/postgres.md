@@ -48,6 +48,35 @@ were lost, the S3 backup is the recovery path.
 volume where `PGDATA` resides is fine"* — the split is for high-write workloads. It also
 cannot be undone once set, so the simple layout is the right default.
 
+### Extensions come from a mounted image, not a rebuilt operand
+
+Every cluster runs the same digest-pinned `postgresql-standard-trixie` image. When an app
+needs an extension that image does not carry, the extension is mounted into the pod as an
+image volume rather than baked into a replacement operand image — `spec.postgresql.extensions`
+names an image holding just the extension, plus the paths inside it where the `.so` and the
+control file live. Immich uses this for VectorChord:
+
+```yaml
+  postgresql:
+    shared_preload_libraries:
+      - vchord.so
+    extensions:
+      - name: vchord
+        image:
+          reference: ghcr.io/tensorchord/vchord-scratch:pg18-v1.1.1
+        dynamic_library_path:
+          - /usr/lib/postgresql/18/lib
+        extension_control_path:
+          - /usr/share/postgresql/18/
+```
+
+The extension image is referenced by **tag**. `ImageVolume` itself is on by default at
+Kubernetes 1.36, but `ImageVolumeWithDigest` is still alpha and off, so a `@sha256:` here is
+rejected — this is the one pin in the repo that cannot carry a digest.
+
+`pgvector` needs no such treatment: the standard image already ships
+`postgresql-18-pgvector`, and `CREATE EXTENSION vchord CASCADE` pulls it in.
+
 **`ceph-block` at 3×, not a replica-1 pool.** CNPG's storage docs suggest reducing block
 replicas to one, but that guidance is conditional on no single point of failure existing at
 the storage level, and a stock Ceph pool cannot meet it: an RBD image is striped across

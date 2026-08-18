@@ -34,6 +34,10 @@ data:
             description: Password vault, Bitwarden-compatible
             icon: si-bitwarden
             url: https://vault.lilstrudel.io
+          - title: Immich
+            description: Photo and video library with mobile backup
+            icon: mdi-image-multiple
+            url: https://immich.lilstrudel.io
           - title: Shlink
             description: Short-link redirects and REST API on 16e.link
             icon: mdi-link-variant

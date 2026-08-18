@@ -1,0 +1,23 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: immich-backup
+  namespace: immich
+spec:
+  retentionPolicy: 30d
+  configuration:
+    destinationPath: s3://homelab-backups-827aa035/cnpg/immich
+    s3Credentials:
+      accessKeyId:
+        name: immich-pg-backup
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: immich-pg-backup
+        key: ACCESS_SECRET_KEY
+      region:
+        name: immich-pg-backup
+        key: AWS_REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
