@@ -12,12 +12,50 @@ the backups. This page covers what it captures, the S3 cost design, and how to r
 ## What it captures
 
 The schedule templates include only `pods`, `persistentvolumeclaims`, and
-`persistentvolumes`, with `defaultVolumesToFsBackup: true`. Velero's **File System Backup**
+`persistentvolumes`, with `defaultVolumesToFsBackup: false`. Velero's **File System Backup**
 (Kopia uploader, run by the `node-agent` DaemonSet) copies the actual volume *data* into S3;
 the pod objects are just the handle FSB needs to locate a volume on its node. Deployments,
 ConfigMaps, namespaces, and the rest are **not** backed up — they come back from Git via Flux.
 
 So a recovery is two moves: Flux redeploys the workloads, and Velero restores their PVC data.
+
+### Backup is opt-in
+
+`defaultVolumesToFsBackup: false` means a volume is copied **only** when its pod names it in
+the `backup.velero.io/backup-volumes` annotation. The value is a comma-separated list of
+**pod volume names**, not PVC names — the two routinely differ, and getting it wrong fails
+silently, because a name that matches no volume is simply never copied:
+
+| Namespace | Pod volume | PVC | Holds |
+| --- | --- | --- | --- |
+| `immich` | `library` | `immich-library` | the photo and video library |
+| `vaultwarden` | `data` | `vaultwarden-data` | attachments, icons, the RSA keypair |
+| `grafana` | `storage` | `grafana` | the Grafana database — dashboards and users |
+| `factorio` | `data` | `factorio-data` | saves, mods, server settings |
+
+Opting in per volume is what keeps that list short and the backup trustworthy. A cluster's
+pods are overwhelmingly `emptyDir` scratch, projected ConfigMaps, and CSI socket directories;
+sweeping all of them in copies data that restores to nothing, and every extra volume is one
+more thing that can fail and mark the whole backup `PartiallyFailed`.
+
+### What is deliberately not backed up
+
+Three classes of volume are left out, each for its own reason:
+
+- **Postgres** — barman owns it; see [The Postgres exception](#the-postgres-exception).
+- **Caches and re-derivable data** — `immich-model-cache` holds CLIP and face-recognition
+  weights that re-download from Hugging Face.
+- **Observability data** — `victoria-metrics`' `vmsingle-vm` and `loki`'s `storage-loki-0`.
+  Loki's chunks already live in S3, so its PVC is only WAL and cache. Both are also rewritten
+  continuously while a backup walks them: VictoriaMetrics merges and deletes TSDB parts as it
+  goes, so Kopia descends into a directory that no longer exists, the volume is cancelled, and
+  the backup then stalls until Velero's four-hour operation timeout expires. A file-system copy
+  of a live TSDB would not be restorable even when it does complete.
+
+Metrics history is therefore the one dataset here with no off-cluster copy. That is an accepted
+loss — it is derived, bounded by retention, and cheap to start over. Protecting it properly
+means [`vmbackup`](https://docs.victoriametrics.com/vmbackup/), which snapshots the TSDB
+through VictoriaMetrics' own API, not a file-system walk.
 
 ### The Postgres exception
 
@@ -30,7 +68,9 @@ inheritedMetadata:
 ```
 
 which CNPG propagates to the pods *and* PVCs it creates, and which Velero honours over any
-inclusion filter. Two reasons, and the second is the important one:
+inclusion filter. Under an opt-in policy the volume data would be skipped regardless; the label
+additionally keeps the pod and PVC *objects* out of the backup. Two reasons, and the second is
+the important one:
 
 - It would store the same data twice. Kopia deduplicates *within* the `velero/` repo only,
   so a Postgres volume copied there is entirely separate from what barman already wrote
@@ -183,6 +223,14 @@ kubectl -n velero get pods                 # velero + one node-agent per node
 velero backup-location get                 # default → Available
 velero schedule get                        # daily / weekly / monthly
 velero backup get                          # completed backups
+```
+
+To confirm the opt-in set is what you expect, list the volumes a given backup actually copied —
+this should show the four volumes above and nothing else:
+
+```bash
+kubectl -n velero get podvolumebackups -l velero.io/backup-name=<backup> \
+  -o custom-columns='NS:.spec.pod.namespace,POD:.spec.pod.name,VOL:.spec.volume,PHASE:.status.phase'
 ```
 
 ## Restore

@@ -125,6 +125,28 @@ non-root, dropped capabilities, `RuntimeDefault` seccomp, no service-account tok
 namespace enforcing PSA `restricted`, and a default-deny `CiliumNetworkPolicy` with the
 flows it actually needs written back in. See [Applications](./applications.md).
 
+## Backups
+
+Velero's file-system backup is **opt-in**, so a new PVC is captured only once its pod names the
+volume in `backup.velero.io/backup-volumes`. Nothing warns you if you skip it — an unannotated
+volume is simply never copied, and the backup still reports success.
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: library # pod volume name, not the PVC name
+```
+
+The value is the **pod volume name**. For a chart-managed workload, set it through the chart's
+`podAnnotations` value rather than patching the rendered Deployment.
+
+Decide deliberately, because both answers are legitimate: state a workload keeps but can
+re-derive (caches, downloaded models, a search index) is better left out, and anything with its
+own backup mechanism — a CloudNativePG database, a world backed up from inside its pod — must
+stay out so it is not stored twice and inconsistently. See [Backups](./backups.md).
+
 ## Secrets
 
 To add an application secret: write a normal `Secret` manifest named
