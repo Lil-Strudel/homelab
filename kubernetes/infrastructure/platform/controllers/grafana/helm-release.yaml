@@ -23,6 +23,9 @@ spec:
       retries: 3
       remediateLastFailure: true
   values:
+    deploymentStrategy:
+      type: Recreate # one replica on an RWO volume: a rolling update deadlocks on Multi-Attach
+
     podAnnotations:
       backup.velero.io/backup-volumes: storage # the chart's other volumes are generated dashboards and scratch
 
