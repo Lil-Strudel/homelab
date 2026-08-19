@@ -37,9 +37,9 @@ it — it deletes it, resetting the value once. So it never goes in.
 
 ## Velero cannot back up a sleeping server
 
-Velero's schedules run `defaultVolumesToFsBackup: true` over
-`includedResources: [pods, persistentvolumeclaims, persistentvolumes]`. Kopia file-system
-backup finds volumes **through running pods**, which fails this workload twice over:
+Velero's schedules run over `includedResources: [pods, persistentvolumeclaims,
+persistentvolumes]`. Kopia file-system backup finds volumes **through running pods**, which
+fails this workload twice over:
 
 1. **A sleeping server has no pod, so its world is skipped entirely.** These servers are
    scaled to zero most of the time, and certainly at 02:00 when the daily schedule fires. The

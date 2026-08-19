@@ -48,7 +48,7 @@ spec:
           ttl: 72h0m0s
           storageLocation: default
           snapshotVolumes: false
-          defaultVolumesToFsBackup: true
+          defaultVolumesToFsBackup: false # opt-in: a volume is copied only if its pod names it in backup.velero.io/backup-volumes
           includedNamespaces:
             - "*"
           # Minecraft servers sit at zero replicas most of the time, and file-system backup
@@ -65,7 +65,7 @@ spec:
           ttl: 336h0m0s
           storageLocation: default
           snapshotVolumes: false
-          defaultVolumesToFsBackup: true
+          defaultVolumesToFsBackup: false # opt-in: a volume is copied only if its pod names it in backup.velero.io/backup-volumes
           includedNamespaces:
             - "*"
           # Minecraft servers sit at zero replicas most of the time, and file-system backup
@@ -82,7 +82,7 @@ spec:
           ttl: 2880h0m0s
           storageLocation: default
           snapshotVolumes: false
-          defaultVolumesToFsBackup: true
+          defaultVolumesToFsBackup: false # opt-in: a volume is copied only if its pod names it in backup.velero.io/backup-volumes
           includedNamespaces:
             - "*"
           # Minecraft servers sit at zero replicas most of the time, and file-system backup
