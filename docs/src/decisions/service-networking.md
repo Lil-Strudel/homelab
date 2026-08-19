@@ -63,26 +63,28 @@ anything enforces.
 ## Raw L4 services bypass the Ingress entirely
 
 Cilium's ingress controller is HTTP(S)-only, so anything speaking a non-HTTP protocol —
-the Minecraft router on TCP `25565`, Factorio on UDP `34197`, `alloy-syslog` on UDP `514` —
-cannot use it. Those get a `type: LoadBalancer` Service carrying `lbipam.cilium.io/ips`
-**directly**, rather than an `Ingress` that carries the annotation for them. No `Ingress`
-also means no cert-manager and no TLS: there is nothing in a Minecraft handshake or a
-syslog datagram for a web certificate to secure.
+the Minecraft router on TCP `25565`, Factorio on UDP `34197`, `alloy-syslog` on UDP `514`,
+RustDesk on TCP `21115`–`21117` plus UDP `21116` — cannot use it. Those get a
+`type: LoadBalancer` Service carrying `lbipam.cilium.io/ips` **directly**, rather than an
+`Ingress` that carries the annotation for them. No `Ingress` also means no cert-manager
+and no TLS: there is nothing in a Minecraft handshake or a syslog datagram for a web
+certificate to secure.
 
 This is the **only** reason to expose a `LoadBalancer` directly. Everything that speaks
 HTTP goes behind an `Ingress` and is reached over HTTPS, internal-only or not — DNS-01
 issues without any inbound path, so plaintext would buy nothing.
 
-The game Services set **`externalTrafficPolicy: Local`**, which the HTTP services don't
+These Services set **`externalTrafficPolicy: Local`**, which the HTTP services don't
 need and don't set. Two reasons. It preserves the client source IP — the default `Cluster`
 SNATs it to a node address, which would make a game server's own ban lists and logs
-useless. And Cilium's BGP control plane only advertises a `Local` service's IP from nodes
-that actually hold a backend, so the `/32` follows the pod instead of every worker
-advertising and hairpinning traffic to whichever node has it. The catch: a node must be
-a BGP speaker for its backend to be reachable at all. That holds because the speaker
-`nodeSelector` covers exactly the non-control-plane nodes, and control planes are tainted
-— so a pod can only land on a node that advertises. Untainting a control plane would
-break it.
+useless, and would leave RustDesk's rendezvous server brokering every session through the
+relay because it never sees where a peer actually is. And Cilium's BGP control plane only
+advertises a `Local` service's IP from nodes that actually hold a backend, so the `/32`
+follows the pod instead of every worker advertising and hairpinning traffic to whichever
+node has it. The catch: a node must be a BGP speaker for its backend to be reachable at
+all. That holds because the speaker `nodeSelector` covers exactly the non-control-plane
+nodes, and control planes are tainted — so a pod can only land on a node that advertises.
+Untainting a control plane would break it.
 
 ## The Shlink admin UI is its own everything
 

@@ -1,0 +1,43 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: rustdesk
+  namespace: rustdesk
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "21115"
+              protocol: TCP
+            - port: "21116"
+              protocol: TCP
+            - port: "21116"
+              protocol: UDP
+            - port: "21117"
+              protocol: TCP
+    # The readiness/liveness probes are tcpSocket checks from the kubelet.
+    - fromEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "21116"
+              protocol: TCP
+            - port: "21117"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"

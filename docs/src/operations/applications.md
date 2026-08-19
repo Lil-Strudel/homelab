@@ -18,6 +18,7 @@ download takes longer than any timeout the shared one should carry.
 | Shlink admin UI | `admin.16e.link` | Its own `Ingress`, IP, and certificate — internal-only permanently |
 | Minecraft | `*.mc.lilstrudel.io` | Raw TCP `25565` `LoadBalancer` fronting a fleet of servers — see [Minecraft](./minecraft.md) |
 | Factorio | `factorio.lilstrudel.io` | Raw UDP `34197` `LoadBalancer`, no ingress, no TLS |
+| RustDesk | `rustdesk.lilstrudel.io` | Raw TCP `21115`–`21117` + UDP `21116` `LoadBalancer`, no ingress, no TLS |
 
 Every hostname is a pinned IP in `local.services` (`terraform/main.tf`), which is both the
 DNS source of truth and the allocation record.
@@ -95,7 +96,7 @@ Namespaces enforce Pod Security Admission `restricted`, with one exception:
 
 | Namespace | Enforce | Why |
 | --- | --- | --- |
-| `dashy`, `vaultwarden`, `immich`, `minecraft`, `factorio` | `restricted` | — |
+| `dashy`, `vaultwarden`, `immich`, `minecraft`, `factorio`, `rustdesk` | `restricted` | — |
 | `shlink` | `baseline` | The `shlink-web-client` nginx entrypoint writes `servers.json` into the image's html directory, which a non-root UID cannot create. `warn`/`audit` stay at `restricted` so the gap stays visible. |
 
 Each namespace also carries a **default-deny `CiliumNetworkPolicy`** covering ingress and
@@ -107,6 +108,48 @@ downloads its own server jar or modpack from, plus Mojang for player authenticat
 Factorio talks to `*.factorio.com`. Dashy needs no internet at all — its egress is DNS plus
 the handful of in-cluster endpoints it status-checks, listed in
 [Dashboard](./dashboard.md#status-checks).
+
+## RustDesk is two binaries around one volume
+
+The OSS RustDesk server is `hbbs`, the ID/rendezvous server, and `hbbr`, the relay. They
+run as two containers in one pod sharing a single `ceph-block` claim mounted at `/root`,
+which is the working directory both binaries read and write. `hbbs` keeps three things
+there: `id_ed25519` and `id_ed25519.pub`, generated on first start, and `db_v2.sqlite3`,
+the registered-peer table. Because the claim is RWO the Deployment uses
+`strategy: Recreate`, and because the image is `FROM scratch` — no `/root` in the layers at
+all — the directory comes into existence as the mount and is owned by `fsGroup: 1000`,
+which is what lets the pod satisfy `restricted` while still writing its own keypair.
+
+Neither binary is given a `-k` flag. `hbbs` already defaults to loading or generating the
+key pair, and `hbbr` deliberately defaults to an empty key: turning relay validation on
+would have both containers racing to create the pair on an empty volume, since `hbbr`
+waits only 300 ms for the file to appear. The relay carries nothing but ciphertext —
+sessions are encrypted end to end between peers — and is reachable only from the Home VLAN
+and the Home VPN, so the validation it would add is worth less than the silent
+key-mismatch failure it would risk.
+
+`hbbs` is also not given `-r`. That flag exists to tell clients where the relay lives when
+it differs from the ID server; here both answer on `10.69.65.26` and `hbbr` is on its
+standard port `21117`, so clients derive it, and the address is written down once instead
+of twice.
+
+The web-client listeners (`21118` on `hbbs`, `21119` on `hbbr`) are not exposed. They trust
+the `X-Real-IP` and `X-Forwarded-For` headers of incoming WebSocket connections without
+validating them, so anyone able to reach them can forge a source address; the desktop and
+mobile clients need neither.
+
+### Pointing a client at it
+
+Menu [ ⋮ ] → Network → unlock, then **ID Server** `rustdesk.lilstrudel.io` and **Key** the
+server's public key. Relay Server and API Server stay blank. The key is the `Key:` line
+`hbbs` logs on every start:
+
+```
+kubectl -n rustdesk logs deploy/rustdesk -c hbbs | grep '^.*Key:'
+```
+
+The log is the only way to read it — the image has no shell, so `kubectl exec ... cat
+/root/id_ed25519.pub` will not run.
 
 ## The Shlink admin UI is internal-only
 

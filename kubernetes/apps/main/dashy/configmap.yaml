@@ -46,6 +46,11 @@ data:
             description: Short-link management UI, internal-only permanently
             icon: mdi-link-plus
             url: https://admin.16e.link
+          - title: RustDesk
+            description: Remote desktop ID and relay server, no web UI — set rustdesk.lilstrudel.io as ID Server in the client
+            icon: mdi-monitor-share
+            url: rustdesk.lilstrudel.io
+            target: clipboard
           - title: Dashy
             description: This dashboard
             icon: mdi-view-dashboard
