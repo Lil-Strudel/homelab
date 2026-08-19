@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustdesk
+  namespace: rustdesk
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: rustdesk
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: data
+      labels:
+        app: rustdesk
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000 # the image is FROM scratch, so /root only exists as the mount and must be owned by the runtime GID
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: hbbs
+          image: rustdesk/rustdesk-server:1.1.16
+          command: ["hbbs"] # no -r: hbbr shares this address on its standard port, so clients derive the relay themselves
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: nat
+              containerPort: 21115
+              protocol: TCP
+            - name: rendezvous
+              containerPort: 21116
+              protocol: TCP
+            - name: rendezvous-udp
+              containerPort: 21116
+              protocol: UDP
+          volumeMounts:
+            - name: data
+              mountPath: /root
+          startupProbe:
+            tcpSocket:
+              port: rendezvous
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          readinessProbe:
+            tcpSocket:
+              port: rendezvous
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: rendezvous
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+        - name: hbbr
+          image: rustdesk/rustdesk-server:1.1.16
+          command: ["hbbr"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: relay
+              containerPort: 21117
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /root
+          startupProbe:
+            tcpSocket:
+              port: relay
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          readinessProbe:
+            tcpSocket:
+              port: relay
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: relay
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: rustdesk-data
