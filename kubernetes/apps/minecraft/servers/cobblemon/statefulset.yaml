@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
         - name: mc
-          image: itzg/minecraft-server:2026.7.2-java21 # the pack targets MC 1.21.x, which Fabric runs on Java 21
+          image: itzg/minecraft-server:2026.8.2-java21 # the pack targets MC 1.21.x, which Fabric runs on Java 21
           env:
             - name: TYPE
               value: MODRINTH
