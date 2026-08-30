@@ -16,7 +16,7 @@ in lockstep, so the two never drift.
 | Rook (operator + cluster) | `v1.20.6` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
 | ceph-csi-drivers | `1.0.4` | `core/controllers/rook-ceph/csi-drivers.yaml` |
 | Ceph | `v20.2.4` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
-| cert-manager | `v1.21.0` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
+| cert-manager | `v1.21.1` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.1.0` | `platform/controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.2` | `platform/controllers/velero/helm-release.yaml` (`initContainers` image tag) |
 | aws-cli | `2.36.34` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
