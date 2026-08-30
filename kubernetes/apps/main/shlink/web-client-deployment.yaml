@@ -16,7 +16,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: shlink-web-client
-          image: shlinkio/shlink-web-client:4.8.0
+          image: shlinkio/shlink-web-client:4.8.1
           # No runAsNonRoot: the nginx entrypoint writes servers.json into the image's
           # html dir, which a non-root UID cannot create. This is what holds the namespace
           # at PSA baseline instead of restricted.
