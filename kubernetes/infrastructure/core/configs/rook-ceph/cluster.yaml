@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: rook-ceph-cluster
-      version: "v1.20.2"
+      version: "v1.20.6"
       sourceRef:
         kind: HelmRepository
         name: rook-release
@@ -22,7 +22,7 @@ spec:
       retries: -1
   values:
     cephImage:
-      tag: v20.2.2
+      tag: v20.2.4
     toolbox:
       enabled: true
     cephClusterSpec:
