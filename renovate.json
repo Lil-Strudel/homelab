@@ -275,6 +275,11 @@
       "groupName": "rook-ceph"
     },
     {
+      "description": "Rook v1.20 supports only Ceph Squid (19) and Tentacle (20); raise this bound only after Rook adds support. See docs/src/decisions/rook-ceph.md.",
+      "matchPackageNames": ["quay.io/ceph/ceph"],
+      "allowedVersions": "/^v20\\./"
+    },
+    {
       "matchPackageNames": ["cilium"],
       "groupName": "cilium"
     },
