@@ -22,7 +22,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: dashy
-          image: lissy93/dashy:4.5.12
+          image: lissy93/dashy:4.6.5
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
