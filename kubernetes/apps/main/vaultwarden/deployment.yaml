@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: vaultwarden
-          image: vaultwarden/server:1.37.0 # not -alpine: musl segfaults (SIGSEGV/SIGBUS) at startup against Postgres
+          image: vaultwarden/server:1.37.2 # not -alpine: musl segfaults (SIGSEGV/SIGBUS) at startup against Postgres
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
