@@ -22,7 +22,7 @@ in lockstep, so the two never drift.
 | aws-cli | `2.36.34` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
 | victoria-metrics-k8s-stack | `0.91.2` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
 | Loki | `7.3.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
-| Grafana | `12.10.4` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
+| Grafana | `12.11.2` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
 | Grafana Alloy | `1.12.1` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
 | CloudNativePG | `0.29.0` | `platform/controllers/cnpg/operator.yaml` (chart version) |
 | plugin-barman-cloud | `0.7.1` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
