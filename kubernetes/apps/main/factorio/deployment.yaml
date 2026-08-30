@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: factorio
-          image: factoriotools/factorio:2.1.12-rootless # the non-rootless tag chowns as root at entrypoint
+          image: factoriotools/factorio:2.1.17-rootless # the non-rootless tag chowns as root at entrypoint
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
