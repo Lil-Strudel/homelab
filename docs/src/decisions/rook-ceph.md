@@ -39,6 +39,27 @@ curl -sL https://charts.rook.io/release/rook-ceph-<ROOK_VERSION>.tgz \
 read that release's `ceph-csi-operator` dependency out of `Chart.yaml`, and set
 `ceph-csi-drivers` to it.
 
+## The Ceph version ceiling
+
+The Ceph pin is bounded by Rook, not by what Ceph has published. Rook v1.20 accepts only
+**Squid (19)** and **Tentacle (20)** — its `supportedVersions` list — and the operator
+rejects a `CephCluster` outside that set unless `cephImage.allowUnsupported` is `true`,
+which we leave at `false`. Ceph 21 (Umbrella) images therefore fail to deploy on this
+Rook. Check the ceiling against the operator itself:
+
+```bash
+curl -sL https://raw.githubusercontent.com/rook/rook/<ROOK_VERSION>/pkg/operator/ceph/version/version.go \
+  | grep -E 'Minimum|supportedVersions'
+```
+
+Ceph's own numbering adds a second constraint: `x.0.z` is a development release, `x.1.z`
+a release candidate, and only `x.2.z` is stable. The pin tracks the stable line.
+
+Renovate reads the tag as a plain Docker version and would otherwise climb to the newest
+major, so `renovate.json` bounds `quay.io/ceph/ceph` with `allowedVersions` to the
+supported line. Raising that bound is a deliberate step taken **after** a Rook release
+adds support for the next Ceph major — the two move together, not independently.
+
 ## The CSI model changed in v1.20
 
 The operator **no longer deploys the CSI drivers**

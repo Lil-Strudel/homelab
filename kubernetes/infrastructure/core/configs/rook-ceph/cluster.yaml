@@ -22,7 +22,7 @@ spec:
       retries: -1
   values:
     cephImage:
-      tag: v21.1.0
+      tag: v20.2.4
     toolbox:
       enabled: true
     cephClusterSpec:
