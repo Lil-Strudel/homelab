@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mc
-          image: itzg/minecraft-server:2026.7.2-java25
+          image: itzg/minecraft-server:2026.8.2-java25
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -93,7 +93,7 @@ spec:
               memory: 64Mi
 
         - name: mc-backup
-          image: itzg/mc-backup:2026.8.1
+          image: itzg/mc-backup:2026.8.2
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
