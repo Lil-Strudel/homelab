@@ -13,8 +13,8 @@ in lockstep, so the two never drift.
 | Cilium | `1.20.1` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
 | Flux | `v2.9.4` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
 | kube-vip | `v1.2.3` | `kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml` (image tag) |
-| Rook (operator + cluster) | `v1.20.6` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
-| ceph-csi-drivers | `1.0.4` | `core/controllers/rook-ceph/csi-drivers.yaml` |
+| Rook (operator + cluster) | `v1.20.7` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
+| ceph-csi-drivers | `1.0.5` | `core/controllers/rook-ceph/csi-drivers.yaml` |
 | Ceph | `v20.2.4` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
 | cert-manager | `v1.21.1` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.1.0` | `platform/controllers/velero/helm-release.yaml` (chart version) |
