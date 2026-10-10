@@ -19,7 +19,7 @@ in lockstep, so the two never drift.
 | cert-manager | `v1.21.2` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.2.1` | `platform/controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.4` | `platform/controllers/velero/helm-release.yaml` (`initContainers` image tag) |
-| aws-cli | `2.36.34` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
+| aws-cli | `2.37.12` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
 | victoria-metrics-k8s-stack | `0.95.2` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
 | Loki | `7.3.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
 | Grafana | `13.5.0` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
