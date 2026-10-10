@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: shlink
-          image: shlinkio/shlink:5.1.5
+          image: shlinkio/shlink:5.1.7
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
