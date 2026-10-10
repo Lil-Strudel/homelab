@@ -27,6 +27,7 @@ in lockstep, so the two never drift.
 | CloudNativePG | `0.29.0` | `platform/controllers/cnpg/operator.yaml` (chart version) |
 | plugin-barman-cloud | `0.7.1` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
 | PostgreSQL | `18-standard-trixie` | `platform/configs/cnpg/image-catalog.yaml` (tag + digest) |
+| mdBook | `v0.5.4` | `.github/workflows/docs.yml` (`MDBOOK_VERSION`) |
 
 ## Pins that must move together
 
