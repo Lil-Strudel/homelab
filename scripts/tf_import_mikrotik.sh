@@ -23,3 +23,10 @@ terraform import module.router.routeros_tool_mac_server_winbox.mac_winbox .
 #                              — import fails with "attribute .id not found in the
 #                                response"; /ip/neighbor/discovery-settings genuinely
 #                                returns no .id. Apply works.
+
+terraform import module.office_switch.routeros_interface_bridge.bridge '*C'
+terraform import module.office_switch.routeros_interface_vlan.management_vlan '*D'
+terraform import module.office_switch.routeros_ip_address.address '*1'
+terraform import module.office_switch.routeros_ip_route.route '*80000001'
+terraform import 'module.office_switch.module.trunk_ports.routeros_interface_bridge_port.bridge_port["ether1"]' '*0'
+terraform import 'module.office_switch.module.trunk_ports.routeros_interface_bridge_vlan.bridge_vlan["Management"]' '*1'
