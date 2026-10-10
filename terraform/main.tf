@@ -88,7 +88,6 @@ locals {
     DMZ        = 50,
     Trusted    = 60,
     Management = 100,
-    Dad        = 200,
   }
   base_ip = "10.69"
   domain  = "lilstrudel.io"
@@ -203,18 +202,14 @@ module "router" {
 
   enforce_firewall = true
 
-  internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
+  internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management"]
 
-  trunk_ports = ["ether2", "ether3", "ether4"]
+  trunk_ports = ["sfp-sfpplus2"]
   access_ports = {
-    "ether5"  = local.vlans["Management"]
-    "ether6"  = local.vlans["Management"]
-    "ether7"  = local.vlans["Management"]
-    "ether8"  = local.vlans["Management"]
-    "ether9"  = local.vlans["Dad"]
-    "ether10" = local.vlans["Dad"]
-    "ether11" = local.vlans["Dad"]
-    "ether12" = local.vlans["Dad"]
+    "ether5" = local.vlans["Management"]
+    "ether6" = local.vlans["Management"]
+    "ether7" = local.vlans["Management"]
+    "ether8" = local.vlans["Management"]
   }
 
   bgp_peers = {
@@ -274,7 +269,7 @@ module "core_switch" {
   vlans           = local.vlans
   management_vlan = local.vlans["Management"]
 
-  trunk_ports = ["sfp-sfpplus24"]
+  trunk_ports = ["sfp-sfpplus2", "sfp-sfpplus24"]
   access_ports = {
     sfp-sfpplus1  = local.vlans["Trusted"]
     sfp-sfpplus3  = local.vlans["Trusted"]
@@ -282,6 +277,7 @@ module "core_switch" {
     sfp-sfpplus11 = local.vlans["Trusted"]
     sfp-sfpplus17 = local.vlans["Trusted"]
     sfp-sfpplus19 = local.vlans["Trusted"]
+    sfp-sfpplus23 = local.vlans["Trusted"]
   }
 }
 
@@ -299,15 +295,13 @@ module "ethernet_switch" {
   vlans           = local.vlans
   management_vlan = local.vlans["Management"]
 
-  trunk_ports = ["ether1", "combo1"]
+  trunk_ports = ["ether2", "combo1"]
   access_ports = {
-    ether2 = local.vlans["Management"]
-    ether3 = local.vlans["Management"]
-    ether4 = local.vlans["Management"]
-    ether5 = local.vlans["Trusted"]
-    ether6 = local.vlans["Trusted"]
-    ether7 = local.vlans["Trusted"]
-    ether8 = local.vlans["Trusted"]
+    ether1 = local.vlans["Management"]
+    ether5 = local.vlans["Management"]
+    ether6 = local.vlans["Management"]
+    ether7 = local.vlans["Management"]
+    ether8 = local.vlans["Management"]
   }
 }
 
@@ -319,27 +313,6 @@ module "wifi_config" {
 
   ssid       = "Strudel"
   passphrase = data.sops_file.secrets.data["wifi1_password"]
-}
-
-resource "routeros_wifi_configuration" "sprinkleract" {
-  provider = routeros.cAPax-1
-
-  name    = "sprinkleract_config"
-  ssid    = "SprinklerAct Studios"
-  country = "United States"
-  mode    = "ap"
-
-  security = {
-    authentication_types = "wpa2-psk"
-    passphrase           = data.sops_file.secrets.data["wifi2_password"]
-    ft                   = "true"
-    ft_over_ds           = "true"
-    ft_preserve_vlanid   = "true"
-  }
-
-  channel = {
-    skip_dfs_channels = "all"
-  }
 }
 
 module "access_point_1" {
@@ -364,15 +337,6 @@ module "access_point_1" {
     ether2 = local.vlans["Management"]
     wifi1  = local.vlans["Management"]
     wifi2  = local.vlans["Management"]
-  }
-
-  virtual_aps = {
-    wifi3 = {
-      master_interface = "wifi2"
-      mac_address      = "4A:A9:8A:C7:8C:F1"
-      configuration    = routeros_wifi_configuration.sprinkleract.name
-      pvid             = local.vlans["Dad"]
-    }
   }
 }
 

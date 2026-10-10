@@ -22,7 +22,6 @@ ID: **`10.69.<vlan>.0/24`**, with the router as `.1`.
 | 50 | DMZ | `10.69.50.0/24` | Reserved for an internet-facing edge; empty |
 | 60 | Trusted | `10.69.60.0/24` | Kubernetes nodes + trusted hosts |
 | 100 | Management | `10.69.100.0/24` | Network gear, OOB (KVM, UPS) |
-| 200 | Dad | `10.69.200.0/24` | Separate household segment |
 
 Within each `/24`, the address space is split by convention (set in
 `terraform/modules/vlan`):
@@ -43,10 +42,29 @@ Two ranges sit outside the VLAN scheme:
 
 ## Switching
 
-Router `ether2–4` are trunk ports carrying all VLANs down to the switches. The
-**core switch** (CRS326) aggregates SFP+ links; the **10G switch** (CRS312)
-distributes 10G copper. Each switch has its own management IP on VLAN 100 and tags
-node/uplink ports appropriately (Trusted for nodes, Management for gear).
+The router's single trunk, `sfp-sfpplus2`, carries all VLANs to the **core switch**
+(CRS326), which aggregates SFP+ links and passes the trunk on to the **10G switch**
+(CRS312), which distributes 10G copper. Every switch hangs off that one SFP+ uplink, so
+the router's trunk has to be configured before anything downstream is reachable. Each
+switch has its own management IP on VLAN 100.
+
+| Device | Port | Mode | Connects to |
+| --- | --- | --- | --- |
+| Router | `ether1` | WAN | House modem |
+| Router | `sfp-sfpplus2` | Trunk | Core switch `sfp-sfpplus2` |
+| Router | `ether5`–`ether8` | Management | Local management access |
+| Core switch | `sfp-sfpplus2` | Trunk | Router |
+| Core switch | `sfp-sfpplus24` | Trunk | 10G switch `combo1` |
+| Core switch | `sfp-sfpplus1`, `3`, `9`, `11`, `17`, `19` | Trusted | Cluster nodes |
+| Core switch | `sfp-sfpplus23` | Trusted | R730xd SFP+ NIC |
+| 10G switch | `combo1` | Trunk | Core switch |
+| 10G switch | `ether1` | Management | R730xd iDRAC |
+| 10G switch | `ether2` | Trunk | Office switch |
+| 10G switch | `ether5` | Management | KVM switch |
+| 10G switch | `ether6` | Management | PiKVM |
+| 10G switch | `ether7`, `ether8` | Management | UPSes |
+
+Ports not listed are off the bridge.
 
 Switches and access points run their own resolver pointed at the router
 (`10.69.100.1`) with `allow-remote-requests` off — a client of the router's resolver, never
@@ -56,8 +74,7 @@ outbound work, such as `check-for-updates`.
 ## WiFi
 
 Two cAPax APs run under **CAPsMAN**, with AP1 as manager and AP2 as client, so the
-`Strudel` SSID roams seamlessly across both. A second SSID, `SprinklerAct Studios`,
-is a self-contained config on AP1 pinned to the Dad VLAN (200).
+`Strudel` SSID roams seamlessly across both.
 
 ## BGP
 
@@ -114,7 +131,6 @@ Trusted — is reachable only from Management and `wg-management`.
 | DMZ (50) | ✅ | — | reserved for an internet-facing edge; nothing on it |
 | Trusted (60) | ✅ | — | cluster nodes; pods reach services in-cluster, never through the router |
 | Management (100) | ✅ | everything | the admin plane |
-| Dad (200) | ✅ | — | isolated household segment |
 | `wg-home` | ✅ | Home, `10.69.65.0/24` | user plane; no Trusted, no Management, no router admin |
 | `wg-management` | ✅ | everything | admin plane; full router access |
 

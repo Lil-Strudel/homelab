@@ -37,7 +37,7 @@ variable "enforce_firewall" {
 variable "internet_vlans" {
   description = "VLAN names permitted to reach the WAN. Security + IoT are intentionally omitted so they have no internet access."
   type        = list(string)
-  default     = ["Home", "Guest", "DMZ", "Trusted", "Management", "Dad"]
+  default     = ["Home", "Guest", "DMZ", "Trusted", "Management"]
 }
 
 variable "services_cidr" {

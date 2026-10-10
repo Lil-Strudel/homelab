@@ -44,16 +44,11 @@ on the device with a `foreach`:
 :foreach i in=[/ip/dhcp-server/lease find where dynamic=no] \
   do={:put ($i . "  " . [/ip/dhcp-server/lease get $i address])}
 
-# Bare id for a single object (e.g. a bridge port on wifi3):
-:foreach i in=[/interface/bridge/port find where interface=wifi3] do={:put $i}
+# Bare id for a single object (e.g. a bridge port on ether5):
+:foreach i in=[/interface/bridge/port find where interface=ether5] do={:put $i}
 ```
 
 Substitute the printed `*X` ids into the import commands, then run the script.
-
-> **Gotcha:** `SprinklerAct` is an inline wifi config on AP1 (security/channel baked
-> into one object), unlike the shared `Strudel` network which uses separate
-> channel/security objects — so it imports as one `routeros_wifi_configuration`
-> resource, not the module's split resources.
 
 ## Router-side BGP peers
 

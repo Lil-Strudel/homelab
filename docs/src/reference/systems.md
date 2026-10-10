@@ -40,8 +40,7 @@ are covered in [Architecture → Storage](../architecture.md#storage).
 | Access point 1 | MikroTik cAPax (cAPGi-5HaxD2HaxD) | `10.69.100.20` | CAPsMAN **manager** |
 | Access point 2 | MikroTik cAPax (cAPGi-5HaxD2HaxD) | `10.69.100.21` | CAPsMAN **client** |
 
-WiFi: a shared `Strudel` network (CAPsMAN-managed across both APs) plus a
-self-contained `SprinklerAct Studios` SSID pinned to the Dad VLAN on AP1.
+WiFi: a shared `Strudel` network, CAPsMAN-managed across both APs.
 
 ## Storage
 
@@ -64,8 +63,7 @@ node on the 1 TB NVMe (see [Operations → Storage](../operations/storage.md)).
 
 ## Upstream
 
-The homelab hangs off a MikroTik router behind the house modem. A separate Netgear
-router (VLAN 200, "Dad") is bridged in for a non-homelab network segment.
+The homelab hangs off a MikroTik router behind the house modem.
 
 ## Why this hardware
 
