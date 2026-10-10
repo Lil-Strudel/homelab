@@ -37,6 +37,7 @@ are covered in [Architecture → Storage](../architecture.md#storage).
 | Router | MikroTik CCR2004-16G-2S+ | `10.69.100.1` | WAN gateway, inter-VLAN routing, BGP (AS 65100) |
 | Core switch | MikroTik CRS326-24S+2Q+RM | `10.69.100.10` | SFP+ aggregation |
 | 10G switch | MikroTik CRS312-4C+8XG-RM | `10.69.100.11` | 10G copper distribution |
+| Office switch | MikroTik CRS310-8G+2S+IN | `10.69.100.12` | Office desk ports |
 | Access point 1 | MikroTik cAPax (cAPGi-5HaxD2HaxD) | `10.69.100.20` | CAPsMAN **manager** |
 | Access point 2 | MikroTik cAPax (cAPGi-5HaxD2HaxD) | `10.69.100.21` | CAPsMAN **client** |
 

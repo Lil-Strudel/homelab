@@ -168,6 +168,14 @@ provider "routeros" {
 }
 
 provider "routeros" {
+  hosturl  = "10.69.100.12:6729"
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
+  insecure = true
+  alias    = "crs310"
+}
+
+provider "routeros" {
   hosturl  = "10.69.100.20:6729"
   username = data.sops_file.secrets.data["routeros_username"]
   password = data.sops_file.secrets.data["routeros_password"]
@@ -305,6 +313,32 @@ module "ethernet_switch" {
   }
 }
 
+module "office_switch" {
+  source = "./modules/switch"
+  providers = {
+    routeros = routeros.crs310
+  }
+
+  identity = "office_switch"
+
+  base_ip    = local.base_ip
+  ip_address = "12"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+
+  trunk_ports = ["ether1"]
+  access_ports = {
+    ether2 = local.vlans["Home"]
+    ether3 = local.vlans["Home"]
+    ether4 = local.vlans["Home"]
+    ether5 = local.vlans["Home"]
+    ether6 = local.vlans["Home"]
+    ether7 = local.vlans["Management"]
+    ether8 = local.vlans["Management"]
+  }
+}
+
 module "wifi_config" {
   source = "./modules/wifi_config"
   providers = {
@@ -389,6 +423,15 @@ module "syslog_ethernet_switch" {
   source = "./modules/syslog"
   providers = {
     routeros = routeros.crs312
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_office_switch" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.crs310
   }
 
   target_ip = local.services["syslog.lilstrudel.io"].ip

@@ -44,9 +44,10 @@ Two ranges sit outside the VLAN scheme:
 
 The router's single trunk, `sfp-sfpplus2`, carries all VLANs to the **core switch**
 (CRS326), which aggregates SFP+ links and passes the trunk on to the **10G switch**
-(CRS312), which distributes 10G copper. Every switch hangs off that one SFP+ uplink, so
-the router's trunk has to be configured before anything downstream is reachable. Each
-switch has its own management IP on VLAN 100.
+(CRS312), which distributes 10G copper and trunks on to the **office switch** (CRS310).
+Every switch hangs off that one SFP+ uplink, so the router's trunk has to be configured
+before anything downstream is reachable. Each switch has its own management IP on
+VLAN 100.
 
 | Device | Port | Mode | Connects to |
 | --- | --- | --- | --- |
@@ -63,6 +64,9 @@ switch has its own management IP on VLAN 100.
 | 10G switch | `ether5` | Management | KVM switch |
 | 10G switch | `ether6` | Management | PiKVM |
 | 10G switch | `ether7`, `ether8` | Management | UPSes |
+| Office switch | `ether1` | Trunk | 10G switch `ether2` |
+| Office switch | `ether2`–`ether6` | Home | Office devices |
+| Office switch | `ether7`, `ether8` | Management | Local management access |
 
 Ports not listed are off the bridge.
 
