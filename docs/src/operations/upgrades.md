@@ -11,20 +11,9 @@ pinned in more than one place:
 
 ## Talos / Kubernetes
 
-The Talos installer tag (`talos/patch.yaml`) and `--kubernetes-version`
-(`talos/gen-talos-objects.sh`) must move together — a Talos release pins its Kubernetes
-version, so read it off the [Talos release](https://github.com/siderolabs/talos/releases)
-and update both the Talos and Kubernetes rows in
-[Reference → Versions](../reference/versions.md). After changing them, regenerate and
-re-apply from `talos/`:
-
-```bash
-./gen-talos-objects.sh
-./gen-machine-configs.sh
-./apply-config-all-nodes.sh
-```
-
-Roll nodes one at a time; Talos handles the rest.
+Merging the Renovate PR only moves the pin; the nodes upgrade by hand with `talosctl`,
+one at a time. The procedure, the script, and the history are in
+[Talos & Kubernetes Upgrades](./talos-upgrades.md).
 
 ## Cilium
 

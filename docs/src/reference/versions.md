@@ -9,7 +9,7 @@ in lockstep, so the two never drift.
 | Component | Version | Pinned in |
 | --- | --- | --- |
 | Talos Linux | `v1.14.2` | `talos/patch.yaml` (installer image tag) |
-| Kubernetes | `1.36.2` | `talos/gen-talos-objects.sh` (`--kubernetes-version`) + `talos/patch.yaml` installer tag |
+| Kubernetes | `1.36.5` | `talos/gen-talos-objects.sh` (`--kubernetes-version`) |
 | Cilium | `1.20.2` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
 | Flux | `v2.9.6` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
 | kube-vip | `v1.2.4` | `kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml` (image tag) |
@@ -31,10 +31,11 @@ in lockstep, so the two never drift.
 
 ## Pins that must move together
 
-- **Talos ↔ Kubernetes** — the Talos installer tag in `patch.yaml` and
-  `--kubernetes-version` in `gen-talos-objects.sh` must stay in sync (a Talos release
-  pins its Kubernetes version). Renovate tracks Talos, not Kubernetes; bump the
-  Kubernetes row by hand alongside a Talos bump.
+- **Talos ↔ Kubernetes** — each Talos release supports a range of Kubernetes versions;
+  `--kubernetes-version` in `gen-talos-objects.sh` must sit inside the range of the Talos
+  tag in `patch.yaml` (check the Talos support matrix). The two upgrade separately.
+  Renovate tracks Talos, not Kubernetes, so the Kubernetes row is bumped by hand after
+  `talosctl upgrade-k8s` — see [Talos & Kubernetes Upgrades](../operations/talos-upgrades.md).
 - **Cilium chart ↔ bootstrap `helm install`** — the chart version in the `HelmRelease`
   must equal the `--version` in the [Cilium + Flux bootstrap](../bootstrap/cluster.md).
 - **Rook operator ↔ cluster ↔ csi-drivers** — all move in lockstep; see
