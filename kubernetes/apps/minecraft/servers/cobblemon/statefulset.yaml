@@ -15,7 +15,7 @@ spec:
             - name: MODRINTH_MODPACK
               value: cobblemon-fabric
             - name: MODRINTH_VERSION
-              value: "1.7.3"
+              value: "1.8.1"
             - name: MODRINTH_LOADER
               value: fabric
             - name: MEMORY
