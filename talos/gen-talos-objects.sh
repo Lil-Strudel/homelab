@@ -11,7 +11,7 @@ fi
 
 talosctl gen config \
   --with-secrets <(sops -d talos/secrets.sops.yaml) \
-  --kubernetes-version 1.36.2 \
+  --kubernetes-version 1.36.5 \
   strudelnetes https://10.69.60.10:6443 \
   --config-patch @patch.yaml \
   --output ./talos --force

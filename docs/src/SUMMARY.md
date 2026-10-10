@@ -31,6 +31,7 @@
 - [Minecraft](./operations/minecraft.md)
 - [Adding a Service](./operations/adding-a-service.md)
 - [Upgrades](./operations/upgrades.md)
+- [Talos & Kubernetes Upgrades](./operations/talos-upgrades.md)
 
 # Decisions & Lessons
 
