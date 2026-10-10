@@ -80,6 +80,11 @@ outbound work, such as `check-for-updates`.
 Two cAPax APs run under **CAPsMAN**, with AP1 as manager and AP2 as client, so the
 `Strudel` SSID roams seamlessly across both.
 
+The APs are currently disconnected, so their blocks in `terraform/main.tf` are commented
+out and their resources were removed from state. The devices still hold that config, so
+uncommenting alone would make Terraform try to create resources that already exist:
+reconnect them, then re-import with `scripts/tf_import_mikrotik.sh` before the next apply.
+
 ## BGP
 
 All six nodes peer with the router over BGP (no ARP/L2 tricks). The router is
