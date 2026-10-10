@@ -12,7 +12,7 @@ spec:
             - name: TYPE
               value: PAPER
             - name: VERSION
-              value: "26.2"
+              value: "26.3"
             - name: MEMORY
               value: 2G
             - name: MOTD
