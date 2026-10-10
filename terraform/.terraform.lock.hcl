@@ -24,7 +24,7 @@ provider "registry.terraform.io/carlpett/sops" {
 
 provider "registry.terraform.io/hashicorp/aws" {
   version     = "6.68.0"
-  constraints = "~> 6.62"
+  constraints = "~> 6.68"
   hashes = [
     "h1:6ITxS7UfM9IS36P6fkwOW/vTfm/WiUDnf+AZx48EisQ=",
     "h1:6YzsGQUD8UXHOsBduNJ7t9XJtxP1I7efxCcjF4Jn/rg=",

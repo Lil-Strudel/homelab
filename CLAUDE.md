@@ -14,9 +14,9 @@ The admin private key lives in `~/.config/sops/age/keys.txt` (also in a password
 
 ## Talos (`talos/`)
 
-Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..3` at `10.69.60.21-23`, control-plane VIP `10.69.60.10` (owned by kube-vip). Talos v1.13.6 / Kubernetes 1.36.2.
+Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..3` at `10.69.60.21-23`, control-plane VIP `10.69.60.10` (owned by kube-vip). Talos and Kubernetes versions: `docs/src/reference/versions.md`.
 
-The committed source of truth is `secrets.sops.yaml` + `talosconfig.sops.yaml`. The plaintext `controlplane.yaml`/`worker.yaml`/`talosconfig` and per-node `machine-configs/` are **gitignored and regenerated** — never commit them.
+The committed source of truth is `talos/talos/secrets.sops.yaml` + `talos/talos/talosconfig.sops.yaml`. The plaintext `controlplane.yaml`/`worker.yaml`/`talosconfig` beside them and per-node `talos/machine-configs/` are **gitignored and regenerated** — never commit them.
 
 Bring-up scripts (run from `talos/`, in order):
 ```
@@ -26,6 +26,8 @@ Bring-up scripts (run from `talos/`, in order):
 talosctl bootstrap  -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 ```
+Upgrades never go through the bring-up scripts: `./upgrade-nodes.sh <talos-version>` rolls the OS one node at a time (Ceph `noout` handled), and `talosctl upgrade-k8s` moves Kubernetes — procedure in `docs/src/operations/talos-upgrades.md`.
+
 `danger-reset-all-nodes.sh` wipes and reboots every node — destructive.
 
 Key `patch.yaml` invariants (do not change without understanding the fallout):
@@ -109,4 +111,4 @@ MikroTik RouterOS network as code (router, 2 switches, 2 access points) via the 
 
 ## Docs (`docs/`)
 
-mdBook source, organized by job: **Overview** (`introduction`, `architecture` — the one home for system design), **Reference** (`reference/`: `systems`, `network`, `versions` — the single source of truth for pinned versions), **Bootstrap** (`bootstrap/`: ordered bring-up — `network` → `talos` → `cluster`), **Operations** (`operations/`: `secrets`, `storage`, `dns-and-certificates`, `adding-a-service`, `upgrades`), and **Decisions & Lessons** (`decisions/`: the "why" — `kube-vip`, `rook-ceph`, `commenting`). When changing a bootstrap workflow, update the matching runbook; when a value/version changes, update `reference/versions.md` (the one place numbers live — everything else links to it). Facts have a single home: design → `architecture`, versions → `reference/versions`, so don't restate them elsewhere.
+mdBook source, organized by job: **Overview** (`introduction`, `architecture` — the one home for system design), **Reference** (`reference/`: `systems`, `network`, `versions` — the single source of truth for pinned versions), **Bootstrap** (`bootstrap/`: ordered bring-up — `network` → `talos` → `cluster`), **Operations** (`operations/`: `secrets`, `storage`, `dns-and-certificates`, `adding-a-service`, `upgrades`, `talos-upgrades`), and **Decisions & Lessons** (`decisions/`: the "why" — `kube-vip`, `rook-ceph`, `commenting`). When changing a bootstrap workflow, update the matching runbook; when a value/version changes, update `reference/versions.md` (the one place numbers live — everything else links to it). Facts have a single home: design → `architecture`, versions → `reference/versions`, so don't restate them elsewhere.

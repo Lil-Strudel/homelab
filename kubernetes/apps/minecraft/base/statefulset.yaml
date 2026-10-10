@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mc
-          image: itzg/minecraft-server:2026.8.2-java25
+          image: itzg/minecraft-server:2026.9.2-java25
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -70,7 +70,7 @@ spec:
               memory: 3Gi
 
         - name: mc-monitor
-          image: itzg/mc-monitor:0.17.1
+          image: itzg/mc-monitor:1.18.3
           args: ["export-for-prometheus"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -93,7 +93,7 @@ spec:
               memory: 64Mi
 
         - name: mc-backup
-          image: itzg/mc-backup:2026.8.2
+          image: itzg/mc-backup:2026.9.3
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

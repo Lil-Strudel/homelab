@@ -113,7 +113,9 @@ The toolbox is enabled for quick status checks:
 kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph status
 ```
 
-A healthy fresh cluster reports `HEALTH_OK`, 6 OSDs `up`/`in`, and 3 mons in quorum.
+A healthy cluster reports 6 OSDs `up`/`in` and 3 mons in quorum. Health is `HEALTH_WARN`
+rather than `HEALTH_OK` while the CSI keys stay on the `aes` type — see
+[Rook-Ceph → CephX key types](../decisions/rook-ceph.md#cephx-key-types).
 
 The object store adds several pools of its own (metadata, data, index, control) on the same
 six OSDs. The PG autoscaler sizes them, but a `TOO_MANY_PGS` or `POOL_TOO_FEW_PGS` warning

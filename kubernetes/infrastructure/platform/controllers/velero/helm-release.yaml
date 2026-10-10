@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: velero
-      version: "12.1.0"
+      version: "12.2.1"
       sourceRef:
         kind: HelmRepository
         name: velero
@@ -17,7 +17,7 @@ spec:
   values:
     initContainers:
       - name: velero-plugin-for-aws
-        image: velero/velero-plugin-for-aws:v1.14.2
+        image: velero/velero-plugin-for-aws:v1.14.4
         imagePullPolicy: IfNotPresent
         volumeMounts:
           - name: plugins

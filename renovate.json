@@ -253,6 +253,20 @@
       ],
       "datasourceTemplate": "docker",
       "versioningTemplate": "regex:^pg(?<compatibility>\\d+)-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/\\.github/workflows/docs\\.yml$/",
+        "/docs/src/reference/versions\\.md$/"
+      ],
+      "matchStrings": [
+        "MDBOOK_VERSION:\\s*(?<currentValue>v[0-9.]+)",
+        "mdBook \\| `(?<currentValue>v[0-9.]+)`"
+      ],
+      "depNameTemplate": "rust-lang/mdBook",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
     }
   ],
   "packageRules": [

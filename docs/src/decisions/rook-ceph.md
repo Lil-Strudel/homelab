@@ -117,6 +117,16 @@ chart pin).
 | `placement.all.tolerations` | none | Tolerate the Talos control-plane taint so OSDs schedule on all six nodes. |
 | `storage` (`useAllDevices: false`, `deviceFilter: ^nvme0n1`) | `useAllDevices: true` | Claim only the 1 TB data NVMe, never the OS disk. |
 | `cephConfig.mon.mon_cluster_log_level: info` | `debug` | Ceph's default cluster-log level is `debug`, which makes the mons the largest log source in the cluster by a wide margin. See [Operations → Observability](../operations/observability.md#ceph-cluster-log-level). |
+| `security.cephx.daemon` (`KeyGeneration`, generation `2`) | no rotation | Rotates daemon keys to `aes256k`. Ceph 20.2.4 raises `HEALTH_ERR` on `aes` daemon keys, which stalls Rook upgrades. See [CephX key types](#cephx-key-types). |
+| `security.cephx.csi.keyType: aes` | same as chart default | **Pin.** The kernel RBD/CephFS clients need Linux 7.0+ for `aes256k`. See [CephX key types](#cephx-key-types). |
+
+### HelmRelease: `upgrade.disableWait`
+
+Helm's wait on the `CephCluster` gives up after five minutes, but a Ceph version change
+restarts every daemon one at a time and takes longer. The failed upgrade then holds
+`core-configs` not-ready, and every later stage stays blocked behind it. With
+`disableWait`, Helm applies the manifests and Rook carries out the rollout. Check
+progress with `ceph versions` and the `CephCluster` phase, not the HelmRelease.
 
 ### What we deliberately **inherit** (removed from `values:`)
 
@@ -134,3 +144,21 @@ chart pin).
   parameters** the real defaults include — Helm replaces list values wholesale, so a
   partial restatement silently loses keys. Inheriting is more minimal *and* more correct.
 - `mon.count: 3`, `mgr.count: 2`, `operatorNamespace: rook-ceph` — all already defaults.
+
+## CephX key types
+
+Ceph 20.2.4 fixes CVE-2025-30156 and reports `HEALTH_ERR` (`AUTH_INSECURE_SERVICE_KEY_TYPE`,
+`AUTH_INSECURE_SERVICE_TICKETS`) while any daemon key still uses the legacy `aes` type.
+Rook will not upgrade a cluster in `HEALTH_ERR`, so the move to 20.2.4 stopped
+partway: some OSDs stayed on the old version, and the cluster stayed in that state.
+
+`security.cephx.daemon` with `keyRotationPolicy: KeyGeneration` makes Rook re-key the
+mons, mgrs, OSDs, MDS, RGW and `client.admin` once per `keyGeneration` value, using
+Ceph's default type (`aes256k` on 20.2.4). Increase `keyGeneration` to rotate again.
+Follow [Rook's procedure](https://rook.io/docs/rook/latest/Storage-Configuration/Advanced/cephx-key-rotation/).
+
+The CSI keys stay on `aes` on purpose: kernel clients need Linux 7.0+ to use `aes256k`. The
+`AUTH_INSECURE_CLIENT_KEY_TYPE` and `AUTH_INSECURE_KEYS_*` **warnings** remain until the
+nodes run a 7.0+ kernel and the CSI keys rotate too. Expect `HEALTH_WARN`, not
+`HEALTH_OK`, until then. `AUTH_INSECURE_ROTATING_SERVICE_KEY_TYPE` clears a few hours
+after rotation.
