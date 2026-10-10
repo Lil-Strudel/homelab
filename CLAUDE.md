@@ -14,9 +14,9 @@ The admin private key lives in `~/.config/sops/age/keys.txt` (also in a password
 
 ## Talos (`talos/`)
 
-Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..3` at `10.69.60.21-23`, control-plane VIP `10.69.60.10` (owned by kube-vip). Talos v1.13.6 / Kubernetes 1.36.2.
+Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..3` at `10.69.60.21-23`, control-plane VIP `10.69.60.10` (owned by kube-vip). Talos and Kubernetes versions: `docs/src/reference/versions.md`.
 
-The committed source of truth is `secrets.sops.yaml` + `talosconfig.sops.yaml`. The plaintext `controlplane.yaml`/`worker.yaml`/`talosconfig` and per-node `machine-configs/` are **gitignored and regenerated** — never commit them.
+The committed source of truth is `talos/talos/secrets.sops.yaml` + `talos/talos/talosconfig.sops.yaml`. The plaintext `controlplane.yaml`/`worker.yaml`/`talosconfig` beside them and per-node `talos/machine-configs/` are **gitignored and regenerated** — never commit them.
 
 Bring-up scripts (run from `talos/`, in order):
 ```
