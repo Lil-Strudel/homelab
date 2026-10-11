@@ -79,4 +79,6 @@ ipmitool -I lanplus -H 10.69.100.32 -U root -f <(sops -d --extract '["password"]
 ```
 
 An iDRAC firmware update or reset to defaults can turn the response back on, so read it
-again after either. IPMI over LAN must be enabled on the iDRAC.
+again after either; `racadm get system.thermalsettings` also shows it, as
+`ThirdPartyPCIFanResponse`. IPMI over LAN must be enabled on the iDRAC. With the response
+off, the fans idle at about 8,400 RPM, down from about 17,000.
