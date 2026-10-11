@@ -227,6 +227,7 @@ module "router" {
     "Rem-1 Peer"    = "10.69.60.21"
     "Rem-2 Peer"    = "10.69.60.22"
     "Rem-3 Peer"    = "10.69.60.23"
+    "Rem-4 Peer"    = "10.69.60.24"
   }
 
   dhcp_leases = {
@@ -238,7 +239,7 @@ module "router" {
     trusted-23 = { address = "10.69.60.23", mac_address = "6C:B3:11:74:89:C0", server = "Trusted_DHCP_Server" }
     trusted-30 = { address = "10.69.60.30", mac_address = "D8:3A:DD:F8:00:79", server = "Trusted_DHCP_Server", client_id = "1:d8:3a:dd:f8:0:79" }
     mgmt-30    = { address = "10.69.100.30", mac_address = "D8:3A:DD:68:92:7C", server = "Management_DHCP_Server", client_id = "1:d8:3a:dd:68:92:7c" }
-    mgmt-32    = { address = "10.69.100.32", mac_address = "90:B1:1C:00:E4:0F", server = "Management_DHCP_Server" }
+    mgmt-32    = { address = "10.69.100.32", mac_address = "18:66:DA:9A:5F:63", server = "Management_DHCP_Server" }
   }
 
   wg_home_private_key       = data.sops_file.secrets.data["wireguard_home_private_key"]
