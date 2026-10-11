@@ -8,7 +8,7 @@ Infrastructure-as-code for a home Kubernetes cluster and its network, declarativ
 
 All secrets are SOPS-encrypted (`*.sops.yaml`); this repo is public. `.sops.yaml` at the root drives which recipients encrypt what, keyed by file path:
 - `kubernetes/**` secrets → **admin + cluster** Age keys, and only `data`/`stringData` fields are encrypted (rest stays diffable). Flux decrypts in-cluster via the `sops-age` secret.
-- `terraform/**` and `talos/**` secrets → **admin key only**.
+- `terraform/**`, `talos/**` and `hardware/**` (iDRAC) secrets → **admin key only**.
 
 The admin private key lives in `~/.config/sops/age/keys.txt` (also in a password manager). Encrypt/decrypt with `sops -e -i <file>` / `sops -d <file>`. Terraform reads secrets at plan time via the `sops` provider (`data.sops_file.secrets`); never write plaintext secrets to disk in tracked paths (`*.agekey`/`*.key`/`keys.txt` are gitignored).
 

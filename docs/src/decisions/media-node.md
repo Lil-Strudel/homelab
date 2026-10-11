@@ -74,8 +74,8 @@ servers that disables that response and leaves normal temperature-driven cooling
 place (KB 000135682). The A40 has its own blower and doesn't rely on chassis airflow.
 
 ```bash
-ipmitool -I lanplus -H 10.69.100.32 -U root -P <PASSWORD> raw 0x30 0xce 0x00 0x16 0x05 0x00 0x00 0x00 0x05 0x00 0x01 0x00 0x00   # disable
-ipmitool -I lanplus -H 10.69.100.32 -U root -P <PASSWORD> raw 0x30 0xce 0x01 0x16 0x05 0x00 0x00 0x00                             # read: ...05 00 01 00 00 = disabled
+ipmitool -I lanplus -H 10.69.100.32 -U root -f <(sops -d --extract '["password"]' hardware/idrac.sops.yaml) raw 0x30 0xce 0x00 0x16 0x05 0x00 0x00 0x00 0x05 0x00 0x01 0x00 0x00   # disable
+ipmitool -I lanplus -H 10.69.100.32 -U root -f <(sops -d --extract '["password"]' hardware/idrac.sops.yaml) raw 0x30 0xce 0x01 0x16 0x05 0x00 0x00 0x00                             # read: ...05 00 01 00 00 = disabled
 ```
 
 An iDRAC firmware update or reset to defaults can turn the response back on, so read it

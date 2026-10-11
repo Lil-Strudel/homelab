@@ -43,6 +43,10 @@ sops -d talos/talos/secrets.sops.yaml   # view decrypted
 - **Talos** — `talos/talos/secrets.sops.yaml` (cluster PKI / bootstrap tokens) and
   `talosconfig.sops.yaml` are the committed source of truth; `./gen-talos-objects.sh`
   decrypts them transparently to regenerate the gitignored plaintext configs.
+- **Hardware** — `hardware/idrac.sops.yaml` holds the R730xd iDRAC's `username` and
+  `password`, for IPMI over LAN. Hand the password to `ipmitool` without writing it to
+  disk:
+  `ipmitool -I lanplus -H 10.69.100.32 -U root -f <(sops -d --extract '["password"]' hardware/idrac.sops.yaml) …`
 - **Kubernetes / Flux** — the `infra-controllers`, `infra-configs`, and `apps`
   Kustomizations each have SOPS decryption enabled (`spec.decryption.provider: sops`,
   secret `sops-age`) in `clusters/main/infrastructure.yaml` and `apps.yaml`. They

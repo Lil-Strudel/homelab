@@ -14,6 +14,6 @@ creation_rules:
       age1dhzh7r7c8u8sqdfrpdupk6r37zyk9m6yha3x37964u72rg4degtqy8pzp5,
       age19etvk27ryx8ksye4r2pghvqd3ml2f6aqgrsahn5c2tm5hxq5ha8sj88fwd
 
-  # Terraform + Talos infra secrets: admin key only.
-  - path_regex: (terraform|talos)/.*\.sops\.ya?ml$
+  # Terraform, Talos and hardware (iDRAC) secrets: admin key only.
+  - path_regex: (terraform|talos|hardware)/.*\.sops\.ya?ml$
     age: age1dhzh7r7c8u8sqdfrpdupk6r37zyk9m6yha3x37964u72rg4degtqy8pzp5
