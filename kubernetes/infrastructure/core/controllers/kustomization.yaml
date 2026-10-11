@@ -5,3 +5,4 @@ resources:
   - cilium
   - kube-vip
   - rook-ceph
+  - zfs-localpv

@@ -188,6 +188,15 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["ZFS-LocalPV \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "zfs-localpv",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://openebs.github.io/zfs-localpv",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
       "matchStrings": ["Loki \\| `(?<currentValue>[0-9.]+)`"],
       "depNameTemplate": "loki",
       "datasourceTemplate": "helm",
@@ -297,6 +306,10 @@
     {
       "matchPackageNames": ["cilium"],
       "groupName": "cilium"
+    },
+    {
+      "matchPackageNames": ["zfs-localpv"],
+      "groupName": "zfs-localpv"
     },
     {
       "matchPackageNames": ["victoria-metrics-k8s-stack"],
