@@ -13,7 +13,7 @@ level: raid1
 metadata: "1.0"
 provisioning:
   volumeSelector:
-    match: disk.serial in ["S6PXNL0W611305E", "S6PXNL0W611303R"]
+    match: '"/dev/disk/by-id/ata-Samsung_SSD_870_EVO_500GB_S6PXNL0W611305E" in disk.symlinks || "/dev/disk/by-id/ata-Samsung_SSD_870_EVO_500GB_S6PXNL0W611303R" in disk.symlinks'
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig
