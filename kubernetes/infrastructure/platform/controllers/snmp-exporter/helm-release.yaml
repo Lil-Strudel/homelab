@@ -1,0 +1,56 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: snmp-exporter
+  namespace: snmp-exporter
+spec:
+  interval: 1h
+  timeout: 15m
+  chart:
+    spec:
+      chart: prometheus-snmp-exporter
+      version: "9.18.1"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: snmp-exporter
+      interval: 1h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+  values:
+    fullnameOverride: snmp-exporter
+
+    rbac:
+      create: false
+
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+
+    extraArgs:
+      - --config.file=/etc/snmp_exporter/snmp.yml # chart args replace the image CMD, which is what loaded the bundled modules
+      - --config.file=/etc/snmp-auth/auth.yml
+    extraSecretMounts:
+      - name: auth
+        mountPath: /etc/snmp-auth
+        secretName: snmp-exporter-auth
+        readOnly: true
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi

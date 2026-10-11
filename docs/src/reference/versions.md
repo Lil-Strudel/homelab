@@ -25,6 +25,7 @@ in lockstep, so the two never drift.
 | Loki | `7.3.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
 | Grafana | `13.5.0` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
 | Grafana Alloy | `1.13.1` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
+| prometheus-snmp-exporter | `9.18.1` | `platform/controllers/snmp-exporter/helm-release.yaml` (chart version) |
 | CloudNativePG | `0.29.1` | `platform/controllers/cnpg/operator.yaml` (chart version) |
 | plugin-barman-cloud | `0.8.1` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
 | PostgreSQL | `18-standard-trixie` | `platform/configs/cnpg/image-catalog.yaml` (tag + digest) |

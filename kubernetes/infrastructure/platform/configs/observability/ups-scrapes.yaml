@@ -1,0 +1,26 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMScrapeConfig
+metadata:
+  name: apc-ups
+  namespace: snmp-exporter
+spec:
+  path: /snmp
+  params:
+    module: [apcups, system]
+    auth: [apc_v3]
+  interval: 30s
+  scrapeTimeout: 25s
+  staticConfigs:
+    - targets: [10.69.100.40]
+      labels:
+        ups: smt1000
+    - targets: [10.69.100.41]
+      labels:
+        ups: smx1500
+  relabelConfigs:
+    - sourceLabels: [__address__]
+      targetLabel: __param_target
+    - sourceLabels: [__param_target]
+      targetLabel: instance
+    - targetLabel: __address__
+      replacement: snmp-exporter.snmp-exporter.svc:9116

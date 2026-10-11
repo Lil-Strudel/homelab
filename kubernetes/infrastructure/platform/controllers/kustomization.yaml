@@ -6,5 +6,6 @@ resources:
   - ddns
   - grafana
   - loki
+  - snmp-exporter
   - velero
   - victoria-metrics

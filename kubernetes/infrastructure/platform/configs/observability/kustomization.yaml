@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
 - ceph-scrapes.yaml
 - cilium-scrapes.yaml
+- ups-scrapes.yaml

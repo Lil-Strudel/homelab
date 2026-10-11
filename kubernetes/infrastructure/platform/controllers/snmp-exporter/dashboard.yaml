@@ -1,0 +1,633 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apc-ups-dashboard
+  namespace: snmp-exporter
+  labels:
+    grafana_dashboard: "1"
+data:
+  apc-ups.json: |
+    {
+      "title": "APC UPS",
+      "uid": "apc-ups",
+      "tags": ["ups", "power"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "time": { "from": "now-24h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "ups",
+            "label": "UPS",
+            "type": "query",
+            "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+            "query": { "query": "label_values(upsCommStatus_ok, ups)", "refId": "ups" },
+            "definition": "label_values(upsCommStatus_ok, ups)",
+            "refresh": 2,
+            "multi": true,
+            "includeAll": true,
+            "sort": 1,
+            "current": { "text": "All", "value": "$__all" }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "row",
+          "title": "$ups",
+          "repeat": "ups",
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "panels": []
+        },
+        {
+          "type": "stat",
+          "title": "Output",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "upsBasicOutputStatus{ups=\"$ups\"} == 1",
+              "instant": true,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": true, "fields": "/^upsBasicOutputStatus$/" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "onLine": { "text": "On line", "color": "green", "index": 0 },
+                    "onBattery": { "text": "On battery", "color": "red", "index": 1 },
+                    "onBatteryTest": { "text": "Self-test", "color": "yellow", "index": 2 },
+                    "onSmartBoost": { "text": "Boosting", "color": "yellow", "index": 3 },
+                    "onSmartTrim": { "text": "Trimming", "color": "yellow", "index": 4 },
+                    "off": { "text": "Off", "color": "red", "index": 5 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Battery charge",
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [{ "refId": "A", "expr": "upsHighPrecBatteryCapacity{ups=\"$ups\"}", "instant": true }],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 50 },
+                  { "color": "green", "value": 90 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Runtime remaining",
+          "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsAdvBatteryRunTimeRemaining_seconds{ups=\"$ups\"}", "instant": true }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 600 },
+                  { "color": "green", "value": 1200 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Load",
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [{ "refId": "A", "expr": "upsHighPrecOutputLoad{ups=\"$ups\"}", "instant": true }],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 60 },
+                  { "color": "red", "value": 80 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Battery replacement",
+          "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [{ "refId": "A", "expr": "upsAdvBattery_needsreplacing{ups=\"$ups\"}", "instant": true }],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "Not needed", "color": "green", "index": 0 },
+                    "1": { "text": "Replace", "color": "red", "index": 1 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "NMC ↔ UPS link",
+          "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [{ "refId": "A", "expr": "upsCommStatus_ok{ups=\"$ups\"}", "instant": true }],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "OK", "color": "green", "index": 0 },
+                    "0": { "text": "No comm", "color": "red", "index": 1 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Time on battery",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsBasicBatteryTimeOnBattery_seconds{ups=\"$ups\"}", "instant": true }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Last transfer cause",
+          "gridPos": { "h": 4, "w": 5, "x": 4, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "upsAdvInputLineFailCause{ups=\"$ups\"} == 1",
+              "instant": true,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "values": true,
+              "fields": "/^upsAdvInputLineFailCause$/"
+            }
+          },
+          "fieldConfig": {
+            "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] } },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Last self-test",
+          "gridPos": { "h": 4, "w": 5, "x": 9, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "upsAdvTestDiagnosticsResults_info{ups=\"$ups\"}",
+              "instant": true,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "values": true,
+              "fields": "/^upsAdvTestDiagnosticsResults$/"
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "ok": { "text": "Passed", "color": "green", "index": 0 },
+                    "failed": { "text": "Failed", "color": "red", "index": 1 },
+                    "testInProgress": { "text": "Running", "color": "yellow", "index": 2 },
+                    "invalidTest": { "text": "Invalid", "color": "orange", "index": 3 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Battery status",
+          "gridPos": { "h": 4, "w": 5, "x": 14, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "upsBasicBatteryStatus{ups=\"$ups\"} == 1",
+              "instant": true,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": true, "fields": "/^upsBasicBatteryStatus$/" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "batteryNormal": { "text": "Normal", "color": "green", "index": 0 },
+                    "batteryLow": { "text": "Low", "color": "red", "index": 1 },
+                    "batteryInFaultCondition": { "text": "Fault", "color": "red", "index": 2 },
+                    "noBatteryPresent": { "text": "Missing", "color": "red", "index": 3 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "SNMP scrape",
+          "gridPos": { "h": 4, "w": 5, "x": 19, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [{ "refId": "A", "expr": "up{ups=\"$ups\"}", "instant": true }],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value",
+            "reduceOptions": { "calcs": ["lastNotNull"], "values": false, "fields": "" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Up", "color": "green", "index": 0 },
+                    "0": { "text": "Down", "color": "red", "index": 1 }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "row",
+          "title": "History",
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+          "panels": []
+        },
+        {
+          "type": "state-timeline",
+          "title": "Power source",
+          "gridPos": { "h": 5, "w": 24, "x": 0, "y": 10 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "legendFormat": "{{ups}}",
+              "expr": "sum by (ups) (upsBasicOutputStatus{ups=~\"$ups\", upsBasicOutputStatus=~\"onBattery|onBatteryTest\"})"
+            }
+          ],
+          "options": { "showValue": "never", "legend": { "showLegend": false }, "mergeValues": true },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "Mains", "color": "green", "index": 0 },
+                    "1": { "text": "Battery", "color": "red", "index": 1 }
+                  }
+                }
+              ],
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Battery charge",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsHighPrecBatteryCapacity{ups=~\"$ups\"}", "legendFormat": "{{ups}}" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": { "fillOpacity": 10, "showPoints": "never" },
+              "min": 0,
+              "max": 100
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Runtime remaining",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "upsAdvBatteryRunTimeRemaining_seconds{ups=~\"$ups\"}",
+              "legendFormat": "{{ups}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "showPoints": "never" }, "min": 0 },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Load",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [{ "refId": "A", "expr": "upsHighPrecOutputLoad{ups=~\"$ups\"}", "legendFormat": "{{ups}}" }],
+          "fieldConfig": {
+            "defaults": { "unit": "percent", "custom": { "fillOpacity": 10, "showPoints": "never" }, "min": 0 },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Output current",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsHighPrecOutputCurrent{ups=~\"$ups\"}", "legendFormat": "{{ups}}" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "amp", "custom": { "fillOpacity": 10, "showPoints": "never" }, "min": 0 },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Voltage",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsHighPrecInputLineVoltage{ups=~\"$ups\"}", "legendFormat": "{{ups}} in" },
+            { "refId": "B", "expr": "upsHighPrecOutputVoltage{ups=~\"$ups\"}", "legendFormat": "{{ups}} out" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "volt", "custom": { "fillOpacity": 10, "showPoints": "never" } },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Input frequency",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsHighPrecInputFrequency{ups=~\"$ups\"}", "legendFormat": "{{ups}}" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "hertz", "custom": { "fillOpacity": 10, "showPoints": "never" } },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Battery temperature",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsHighPrecBatteryTemperature{ups=~\"$ups\"}", "legendFormat": "{{ups}}" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "celsius", "custom": { "fillOpacity": 10, "showPoints": "never" } },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Battery voltage",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            { "refId": "A", "expr": "upsHighPrecBatteryActualVoltage{ups=~\"$ups\"}", "legendFormat": "{{ups}}" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "volt", "custom": { "fillOpacity": 10, "showPoints": "never" } },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi" }
+          }
+        },
+        {
+          "type": "row",
+          "title": "Identity",
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+          "panels": []
+        },
+        {
+          "type": "table",
+          "title": "Card and battery",
+          "gridPos": { "h": 5, "w": 24, "x": 0, "y": 48 },
+          "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "group by (ups, sysDescr) (sysDescr{ups=~\"$ups\"})",
+              "instant": true,
+              "format": "table"
+            },
+            {
+              "refId": "B",
+              "expr": "group by (ups, upsBasicBatteryLastReplaceDate) (upsBasicBatteryLastReplaceDate{ups=~\"$ups\"})",
+              "instant": true,
+              "format": "table"
+            },
+            {
+              "refId": "C",
+              "expr": "group by (ups, upsAdvBatteryRecommendedReplaceDate) (upsAdvBatteryRecommendedReplaceDate{ups=~\"$ups\"})",
+              "instant": true,
+              "format": "table"
+            },
+            {
+              "refId": "D",
+              "expr": "group by (ups, upsAdvTestLastDiagnosticsDate) (upsAdvTestLastDiagnosticsDate{ups=~\"$ups\"})",
+              "instant": true,
+              "format": "table"
+            }
+          ],
+          "transformations": [
+            { "id": "joinByField", "options": { "byField": "ups", "mode": "outer" } },
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "ups",
+                    "sysDescr",
+                    "upsBasicBatteryLastReplaceDate",
+                    "upsAdvBatteryRecommendedReplaceDate",
+                    "upsAdvTestLastDiagnosticsDate"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "renameByName": {
+                  "ups": "UPS",
+                  "sysDescr": "Card (sysDescr)",
+                  "upsBasicBatteryLastReplaceDate": "Battery replaced",
+                  "upsAdvBatteryRecommendedReplaceDate": "Replace by",
+                  "upsAdvTestLastDiagnosticsDate": "Last self-test"
+                }
+              }
+            }
+          ],
+          "fieldConfig": { "defaults": {}, "overrides": [] }
+        }
+      ]
+    }

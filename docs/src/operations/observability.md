@@ -5,7 +5,7 @@ Metrics, logs, and dashboards for the cluster. Versions are in
 `infrastructure/` rather than `apps/` is in
 [Architecture → Observability](../architecture.md#observability).
 
-There is **nothing to run by hand** — Flux brings all four pieces up from
+There is **nothing to run by hand** — Flux brings every piece up from
 `kubernetes/infrastructure/platform/controllers/`. This page is day-2: what runs, what it keeps,
 and where to look when something is missing.
 
@@ -17,7 +17,9 @@ and where to look when something is missing.
 | `loki` | `loki` | controllers | Log store, single-binary mode |
 | `grafana` | `grafana` | controllers | Dashboards and query UI |
 | `alloy` | `alloy` | controllers | DaemonSet shipping pod logs to Loki |
+| `snmp-exporter` (`prometheus-snmp-exporter`) | `snmp-exporter` | controllers | Translates SNMP from the UPS management cards into metrics |
 | `VMServiceScrape`s | `rook-ceph`, `kube-system` | configs | Scrape targets for Ceph and Cilium |
+| `VMScrapeConfig` `apc-ups` | `snmp-exporter` | configs | Points `snmp-exporter` at each UPS |
 | `Ingress`es | `grafana`, `loki`, `victoria-metrics`, `alloy` | configs | HTTPS front door for each web endpoint |
 
 The scrape CRs are `configs`, not `controllers`, because they are custom resources of the
@@ -66,7 +68,7 @@ Seven days, everywhere: `vmsingle`'s `retentionPeriod` and Loki's `retention_per
 
 ## Pod security
 
-Two of the four namespaces need more than `baseline`:
+Two namespaces need more than `baseline`:
 
 | Namespace | Enforce | Why |
 | --- | --- | --- |
@@ -74,6 +76,7 @@ Two of the four namespaces need more than `baseline`:
 | `alloy` | `privileged` | Tailing `/var/log/pods` needs a hostPath mount and root — the path is root-owned on Talos. |
 | `loki` | `baseline` | — |
 | `grafana` | `baseline` | — |
+| `snmp-exporter` | `restricted` | Nothing in it needs more. |
 
 ## What is scraped, and what is not
 
@@ -90,6 +93,23 @@ absence is expected rather than a fault:
 | kube-proxy | Cilium is the kube-proxy replacement — there is nothing running to scrape. |
 | kube-controller-manager, kube-scheduler | Talos binds them to localhost, unreachable from a scrape pod. |
 | etcd | Talos requires client certificates the scrape pod does not hold. |
+
+### UPSes
+
+Both UPSes are scraped over SNMPv3 (`authPriv`, SHA + AES — the strongest pair NMC3 2.x
+firmware offers) through `snmp-exporter`, using the `apcups` and `system` modules bundled
+in its image. The chart's container args replace the image's default command, so the
+release passes the bundled `snmp.yml` explicitly alongside the auth file from the
+`snmp-exporter-auth` SOPS secret. The `apc-ups` `VMScrapeConfig` lists the cards by IP
+with a `ups` label (`smt1000`, `smx1500`); adding a UPS is one more `staticConfigs`
+entry there. The **APC UPS** dashboard (`uid: apc-ups`) ships as a ConfigMap beside the
+exporter.
+
+The scrape leaves the cluster from a node address on Trusted and lands on Management,
+so it depends on the router's forward rule for SNMP to the UPS cards — see
+[Network → Firewall](../reference/network.md#firewall). An `up == 0` for a `ups` target
+with the exporter healthy is that rule, the card's SNMPv3 access list, or mismatched
+credentials.
 
 Alertmanager, `vmalert`, and the chart's default rules are disabled too — there is no
 alerting path yet, and rules that fire into nothing are noise.
