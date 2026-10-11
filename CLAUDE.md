@@ -14,7 +14,7 @@ The admin private key lives in `~/.config/sops/age/keys.txt` (also in a password
 
 ## Talos (`talos/`)
 
-Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..3` at `10.69.60.21-23`, control-plane VIP `10.69.60.10` (owned by kube-vip). Talos and Kubernetes versions: `docs/src/reference/versions.md`.
+Bootstraps the OS and Kubernetes control plane. Node layout: control plane `makima-1..3` at `10.69.60.11-13`, workers `rem-1..4` at `10.69.60.21-24` (rem-4 is the R730xd media node with its own schematic: ZFS, Intel GPU, no Ceph OSD), control-plane VIP `10.69.60.10` (owned by kube-vip). Talos and Kubernetes versions: `docs/src/reference/versions.md`.
 
 The committed source of truth is `talos/talos/secrets.sops.yaml` + `talos/talos/talosconfig.sops.yaml`. The plaintext `controlplane.yaml`/`worker.yaml`/`talosconfig` beside them and per-node `talos/machine-configs/` are **gitignored and regenerated** — never commit them.
 
@@ -22,7 +22,7 @@ Bring-up scripts (run from `talos/`, in order):
 ```
 ./gen-talos-objects.sh    # gen secrets + controlplane/worker/talosconfig from patch.yaml
 ./gen-machine-configs.sh  # patch base configs with per-node machine-patches/ → machine-configs/
-./apply-config-all-nodes.sh   # talosctl apply-config to all 6 nodes
+./apply-config-all-nodes.sh   # talosctl apply-config to all 7 nodes
 talosctl bootstrap  -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
 ```

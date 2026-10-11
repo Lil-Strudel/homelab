@@ -68,19 +68,22 @@ kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph osd unset noout
 
 Three details matter:
 
-- **The installer image must be the Secure Boot schematic.** Without `-i`, `talosctl`
-  defaults to the plain `metal-installer` image, which is the wrong one for these nodes.
-  The schematic is the one in `talos/patch.yaml`; see [Talos Cluster](../bootstrap/talos.md).
+- **The installer image must be the node's Secure Boot schematic.** Without `-i`,
+  `talosctl` defaults to the plain `metal-installer` image, which is the wrong one for
+  these nodes. Most nodes use the schematic in `talos/patch.yaml`; rem-4 has its own, in
+  its machine patch, carrying ZFS and the Intel GPU drivers. Upgrading rem-4 with the
+  cluster schematic strips those extensions. The script picks the right one per node; see
+  [Talos Cluster](../bootstrap/talos.md).
 - **Workers need a control-plane endpoint.** `talosctl` fetches a kubeconfig from the
   endpoint to drain the node, and only control-plane nodes serve one. With `-e` pointed at
   a worker, the image installs but the drain fails and the node never reboots. Pass the
   worker in `-n` and a control-plane node in `-e`.
 - **One node at a time, control planes first.** etcd keeps quorum with one member down,
-  and every node carries an OSD, so Ceph can lose only one host at a time. `noout` stops
+  and every node but rem-4 carries an OSD, so Ceph can lose only one host at a time. `noout` stops
   Ceph from re-replicating a rebooting node's data; that node simply rejoins.
 
-When the hop is done, merge (or make) the pin change in `talos/patch.yaml` and the Talos
-row of `versions.md`, then point the live machine configs at the same image —
+When the hop is done, merge (or make) the pin change in `talos/patch.yaml`,
+`talos/machine-patches/rem-4-patch.yaml` and the Talos row of `versions.md`, then point the live machine configs at the same image —
 `talosctl upgrade` does not touch `machine.install.image`, which otherwise keeps
 naming the version each node was first installed with:
 
@@ -89,6 +92,8 @@ for ip in 10.69.60.11 10.69.60.12 10.69.60.13 10.69.60.21 10.69.60.22 10.69.60.2
   talosctl -n $ip -e 10.69.60.11 --talosconfig talos/talosconfig patch machineconfig --mode=no-reboot \
     --patch 'machine: {install: {image: factory.talos.dev/metal-installer-secureboot/<SCHEMATIC>:<TALOS_VERSION>}}'
 done
+talosctl -n 10.69.60.24 -e 10.69.60.11 --talosconfig talos/talosconfig patch machineconfig --mode=no-reboot \
+  --patch 'machine: {install: {image: factory.talos.dev/metal-installer-secureboot/<REM_4_SCHEMATIC>:<TALOS_VERSION>}}'
 ```
 
 The patch has to be a strategic merge: these configs carry more than one document (the
@@ -161,7 +166,7 @@ running node.
 | --- | --- | --- |
 | etcd snapshot | seconds | 2,555 keys, 88 MB |
 | Each node → 1.13.11 | ~2 min upgrade + ~1 min for Ceph to settle | Control planes, then workers |
-| Each node → 1.14.2 | ~1.5–2.5 min + ~0.5–1 min | 15 min for all six |
+| Each node → 1.14.2 | ~1.5–2.5 min + ~0.5–1 min | 15 min for the six OptiPlexes |
 | `upgrade-k8s` → 1.36.5 | 6 min | Only manifest change: CoreDNS image and node affinity |
 | `install.image` sync | seconds per node | No reboot |
 

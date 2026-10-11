@@ -6,8 +6,8 @@ IPs and roles match what Terraform provisions (DHCP reservations, BGP peers) in
 
 ## Compute — Kubernetes nodes
 
-Six Dell OptiPlex Micros on VLAN 60 (Trusted). The control plane shares a **kube-vip**
-VIP at `10.69.60.10`.
+Six Dell OptiPlex Micros and one PowerEdge R730xd on VLAN 60 (Trusted). The control
+plane shares a **kube-vip** VIP at `10.69.60.10`.
 
 | Host | Model | IP | Role |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@ VIP at `10.69.60.10`.
 | `rem-1` | OptiPlex Micro 7080 | `10.69.60.21` | Worker |
 | `rem-2` | OptiPlex Micro 7080 | `10.69.60.22` | Worker |
 | `rem-3` | OptiPlex Micro 7080 | `10.69.60.23` | Worker |
+| `rem-4` | PowerEdge R730xd | `10.69.60.24` | Worker, media node (ZFS + GPU) |
 | — | kube-vip control-plane VIP | `10.69.60.10` | Control-plane endpoint |
 
 Every Micro is kitted out identically:
@@ -29,6 +30,19 @@ Every Micro is kitted out identically:
 
 The OS/disk split (Talos on the Samsung 870, Ceph on the NVMe) and the OSD layout
 are covered in [Architecture → Storage](../architecture.md#storage).
+
+rem-4, the R730xd:
+
+| Component | Spec | Used for |
+| --- | --- | --- |
+| Rear SSDs | 2× REAR_DRIVE_SPEC | Talos OS on one (selected by serial); the other is a cold spare |
+| Front SSDs | 8× Samsung 870 EVO 1 TB | ZFS pool `tank`, raidz2 |
+| Storage controller | PERC HBA330 Mini | Pass-through to every bay, no RAID |
+| NIC | Intel X520 2× SFP+ / I350 2× 1G rNDC | Port 1 (10G) to the core switch; the rest unused |
+| GPU | Intel Arc Pro A40 | Media transcoding (incl. AV1) |
+
+Why it has no Ceph OSD, no boot mirror, and an optics override is in
+[Decisions → Media Node](../decisions/media-node.md).
 
 ## Network
 
@@ -47,18 +61,18 @@ WiFi: a shared `Strudel` network, CAPsMAN-managed across both APs.
 
 | Device | Model | IP | Role |
 | --- | --- | --- | --- |
-| NAS | Dell PowerEdge R730xd | `10.69.100.32` | Bulk storage (media, backups) |
 | Zigbee controller | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E | `10.69.60.30` | Home-automation radio |
 
-The R730xd carries **8× 1 TB Samsung 870** SSDs split across **two ZFS pools**, served
-as bulk/NFS storage outside the cluster. In-cluster storage is Rook-Ceph, one OSD per
-node on the 1 TB NVMe (see [Operations → Storage](../operations/storage.md)).
+Cluster storage is Rook-Ceph, one OSD per OptiPlex on the 1 TB NVMe (see
+[Operations → Storage](../operations/storage.md)), plus the ZFS pool on rem-4 (see
+[Operations → ZFS](../operations/zfs.md)).
 
 ## Out-of-band & power
 
 | Device | Model | IP | Role |
 | --- | --- | --- | --- |
 | PiKVM | Raspberry Pi 4 (2 GB) | `10.69.100.30` | IP-KVM |
+| rem-4 iDRAC | iDRAC8 | `10.69.100.32` | R730xd console, firmware, fans |
 | KVM switch | TESmart 8-port | `10.69.100.13` | Physical KVM |
 | UPS | APC SMT1000RM2UC | `10.69.100.77` | Battery backup |
 
@@ -73,7 +87,7 @@ The homelab hangs off a MikroTik router behind the house modem.
   of books.
 - **MikroTik everywhere** — full RouterOS API means the entire network is
   Terraformable; SFP+/10G without enterprise pricing.
-- **R730xd** — lots of 3.5" bays for cheap bulk storage that doesn't belong on the
-  cluster's fast Ceph tier.
+- **R730xd** — many drive bays and spare PCIe slots, for bulk media storage
+  that doesn't belong on the cluster's replicated Ceph tier, plus a GPU for transcoding.
 - **PiKVM + TESmart + UPS** — headless recovery and clean shutdowns without walking
   to the rack.

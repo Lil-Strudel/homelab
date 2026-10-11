@@ -12,7 +12,7 @@ committed to this repo:
         Terraform ──────────►  MikroTik network (VLANs, BGP, WiFi)
             │
             ▼
-        Talos Linux ────────►  6× bare-metal nodes (immutable OS + k8s)
+        Talos Linux ────────►  7× bare-metal nodes (immutable OS + k8s)
             │
             ▼
         Flux (GitOps) ──────►  in-cluster platform + workloads
@@ -39,8 +39,11 @@ applied over the network. Talos bootstraps Kubernetes directly — no `kubeadm`,
 manual node prep.
 
 - **Control plane** — `makima-1..3`
-- **Workers** — `rem-1..3`
-- Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`.
+- **Workers** — `rem-1..4`. rem-4 is the R730xd media node: it carries the ZFS pool
+  and the Arc GPU, and has no Ceph OSD.
+- Secure Boot enabled; the installer image is pinned in `talos/patch.yaml`, except
+  rem-4's, which is pinned in its machine patch because its schematic adds ZFS and the
+  Intel GPU drivers.
 - CNI and kube-proxy are disabled in Talos so Cilium can own both.
 - The control-plane API VIP (`10.69.60.10`) is handled by **kube-vip** in BGP mode
   from the control-plane nodes (see platform below).
@@ -106,6 +109,7 @@ front of them. See
 | **Ceph-CSI drivers** | core-controllers | RBD/CephFS `Driver` CRs (dependsOn the operator) |
 | **Cilium BGP / LB pool** | core-configs | `CiliumBGP*` + `CiliumLoadBalancerIPPool` (need Cilium CRDs) |
 | **ClusterIssuers** | core-configs | `letsencrypt-staging` + `letsencrypt-prod` (need cert-manager CRDs) |
+| **ZFS-LocalPV** | core-controllers | CSI driver for datasets on rem-4's ZFS pool + CRDs |
 | **Rook `CephCluster`** | core-configs | The cluster CR, storage classes, and object store (need the operator) |
 | **VictoriaMetrics / Loki / Grafana / Alloy** | platform-controllers | Metrics, logs, dashboards, log shipping |
 | **CloudNativePG** | platform-controllers | Postgres operator, barman-cloud backup plugin, and the image catalog |
@@ -133,7 +137,7 @@ to the router at **AS 65100** (`10.69.60.1`).
 
 Cilium advertises **every** `LoadBalancer` service by default; label a Service
 `bgp-advertise: "false"` to keep its IP off BGP. The router declares BGP peers for
-all six nodes in `terraform/main.tf`.
+all seven nodes in `terraform/main.tf`.
 
 Nothing is exposed to the internet. Whether a service faces the WAN is a single
 declaration — the `expose` field on a service in `local.services` — not a property of the
@@ -146,15 +150,20 @@ See [Bootstrap → Network](./bootstrap/network.md) and [kube-vip Manifest](./de
 Two tiers:
 
 - **Rook-Ceph** (Ceph Tentacle) — replicated block/file storage backing cluster
-  PersistentVolumes. Each of the six nodes contributes its 1 TB NVMe SSD as a single
-  OSD (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication, `host` failure domain.
+  PersistentVolumes. Each of the six OptiPlex nodes contributes its 1 TB NVMe SSD as a
+  single OSD (`deviceFilter: ^nvme0n1`): six OSDs, 3× replication, `host` failure domain.
+  rem-4 has no NVMe and so no OSD.
   All three Ceph datastore types are enabled: `ceph-block` (RBD, the cluster default),
   `ceph-filesystem` (CephFS, RWX), and an RGW object store with `ceph-bucket` for
   `ObjectBucketClaim`s. The object store's data pool is **erasure-coded 2+1** rather than
   3× replicated, so bulk data costs 1.5× raw instead of 3×. See
   [Operations → Storage](./operations/storage.md).
-- **Dell R730xd NAS** — separate bulk storage for media/backups, outside the cluster:
-  8× 1 TB Samsung 870 across two ZFS pools, served over NFS.
+- **ZFS on rem-4** — one raidz2 pool, `tank`, on the R730xd's 8× 1 TB Samsung 870 EVO,
+  for media and the apps that manage it. **ZFS-LocalPV** provisions each PVC as a
+  dataset under `tank/k8s` (StorageClass `zfs`), and a pod that mounts one is scheduled
+  onto rem-4 automatically. The data is single-host: it survives disk failures, not the
+  loss of the node. See [Operations → ZFS](./operations/zfs.md) and
+  [Decisions → Media Node](./decisions/media-node.md).
 
 PVC data is backed up off-cluster to AWS S3 by **Velero**; cluster state itself is
 recovered from this repo via Flux. See [Operations → Backups](./operations/backups.md).

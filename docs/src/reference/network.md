@@ -57,9 +57,9 @@ VLAN 100.
 | Core switch | `sfp-sfpplus2` | Trunk | Router |
 | Core switch | `sfp-sfpplus24` | Trunk | 10G switch `combo1` |
 | Core switch | `sfp-sfpplus1`, `3`, `9`, `11`, `17`, `19` | Trusted | Cluster nodes |
-| Core switch | `sfp-sfpplus23` | Trusted | R730xd SFP+ NIC |
+| Core switch | `sfp-sfpplus23` | Trusted | rem-4 (R730xd) X520 port 1 |
 | 10G switch | `combo1` | Trunk | Core switch |
-| 10G switch | `ether1` | Management | R730xd iDRAC |
+| 10G switch | `ether1` | Management | rem-4 iDRAC |
 | 10G switch | `ether2` | Trunk | Office switch |
 | 10G switch | `ether5` | Management | KVM switch |
 | 10G switch | `ether6` | Management | PiKVM |
@@ -87,7 +87,7 @@ reconnect them, then re-import with `scripts/tf_import_mikrotik.sh` before the n
 
 ## BGP
 
-All six nodes peer with the router over BGP (no ARP/L2 tricks). The router is
+All seven nodes peer with the router over BGP (no ARP/L2 tricks). The router is
 AS **65100**, the cluster is AS **65000**. One `CiliumLoadBalancerIPPool`,
 `services-pool` (`cilium/lb-pool.yaml`), covers `10.69.65.1`–`10.69.65.254` and serves
 every `LoadBalancer` service; kube-vip advertises the control-plane VIP separately.

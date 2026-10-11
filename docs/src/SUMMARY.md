@@ -21,6 +21,7 @@
 
 - [Secrets (SOPS + Age)](./operations/secrets.md)
 - [Storage (Rook-Ceph)](./operations/storage.md)
+- [Storage (ZFS)](./operations/zfs.md)
 - [Backups (Velero)](./operations/backups.md)
 - [Postgres (CloudNativePG)](./operations/postgres.md)
 - [Observability](./operations/observability.md)
@@ -41,6 +42,7 @@
 - [WAN RA MTU Syslog](./decisions/wan-ra-mtu.md)
 - [kube-vip Manifest](./decisions/kube-vip.md)
 - [Rook-Ceph Values](./decisions/rook-ceph.md)
+- [Media Node](./decisions/media-node.md)
 - [Minecraft Scale-to-Zero](./decisions/minecraft-scale-to-zero.md)
 - [Commenting](./decisions/commenting.md)
 

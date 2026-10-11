@@ -22,6 +22,12 @@ From `talos/`:
 ./gen-machine-configs.sh   # per-node machine-configs/
 ```
 
+`gen-talos-objects.sh` passes `--talos-version v1.13`, which pins the shape of the
+generated config, not the Talos version installed. From v1.14, `talosctl gen config`
+puts the install settings in a separate `UnattendedInstallConfig` document rather than
+`machine.install`. `patch.yaml` and the running nodes use `machine.install`, so without
+the pin the patch fails to apply and new nodes would diverge from the existing ones.
+
 Boot each node into the Talos ISO, enrol the Secure Boot keys on the boot page, then
 boot the ISO again. Apply the config to each node:
 
@@ -44,3 +50,42 @@ talosctl kubeconfig -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfi
 
 Nodes stay `NotReady` until a CNI is installed — continue to
 [Cilium + Flux](./cluster.md).
+
+## Adding rem-4 (the R730xd)
+
+rem-4 joins a running cluster; it is never part of a from-scratch bootstrap order. It
+differs from the OptiPlexes in three ways, all explained in
+[Decisions → Media Node](../decisions/media-node.md):
+
+- **Its own schematic**, `talos/schematics/rem-4.yaml`: ZFS, the Intel GPU drivers
+  (`i915`, `mei`), `intel-ucode`, and the X520 optics kernel argument. Register it and
+  get its ID with
+  `curl -X POST --data-binary @talos/schematics/rem-4.yaml https://factory.talos.dev/schematics`.
+  The ID goes into the installer image in `talos/machine-patches/rem-4-patch.yaml`;
+  download the Secure Boot ISO for the same schematic.
+- **Secure Boot keys are appended, not enrolled.** Talos's ISO enrolment replaces the
+  UEFI key databases, which would also drop Microsoft's CA, and with it the HBA330, X520
+  and Arc option ROMs. Instead, in BIOS Setup set *Secure Boot Policy* to **Custom**,
+  and under *Custom Policy Settings* import the Image Factory signing certificate into
+  **db**, leaving PK, KEK and the existing db entries alone:
+  ```bash
+  curl -s https://factory.talos.dev/secureboot/signing-cert.pem | openssl x509 -outform der -out talos-factory.der
+  ```
+  Put the `.der` on a FAT USB stick (or a PiKVM mass-storage image), import it, then
+  enable Secure Boot before booting the ISO.
+- **The install disk is selected by serial.** The cluster-wide selector
+  (`model: Samsung SSD 870`) would match the front pool drives, so the rem-4 patch
+  overrides it with the rear drive's model and serial. Read both from
+  `talosctl get disks --insecure -n 10.69.60.24` while the ISO is in maintenance mode.
+
+The node's DHCP lease and BGP peer are in `terraform/main.tf`; apply those first so it
+comes up on `10.69.60.24`. Then, from `talos/`:
+
+```bash
+./gen-talos-objects.sh && ./gen-machine-configs.sh
+talosctl apply-config --insecure -n 10.69.60.24 --file machine-configs/rem-4.yaml
+```
+
+`gen-talos-objects.sh` re-encrypts `talos/talosconfig.sops.yaml` with new ciphertext but
+unchanged content; discard that diff rather than committing it. Once the node is
+`Ready`, create the pool: [Operations → ZFS](../operations/zfs.md).
