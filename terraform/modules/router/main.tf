@@ -490,4 +490,10 @@ resource "routeros_routing_bgp_connection" "peer" {
   output {
     default_originate = "always"
   }
+
+  lifecycle {
+    # RouterOS 7.22 dropped add-path-out and moved router-id to the BGP instance, but the
+    # provider still sends both (terraform-provider-routeros#959)
+    ignore_changes = [add_path_out, router_id]
+  }
 }

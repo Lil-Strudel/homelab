@@ -52,13 +52,33 @@ Substitute the printed `*X` ids into the import commands, then run the script.
 
 ## Router-side BGP peers
 
-On the router, add a BGP connection **per node** (all six) — Terraform recreates these
+On the router, add a BGP connection **per node** (all seven) — Terraform recreates these
 from `bgp_peers` in `terraform/main.tf`, so this is really just what an apply sets up:
 
-- **Remote AS:** `65100` (the router's own AS; the cluster is `65000`)
+- **AS:** `65100` (the router's own); **remote AS:** `65000` (the cluster)
 - **Remote address:** the node IP — control plane `10.69.60.11`/`.12`/`.13`,
-  workers `10.69.60.21`/`.22`/`.23`
+  workers `10.69.60.21`/`.22`/`.23`/`.24`
 - **Local role:** `ebgp`
+
+On RouterOS 7.22 and later, Terraform can't **create** a peer: the provider still sends
+`add-path-out`, which RouterOS removed
+([terraform-provider-routeros#959](https://github.com/terraform-routeros/terraform-provider-routeros/issues/959)).
+Until that's fixed, add the `bgp_peers` entry, create the connection on the router with
+the same settings as an existing peer, and import it:
+
+```
+/routing/bgp/connection add name="<NAME> Peer" instance=bgp-instance-1 as=65100 local.role=ebgp \
+  remote.address=<NODE_IP>/32 remote.as=65000 output.default-originate=always routing-table=main \
+  connect=yes listen=yes afi=ip nexthop-choice=default keepalive-time=30s hold-time=1m30s \
+  local.port=179 remote.port=179
+```
+
+```bash
+terraform import 'module.router.routeros_routing_bgp_connection.peer["<NAME> Peer"]' '<ID>'
+```
+
+`<ID>` is the `*N` from `/routing/bgp/connection print`. The module ignores `add_path_out`
+and `router_id`, so `terraform plan` stays clean once the connection is imported.
 
 That's the whole router side. Once the cluster is up, the control-plane VIP route and a
 `/32` per service in `10.69.65.0/24` appear automatically — kube-vip advertises the VIP,
