@@ -45,7 +45,7 @@ chroot /host zpool status
 
 Done once per pool, on drives holding nothing you want.
 
-1. List the front drives by stable ID (the rear drives are the Talos disk and the spare;
+1. List the front drives by stable ID (the rear drives are Talos's RAID 1 mirror;
    leave them alone):
    ```bash
    chroot /host ls -l /dev/disk/by-id/ | grep -v part

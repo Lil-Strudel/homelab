@@ -21,14 +21,21 @@ ZFS-LocalPV rather than `hostPath` keeps the pool behind ordinary PVCs. Each vol
 its own dataset with its own properties and snapshots, and the PV's topology pins the
 consuming pods to rem-4 with no per-app `nodeAffinity`.
 
-## No boot mirror
+## A software RAID 1 boot mirror
 
-The R730xd's two rear bays used to be a RAID 1 boot pair. Talos can't do that: it has
-no software RAID for its own disk, and the HBA330 is a pass-through HBA with no RAID
-mode. Talos installs to one rear drive, selected by serial, and the other is a cold
-spare. A dead boot drive costs a reinstall and an `apply-config`, about 15 minutes. The
-pool is on separate disks, and the zfs extension imports it automatically on the new
-install.
+The R730xd's two rear bays used to be a hardware RAID 1 boot pair. The HBA330 is
+pass-through with no RAID mode, so the mirror is now Linux MD, which Talos v1.14 can
+install onto and boot from (`RAIDArrayConfig`). The array uses metadata 1.0, which
+keeps the superblock at the end of each member. That way the partition table is at the
+start of both drives, and the firmware can boot from either one.
+
+If one drive dies, the node keeps running and booting on the other. What Talos v1.14
+can't do is repair the mirror: no config field or `talosctl` command removes a failed
+member or swaps in a new one. Restoring redundancy means running `mdadm` from
+`talosctl debug`, or wiping the array (`talosctl wipe md`) and reinstalling. A reinstall
+plus `apply-config` takes about 15 minutes. The ZFS pool is on separate disks, and the
+zfs extension imports it automatically on the new install. Check the array with
+`talosctl -n 10.69.60.24 get mdarraystatuses`.
 
 ## Its own schematic
 

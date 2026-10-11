@@ -35,13 +35,13 @@ rem-4, the R730xd:
 
 | Component | Spec | Used for |
 | --- | --- | --- |
-| Rear SSDs | 2× REAR_DRIVE_SPEC | Talos OS on one (selected by serial); the other is a cold spare |
+| Rear SSDs | 2× Samsung 870 EVO 500 GB | Talos OS, on a software RAID 1 mirror |
 | Front SSDs | 8× Samsung 870 EVO 1 TB | ZFS pool `tank`, raidz2 |
 | Storage controller | PERC HBA330 Mini | Pass-through to every bay, no RAID |
 | NIC | Intel X520 2× SFP+ / I350 2× 1G rNDC | Port 1 (10G) to the core switch; the rest unused |
 | GPU | Intel Arc Pro A40 | Media transcoding (incl. AV1) |
 
-Why it has no Ceph OSD, no boot mirror, and an optics override is in
+Why it has no Ceph OSD, a software boot mirror, and an optics override is in
 [Decisions → Media Node](../decisions/media-node.md).
 
 ## Network
