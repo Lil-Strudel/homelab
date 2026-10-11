@@ -92,7 +92,17 @@ differs from the OptiPlexes in three ways, all explained in
   come from the iDRAC (`racadm storage get pdisks`) or from
   `talosctl get disks --insecure -n 10.69.60.24` while the ISO is in maintenance mode.
   When the config is applied in maintenance mode, Talos builds the array, waits for it,
-  and installs onto it.
+  and installs onto it. Both drives must be blank first. Drives that were ever in a PERC
+  hardware RAID keep its DDF metadata, which Linux assembles as an inactive container
+  (`/proc/mdstat` shows `super external:ddf`). Talos then treats that container as the
+  array, never builds its own, and the installer reports `no disk matched the selector`.
+  Clear it in maintenance mode before applying the config. Wipe any array inside the
+  container first, then the container, then the drives:
+  ```bash
+  talosctl get disks --insecure -n 10.69.60.24                  # find the md devices
+  talosctl wipe md /dev/disk/by-id/md-uuid-<UUID> --insecure -n 10.69.60.24
+  talosctl wipe disk sdi sdj --insecure -n 10.69.60.24
+  ```
 
 The node's DHCP lease and BGP peer are in `terraform/main.tf`; apply those first so it
 comes up on `10.69.60.24`. Then, from `talos/`:
