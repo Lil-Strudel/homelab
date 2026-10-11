@@ -237,6 +237,7 @@ module "router" {
     trusted-21 = { address = "10.69.60.21", mac_address = "6C:B3:11:87:38:AC", server = "Trusted_DHCP_Server" }
     trusted-22 = { address = "10.69.60.22", mac_address = "6C:B3:11:87:3A:5C", server = "Trusted_DHCP_Server" }
     trusted-23 = { address = "10.69.60.23", mac_address = "6C:B3:11:74:89:C0", server = "Trusted_DHCP_Server" }
+    trusted-24 = { address = "10.69.60.24", mac_address = "24:6E:96:BA:41:A0", server = "Trusted_DHCP_Server" }
     trusted-30 = { address = "10.69.60.30", mac_address = "D8:3A:DD:F8:00:79", server = "Trusted_DHCP_Server", client_id = "1:d8:3a:dd:f8:0:79" }
     mgmt-30    = { address = "10.69.100.30", mac_address = "D8:3A:DD:68:92:7C", server = "Management_DHCP_Server", client_id = "1:d8:3a:dd:68:92:7c" }
     mgmt-32    = { address = "10.69.100.32", mac_address = "18:66:DA:9A:5F:63", server = "Management_DHCP_Server" }
