@@ -28,7 +28,13 @@ live in `UnattendedInstallConfig`, and the Kubernetes settings in the `Kube*Conf
 documents. `patch.yaml` applies to every node. `controlplane-patch.yaml` applies to
 the control plane only, because `KubeProxyConfig` and `KubeFlannelCNIConfig` are
 control-plane documents. It deletes Flannel and disables kube-proxy so Cilium can
-replace both.
+replace both. It also adds the VIP `10.69.60.10` to the Talos API certificate's SANs. A
+joining node asks `trustd` on the control plane for its own API certificate before it
+has a cluster identity, and with no identity it has no discovery results, so its only
+route to the control plane is the cluster endpoint: the kube-vip VIP. Without the SAN,
+TLS rejects that connection and the node stays at *Booting*, retrying every couple of
+minutes. Talos doesn't know about the VIP, because kube-vip owns it and not Talos's own
+VIP feature.
 
 Nodes installed before v1.14 still run the old single-document format (`machine.install`,
 `cluster.network.cni`, `cluster.proxy`). Talos accepts both. A node moves to the new
