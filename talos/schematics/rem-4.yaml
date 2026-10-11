@@ -1,0 +1,9 @@
+customization:
+  extraKernelArgs:
+    - ixgbe.allow_unsupported_sfp=1
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/i915
+      - siderolabs/intel-ucode
+      - siderolabs/mei
+      - siderolabs/zfs

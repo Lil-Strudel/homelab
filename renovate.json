@@ -90,6 +90,7 @@
       "customType": "regex",
       "managerFilePatterns": [
         "/talos/patch\\.yaml$/",
+        "/talos/machine-patches/.+\\.yaml$/",
         "/docs/src/reference/versions\\.md$/"
       ],
       "matchStrings": [

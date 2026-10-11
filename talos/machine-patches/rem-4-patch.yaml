@@ -1,0 +1,15 @@
+machine:
+  install:
+    image: factory.talos.dev/metal-installer-secureboot/f67be5bd8cfd1f3f484664ffe095d1b1dc7a28233afee3af14557a1aa062c40e:v1.14.2
+    diskSelector:
+      model: REAR_DRIVE_MODEL
+      serial: REAR_DRIVE_SERIAL
+  kernel:
+    modules:
+      - name: zfs
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto:
+  $patch: delete
+hostname: rem-4
