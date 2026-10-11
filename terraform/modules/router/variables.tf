@@ -45,6 +45,12 @@ variable "services_cidr" {
   type        = string
 }
 
+variable "snmp_targets" {
+  description = "Management-VLAN hosts the cluster may poll over SNMP (UDP 161). Pod egress is SNAT'd to a Trusted-VLAN node address, so this is the one hole from Trusted into Management."
+  type        = list(string)
+  default     = []
+}
+
 variable "dns_records" {
   description = "Internal static DNS A records served by the router's resolver, keyed by FQDN -> IP"
   type        = map(string)

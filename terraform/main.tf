@@ -241,7 +241,11 @@ module "router" {
     trusted-30 = { address = "10.69.60.30", mac_address = "D8:3A:DD:F8:00:79", server = "Trusted_DHCP_Server", client_id = "1:d8:3a:dd:f8:0:79" }
     mgmt-30    = { address = "10.69.100.30", mac_address = "D8:3A:DD:68:92:7C", server = "Management_DHCP_Server", client_id = "1:d8:3a:dd:68:92:7c" }
     mgmt-32    = { address = "10.69.100.32", mac_address = "18:66:DA:9A:5F:63", server = "Management_DHCP_Server" }
+    mgmt-40    = { address = "10.69.100.40", mac_address = "28:29:86:8C:51:59", server = "Management_DHCP_Server" }
+    mgmt-41    = { address = "10.69.100.41", mac_address = "28:29:86:A7:11:36", server = "Management_DHCP_Server" }
   }
+
+  snmp_targets = ["10.69.100.40", "10.69.100.41"]
 
   wg_home_private_key       = data.sops_file.secrets.data["wireguard_home_private_key"]
   wg_management_private_key = data.sops_file.secrets.data["wireguard_management_private_key"]

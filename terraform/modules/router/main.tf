@@ -369,6 +369,25 @@ resource "routeros_ip_firewall_filter" "forward_wg_management" {
   place_before       = routeros_ip_firewall_filter.forward_drop.id
 }
 
+resource "routeros_ip_firewall_addr_list" "snmp_targets" {
+  for_each = toset(var.snmp_targets)
+
+  list    = "SNMP_Targets"
+  address = each.value
+}
+
+resource "routeros_ip_firewall_filter" "forward_trusted_snmp" {
+  chain            = "forward"
+  action           = "accept"
+  in_interface     = "Trusted_VLAN"
+  out_interface    = "Management_VLAN"
+  protocol         = "udp"
+  dst_port         = "161"
+  dst_address_list = "SNMP_Targets"
+  comment          = "Cluster -> SNMP targets on Management"
+  place_before     = routeros_ip_firewall_filter.forward_drop.id
+}
+
 resource "routeros_ip_firewall_filter" "forward_drop" {
   chain    = "forward"
   action   = "drop"
