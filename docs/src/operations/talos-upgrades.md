@@ -84,8 +84,11 @@ Three details matter:
 
 When the hop is done, merge (or make) the pin change in `talos/patch.yaml`,
 `talos/machine-patches/rem-4-patch.yaml` and the Talos row of `versions.md`, then point the live machine configs at the same image —
-`talosctl upgrade` does not touch `machine.install.image`, which otherwise keeps
-naming the version each node was first installed with:
+`talosctl upgrade` does not touch the installer image in the machine config, which
+otherwise keeps naming the version each node was first installed with. The image is in
+`UnattendedInstallConfig` on nodes using the multi-document format (rem-4), and in
+`machine.install.image` on nodes still using the old format (see
+[Talos Cluster](../bootstrap/talos.md)):
 
 ```bash
 for ip in 10.69.60.11 10.69.60.12 10.69.60.13 10.69.60.21 10.69.60.22 10.69.60.23; do
@@ -93,7 +96,7 @@ for ip in 10.69.60.11 10.69.60.12 10.69.60.13 10.69.60.21 10.69.60.22 10.69.60.2
     --patch 'machine: {install: {image: factory.talos.dev/metal-installer-secureboot/<SCHEMATIC>:<TALOS_VERSION>}}'
 done
 talosctl -n 10.69.60.24 -e 10.69.60.11 --talosconfig talos/talosconfig patch machineconfig --mode=no-reboot \
-  --patch 'machine: {install: {image: factory.talos.dev/metal-installer-secureboot/<REM_4_SCHEMATIC>:<TALOS_VERSION>}}'
+  --patch '{apiVersion: v1alpha1, kind: UnattendedInstallConfig, installer: {image: factory.talos.dev/metal-installer-secureboot/<REM_4_SCHEMATIC>:<TALOS_VERSION>}}'
 ```
 
 The patch has to be a strategic merge: these configs carry more than one document (the

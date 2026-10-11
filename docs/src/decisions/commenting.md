@@ -9,8 +9,8 @@ immediate code** — something the code itself can't say. If a well-meaning clea
 break things, say why:
 
 ```yaml
-proxy:
-  disabled: true # Cilium is the kube-proxy replacement — do NOT re-enable
+kind: KubeProxyConfig
+enabled: false # Cilium is the kube-proxy replacement — do NOT re-enable
 ```
 
 Do **not** write inline comments that:

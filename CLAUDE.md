@@ -20,7 +20,7 @@ The committed source of truth is `talos/talos/secrets.sops.yaml` + `talos/talos/
 
 Bring-up scripts (run from `talos/`, in order):
 ```
-./gen-talos-objects.sh    # gen secrets + controlplane/worker/talosconfig from patch.yaml
+./gen-talos-objects.sh    # gen secrets + controlplane/worker/talosconfig from patch.yaml + controlplane-patch.yaml
 ./gen-machine-configs.sh  # patch base configs with per-node machine-patches/ → machine-configs/
 ./apply-config-all-nodes.sh   # talosctl apply-config to all 7 nodes
 talosctl bootstrap  -n 10.69.60.11 -e 10.69.60.11 --talosconfig=talos/talosconfig
@@ -30,9 +30,9 @@ Upgrades never go through the bring-up scripts: `./upgrade-nodes.sh <talos-versi
 
 `danger-reset-all-nodes.sh` wipes and reboots every node — destructive.
 
-Key `patch.yaml` invariants (do not change without understanding the fallout):
-- **CNI is `none` and kube-proxy is `disabled`** — Cilium replaces both. Re-enabling either double-installs and breaks networking.
-- Talos installs to the **Samsung SSD 870** (selected by `diskSelector.model`), deliberately *not* the NVMe, which is reserved for Ceph OSD data.
+Configs use Talos's multi-document format: `patch.yaml` patches every node, `controlplane-patch.yaml` only the control plane. Key invariants (do not change without understanding the fallout):
+- **Flannel is deleted and kube-proxy is disabled** (`controlplane-patch.yaml`) — Cilium replaces both. Re-enabling either double-installs and breaks networking.
+- Talos installs to the **Samsung SSD 870** (`UnattendedInstallConfig` CEL selector `disk.model`), deliberately *not* the NVMe, which is reserved for Ceph OSD data. rem-4 overrides this to install onto a RAID 1 array of its rear drives.
 - The Kubernetes version is pinned twice and must stay in sync: `--kubernetes-version` in `gen-talos-objects.sh` and the Talos installer image tag in `patch.yaml`.
 
 ## Kubernetes / Flux (`kubernetes/`)
@@ -95,7 +95,7 @@ Two things must both be right, or the service silently breaks or drifts:
 
 This repo deliberately keeps the two separate (see `docs/src/decisions/commenting.md`, the canonical rule). Apply it to anything you write here:
 
-- **Inline comments are sparse** and earn their place only by explaining an unobvious **"why" about that exact line** — something the code can't say and a well-meaning cleanup would otherwise break. Keep them terse. Example: `disabled: true # Cilium is the kube-proxy replacement — do NOT re-enable`.
+- **Inline comments are sparse** and earn their place only by explaining an unobvious **"why" about that exact line** — something the code can't say and a well-meaning cleanup would otherwise break. Keep them terse. Example: `enabled: false # Cilium is the kube-proxy replacement — do NOT re-enable`.
 - **Do not** write inline comments that restate the next line, narrate structure/ordering, or read like documentation (provenance, version tables, rationale, how pieces fit together).
 - **Everything documentation-shaped goes in `docs/`**, organized by topic: why a value is pinned/diverges → the relevant guide; how pieces relate → *Architecture*; conventions/addressing/naming → the *Plans*. When you change a value or workflow, update its guide there rather than annotating the source.
 

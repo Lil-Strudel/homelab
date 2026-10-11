@@ -18,15 +18,21 @@ Boot, default extensions) — the same schematic pinned as the installer image i
 From `talos/`:
 
 ```bash
-./gen-talos-objects.sh     # secrets + controlplane/worker/talosconfig from patch.yaml
+./gen-talos-objects.sh     # secrets + controlplane/worker/talosconfig from the patches
 ./gen-machine-configs.sh   # per-node machine-configs/
 ```
 
-`gen-talos-objects.sh` passes `--talos-version v1.13`, which pins the shape of the
-generated config, not the Talos version installed. From v1.14, `talosctl gen config`
-puts the install settings in a separate `UnattendedInstallConfig` document rather than
-`machine.install`. `patch.yaml` and the running nodes use `machine.install`, so without
-the pin the patch fails to apply and new nodes would diverge from the existing ones.
+The configs use Talos's multi-document format. Each concern is its own document
+rather than a field of the `v1alpha1` document: the installer image and install disk
+live in `UnattendedInstallConfig`, and the Kubernetes settings in the `Kube*Config`
+documents. `patch.yaml` applies to every node. `controlplane-patch.yaml` applies to
+the control plane only, because `KubeProxyConfig` and `KubeFlannelCNIConfig` are
+control-plane documents. It deletes Flannel and disables kube-proxy so Cilium can
+replace both.
+
+Nodes installed before v1.14 still run the old single-document format (`machine.install`,
+`cluster.network.cni`, `cluster.proxy`). Talos accepts both. A node moves to the new
+format the next time its regenerated config is applied with `talosctl apply-config`.
 
 Boot each node into the Talos ISO, enrol the Secure Boot keys on the boot page, then
 boot the ISO again. Apply the config to each node:
@@ -73,10 +79,14 @@ differs from the OptiPlexes in three ways, all explained in
   ```
   Put the `.der` on a FAT USB stick (or a PiKVM mass-storage image), import it, then
   enable Secure Boot before booting the ISO.
-- **The install disk is selected by serial.** The cluster-wide selector
-  (`model: Samsung SSD 870`) would match the front pool drives, so the rem-4 patch
-  overrides it with the rear drive's model and serial. Read both from
+- **Talos installs onto a RAID 1 mirror of the two rear drives.** A `RAIDArrayConfig`
+  in the rem-4 patch selects both drives by serial, and the install disk is the array
+  rather than a single drive. The cluster-wide selector (`disk.model == "Samsung SSD 870"`)
+  would match the front pool drives too, so the rem-4 patch overrides it. The serials
+  come from the iDRAC (`racadm storage get pdisks`) or from
   `talosctl get disks --insecure -n 10.69.60.24` while the ISO is in maintenance mode.
+  When the config is applied in maintenance mode, Talos builds the array, waits for it,
+  and installs onto it.
 
 The node's DHCP lease and BGP peer are in `terraform/main.tf`; apply those first so it
 comes up on `10.69.60.24`. Then, from `talos/`:
