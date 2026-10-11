@@ -102,10 +102,6 @@ data:
             url: https://ceph.lilstrudel.io
             statusCheck: true
             statusCheckUrl: http://rook-ceph-mgr-dashboard.rook-ceph.svc.cluster.local:7000/
-          - title: NAS
-            description: Dell R730xd, 8x1 TB across two ZFS pools, bulk and NFS storage
-            icon: mdi-nas
-            url: http://10.69.100.32
 
       - name: Games
         icon: mdi-gamepad-variant
@@ -202,6 +198,11 @@ data:
             icon: mdi-server
             url: 10.69.60.23
             target: clipboard
+          - title: rem-4
+            description: Worker, PowerEdge R730xd, ZFS pool and Arc A40, Talos API on 50000
+            icon: mdi-server
+            url: 10.69.60.24
+            target: clipboard
 
       - name: Out-of-band
         icon: mdi-power-plug
@@ -210,6 +211,10 @@ data:
             description: IP-KVM on a Raspberry Pi 4
             icon: mdi-monitor-dashboard
             url: https://10.69.100.30
+          - title: rem-4 iDRAC
+            description: iDRAC8 for the PowerEdge R730xd
+            icon: mdi-server-network
+            url: https://10.69.100.32
           - title: KVM Switch
             description: TESmart 8-port
             icon: mdi-swap-horizontal
