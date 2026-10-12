@@ -21,7 +21,7 @@ over SCP and apply it themselves. That is the declarative surface:
 
 | File | Holds |
 | --- | --- |
-| `hardware/ups/common.ini` | Everything both cards share: DNS, NTP, timezone, SNMPv3, syslog, disabled services, login lockout |
+| `hardware/ups/common.ini` | Everything both cards share: DNS, NTP, timezone, SNMPv3, disabled services (syslog included), login lockout |
 | `hardware/ups/<ups>.ini` | Per-card identity: hostname, system name, location, UPS name |
 | `hardware/nmc.sops.yaml` | The cards' admin login (`username`, `password`) |
 | `kubernetes/…/snmp-exporter/secret.sops.yaml` | The SNMPv3 user and passphrases — the one source for both the cards and the exporter |
@@ -47,7 +47,7 @@ voltages, sensitivity, self-test schedule, the audible alarm) is left as found.
 | SNMPv3 | `authPriv`, SHA-1 + AES-128 | The strongest pair the free 2.x firmware offers; SHA-256/AES-256 are SNS-only. |
 | SNMPv3 access 1 | `10.69.60.255` | The Trusted VLAN — `255` octets are the card's wildcard. Scrapes arrive from node addresses because pod egress is SNAT'd. |
 | SNMPv3 access 2 | `10.69.100.255` | The Management VLAN, so the admin plane can poll a card directly when debugging. |
-| Syslog | `10.69.65.43:514` UDP | The `alloy-syslog` sink every MikroTik device already uses. |
+| Syslog | off | The card starts each message with a numeric `MM/DD/YYYY` date instead of an RFC 3164 timestamp, so `alloy-syslog` rejects every line. Accepting it would take Alloy's experimental `raw` mode; SNMP already carries the transfer cause and self-test result, and the full event log stays on the card (`event.txt` over SCP). |
 | DNS, NTP | `10.69.100.1` | The router serves both to every VLAN. |
 | Timezone | UTC, DST off | The card has no tz database and its DST token is undocumented; Grafana and Loki show local time anyway. |
 | IPv6 | off | Nothing on the LAN runs IPv6. |
@@ -131,3 +131,4 @@ in `hardware/ups/` or factory default.
 | 2026-10-11 | `ups-smt1000` | UPS firmware 04.1 → current (Versions), updated by hand. Side effects: audible alarm turned on (was off); battery SKU now reads `APCRBC157`. |
 | 2026-10-11 | `ups-smx1500` | `nmc.sh apply` — declared config applied; in sync. |
 | 2026-10-11 | `ups-smt1000` | Hung twice more within minutes of boot; `format` staged per FAQ000262012. |
+| 2026-10-11 | `ups-smx1500` | Syslog to `alloy-syslog` tried and turned off — see the Syslog row above. |
