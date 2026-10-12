@@ -28,8 +28,14 @@ A `ReadWriteOnce` volume is per *node*, not per pod, so several pods on rem-4 ca
 the same PVC. That is how media and the apps that manage it share one dataset and get
 hardlinks and atomic moves across it.
 
-`reclaimPolicy` is `Retain`: deleting a PVC leaves the dataset and the `ZFSVolume` in
-place. Delete the PV, then `zfs destroy` the dataset, when the data is really unwanted.
+`reclaimPolicy` is `Retain`: deleting a PVC leaves the PV, the `ZFSVolume` and the
+dataset in place. When the data is really unwanted, delete the PV and then the
+`ZFSVolume`. The node plugin destroys the dataset when its `ZFSVolume` goes away:
+
+```bash
+kubectl delete pv <PV>
+kubectl -n openebs delete zfsvolume <PV>
+```
 
 ## Running zfs and zpool
 
