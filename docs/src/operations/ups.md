@@ -150,7 +150,7 @@ in `hardware/ups/` or factory default.
 | 2026-10-11 | both | First contact: both on DHCP (`.251`, `.252`), SNMP/NTP/DNS/syslog unconfigured, hostnames `apc<MAC>`. |
 | 2026-10-11 | `ups-smx1500` | NMC firmware 2.5.0.8 → current (Versions). Clean, ~2 min. |
 | 2026-10-11 | `ups-smt1000` | NMC firmware 2.0.0.6 → current. Card hung after the upload and needed a reseat. |
-| 2026-10-11 | `ups-smt1000` | UPS firmware 04.1 → current (Versions), updated by hand. Side effects: audible alarm turned on (was off); battery SKU now reads `APCRBC157`. |
+| 2026-10-11 | `ups-smt1000` | UPS firmware 04.1 → current (Versions), by confirming the *update firmware* prompt that appeared on the UPS's LCD after the card upgrade. Side effects: audible alarm turned on (was off); battery SKU now reads `APCRBC157`. |
 | 2026-10-11 | `ups-smx1500` | `nmc.sh apply` — declared config applied; in sync. |
 | 2026-10-11 | `ups-smt1000` | Hung twice more within minutes of boot; `format` staged per FAQ000262012. |
 | 2026-10-11 | `ups-smx1500` | Syslog to `alloy-syslog` tried and turned off — see the Syslog row above. |
