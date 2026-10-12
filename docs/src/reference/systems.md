@@ -74,7 +74,11 @@ Cluster storage is Rook-Ceph, one OSD per OptiPlex on the 1 TB NVMe (see
 | PiKVM | Raspberry Pi 4 (2 GB) | `10.69.100.30` | IP-KVM |
 | rem-4 iDRAC | iDRAC8 | `10.69.100.32` | R730xd console, firmware, fans |
 | KVM switch | TESmart 8-port | `10.69.100.13` | Physical KVM |
-| UPS | APC SMT1000RM2UC | `10.69.100.77` | Battery backup |
+| UPS `ups-smt1000` | APC Smart-UPS SMT1000RM2UC + AP9641 NMC3 | `10.69.100.40` | Battery backup |
+| UPS `ups-smx1500` | APC Smart-UPS X SMX1500RM2UCNC (AP9641 NMC3 built in) | `10.69.100.41` | Battery backup |
+
+Both UPSes are managed through their network cards — config, firmware, and recovery are
+in [Operations → UPS](../operations/ups.md).
 
 ## Upstream
 

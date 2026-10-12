@@ -29,6 +29,7 @@
 - [VPN Access](./operations/vpn-access.md)
 - [Applications](./operations/applications.md)
 - [Dashboard (Dashy)](./operations/dashboard.md)
+- [UPS (APC NMC3)](./operations/ups.md)
 - [Minecraft](./operations/minecraft.md)
 - [Adding a Service](./operations/adding-a-service.md)
 - [Upgrades](./operations/upgrades.md)

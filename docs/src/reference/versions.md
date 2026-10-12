@@ -30,6 +30,9 @@ in lockstep, so the two never drift.
 | plugin-barman-cloud | `0.8.1` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
 | PostgreSQL | `18-standard-trixie` | `platform/configs/cnpg/image-catalog.yaml` (tag + digest) |
 | mdBook | `v0.5.4` | `.github/workflows/docs.yml` (`MDBOOK_VERSION`) |
+| APC NMC3 firmware (Smart-UPS) | `2.5.5.1` | on each UPS card — not tracked by Renovate; see [UPS](../operations/ups.md#firmware) |
+| SMT1000 UPS firmware | `15.5` (ID1015) | on the UPS — not tracked by Renovate |
+| SMX1500 UPS firmware | `16.5` (ID1050) | on the UPS — not tracked by Renovate |
 
 ## Pins that must move together
 

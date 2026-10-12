@@ -47,6 +47,9 @@ sops -d talos/talos/secrets.sops.yaml   # view decrypted
   `password`, for IPMI over LAN. Hand the password to `ipmitool` without writing it to
   disk:
   `ipmitool -I lanplus -H 10.69.100.32 -U root -f <(sops -d --extract '["password"]' hardware/idrac.sops.yaml) …`
+  `hardware/nmc.sops.yaml` holds the admin login shared by both UPS network cards;
+  `hardware/ups/nmc.sh` reads it (and the SNMPv3 credentials from the `snmp-exporter`
+  secret) at run time — see [UPS](./ups.md).
 - **Kubernetes / Flux** — the `infra-controllers`, `infra-configs`, and `apps`
   Kustomizations each have SOPS decryption enabled (`spec.decryption.provider: sops`,
   secret `sops-age`) in `clusters/main/infrastructure.yaml` and `apps.yaml`. They

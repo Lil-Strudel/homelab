@@ -138,7 +138,7 @@ Trusted — is reachable only from Management and `wg-management`.
 | Security (30) | ❌ | — | fully isolated |
 | IoT (40) | ❌ | — | fully isolated |
 | DMZ (50) | ✅ | — | reserved for an internet-facing edge; nothing on it |
-| Trusted (60) | ✅ | — | cluster nodes; pods reach services in-cluster, never through the router |
+| Trusted (60) | ✅ | SNMP to the UPS cards | cluster nodes; pods reach services in-cluster, never through the router |
 | Management (100) | ✅ | everything | the admin plane |
 | `wg-home` | ✅ | Home, `10.69.65.0/24` | user plane; no Trusted, no Management, no router admin |
 | `wg-management` | ✅ | everything | admin plane; full router access |
@@ -147,6 +147,12 @@ The two service rules match on **`dst-address = 10.69.65.0/24`**, not on an out-
 Service traffic egresses via `Trusted_VLAN` toward whichever node holds the backend, so an
 interface match would hand out the nodes along with the services. The range is never a
 source — pod traffic leaves SNAT'd to a node address — so it needs no source-side rule.
+
+Trusted has exactly one hole into Management: **UDP 161 to the `SNMP_Targets` address
+list** (the two UPS cards, from `snmp_targets` in `terraform/main.tf`), so the in-cluster
+`snmp-exporter` can poll them. Pod egress is SNAT'd to the node's Trusted address, which is
+why the rule matches the whole VLAN rather than a pod range; the cards' own SNMPv3 access
+list narrows it again — see [Operations → UPS](../operations/ups.md).
 
 Router **`input`** is locked to the Management VLAN and the `wg-management` tunnel. The
 exceptions are the services a router has to answer for anyone: DHCP, DNS, and NTP from
