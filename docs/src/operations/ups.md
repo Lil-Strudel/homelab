@@ -32,8 +32,13 @@ works against one or more cards:
 ```bash
 hardware/ups/nmc.sh diff                  # both cards: live config vs. declared, like a plan
 hardware/ups/nmc.sh apply smx1500         # upload common.ini then smx1500.ini, show the card's verdict, re-diff
+hardware/ups/nmc.sh push smt1000         # upload only — no event log, no config.ini, no diff
 hardware/ups/nmc.sh diff smt1000@10.69.100.248   # override the IP, e.g. before the reservation is applied
 ```
+
+**Never `diff` or `apply` the SMT1000's card — use `push`.** See
+[The SMT1000 card hangs](#the-smt1000-card-hangs) below; verify it over SNMP instead
+(`sysName`, `sysLocation`, and a working scrape prove both files landed).
 
 `diff` exits non-zero on drift and prints `[Section] Key: live -> declared`. Only keys in
 the `.ini` files are managed; everything else on the card (outlet groups, UPS transfer
@@ -100,6 +105,23 @@ powers.
 
 ## Recovery
 
+### The SMT1000 card hangs
+
+The AP9641 in the SMT1000 hangs — link up, nothing transmitted — after either of two
+things, while the identical card in the SMX1500 does both without trouble:
+
+- **Generating `config.ini`.** The export makes the card read every setting from the UPS
+  over its internal link, and this card did not survive one or two of them.
+- **A warm reboot** — the one after a firmware upload, or the `reboot` command. It only
+  comes back from a cold start (a reseat).
+
+Plain SNMP polling is fine: 30 polls over 15 minutes after configuration, and untouched
+uptime well past the point where an export kills it. That is everything the cluster does
+with it, so the card is in service with `push` as its only write path. Started after its
+NMC firmware upgrade and did not change with the UPS firmware update or a `format`;
+candidates if it gets worse are UPS firmware 18.0 (the latest for ID1015, updatable with
+output on) and a warranty claim on the card.
+
 A hung card keeps its link up but sends nothing: the switch port's `rx-bytes` stops
 moving, the card's MAC drops out of the bridge host table, and its DHCP lease expires. The
 activity light still blinks, because the switch keeps transmitting to it. The UPS keeps
@@ -132,3 +154,6 @@ in `hardware/ups/` or factory default.
 | 2026-10-11 | `ups-smx1500` | `nmc.sh apply` — declared config applied; in sync. |
 | 2026-10-11 | `ups-smt1000` | Hung twice more within minutes of boot; `format` staged per FAQ000262012. |
 | 2026-10-11 | `ups-smx1500` | Syslog to `alloy-syslog` tried and turned off — see the Syslog row above. |
+| 2026-10-11 | `ups-smx1500` | SNMPv3 scrape verified from Management with the exporter's credentials. |
+| 2026-10-11 | `ups-smt1000` | Reseated; `format` completed on that cold boot. Admin password reset from factory to `hardware/nmc.sops.yaml`. Hung again after one `config.ini` export. |
+| 2026-10-11 | `ups-smt1000` | Reseated; `nmc.sh push` equivalent (upload only). SNMPv3 verified: 30/30 polls over 15 min, `sysName` `ups-smt1000`. |

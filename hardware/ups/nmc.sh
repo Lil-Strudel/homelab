@@ -2,9 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage="usage: ./nmc.sh <diff|apply> [ups[@ip]...]"
+usage="usage: ./nmc.sh <diff|apply|push> [ups[@ip]...]"
 action=${1:?$usage}
-[[ $action == diff || $action == apply ]] || { echo "$usage" >&2; exit 2; }
+[[ $action == diff || $action == apply || $action == push ]] || { echo "$usage" >&2; exit 2; }
 
 declare -A ips=([smt1000]=10.69.100.40 [smx1500]=10.69.100.41)
 targets=("${@:2}")
@@ -69,11 +69,13 @@ for target in "${targets[@]}"; do
   render common
   render "$ups"
 
-  if [[ $action == apply ]]; then
+  if [[ $action == apply || $action == push ]]; then
     for file in common "$ups"; do
       scp_to "$work/$file.ini" "$ip" "$file.ini"
+      echo "$ups ($ip): uploaded $file.ini"
       sleep 15 # the card applies an .ini asynchronously and rejects another until it finishes
     done
+    [[ $action == push ]] && continue
     scp_from "$ip" event.txt "$work/event.txt"
     echo "$ups ($ip):"
     grep -i -m4 "configuration file" "$work/event.txt" | sed 's/^/  /'
