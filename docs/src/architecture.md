@@ -158,9 +158,9 @@ Two tiers:
   `ObjectBucketClaim`s. The object store's data pool is **erasure-coded 2+1** rather than
   3× replicated, so bulk data costs 1.5× raw instead of 3×. See
   [Operations → Storage](./operations/storage.md).
-- **ZFS on rem-4** — one raidz2 pool, `tank`, on the R730xd's 8× 1 TB Samsung 870 EVO,
+- **ZFS on rem-4** — one raidz2 pool, `phyllo`, on the R730xd's 8× 1 TB Samsung 870 EVO,
   for media and the apps that manage it. **ZFS-LocalPV** provisions each PVC as a
-  dataset under `tank/k8s` (StorageClass `zfs`), and a pod that mounts one is scheduled
+  dataset under `phyllo/k8s` (StorageClass `zfs`), and a pod that mounts one is scheduled
   onto rem-4 automatically. The data is single-host: it survives disk failures, not the
   loss of the node. See [Operations → ZFS](./operations/zfs.md) and
   [Decisions → Media Node](./decisions/media-node.md).

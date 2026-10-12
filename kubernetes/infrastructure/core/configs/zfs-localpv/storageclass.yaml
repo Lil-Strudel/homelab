@@ -4,7 +4,7 @@ metadata:
   name: zfs
 provisioner: zfs.csi.openebs.io
 parameters:
-  poolname: tank/k8s
+  poolname: phyllo/k8s
   fstype: zfs
   compression: lz4
 reclaimPolicy: Retain

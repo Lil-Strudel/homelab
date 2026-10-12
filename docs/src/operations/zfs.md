@@ -1,8 +1,8 @@
 # Storage (ZFS)
 
-rem-4 carries one ZFS pool, `tank`, on its eight front 870 EVOs. Kubernetes reaches it
+rem-4 carries one ZFS pool, `phyllo`, on its eight front 870 EVOs. Kubernetes reaches it
 through [OpenEBS ZFS-LocalPV](https://github.com/openebs/zfs-localpv), which turns each
-PVC into a dataset under `tank/k8s`. The design is in
+PVC into a dataset under `phyllo/k8s`. The design is in
 [Architecture → Storage](../architecture.md#storage); why ZFS on one node instead of Ceph
 is in [Decisions → Media Node](../decisions/media-node.md). Versions are in
 [Reference → Versions](../reference/versions.md).
@@ -13,7 +13,7 @@ is in [Decisions → Media Node](../decisions/media-node.md). Versions are in
 | --- | --- | --- |
 | `zfs` system extension | rem-4's Talos schematic | Kernel module, `zpool`/`zfs` tools, and a service that imports every pool at boot |
 | `zfs-localpv` HelmRelease | core-controllers, namespace `openebs` | CSI controller (any node) and node plugin (rem-4 only) + CRDs, including the VolumeSnapshot CRDs |
-| StorageClass `zfs` | core-configs | `tank/k8s`, lz4, `Retain`, `WaitForFirstConsumer`, topology pinned to rem-4 |
+| StorageClass `zfs` | core-configs | `phyllo/k8s`, lz4, `Retain`, `WaitForFirstConsumer`, topology pinned to rem-4 |
 
 The node plugin runs the host's own `zfs` binary through a chroot, so the userland always
 matches the kernel module that the Talos extension ships.
@@ -64,20 +64,20 @@ Done once per pool, on drives holding nothing you want.
    ```bash
    chroot /host zpool create -o ashift=12 -o autotrim=on \
      -O compression=lz4 -O atime=off -O xattr=sa -O acltype=posixacl \
-     -O mountpoint=/var/mnt/tank \
-     tank raidz2 /dev/disk/by-id/<ID_1> ... /dev/disk/by-id/<ID_8>
-   chroot /host zfs create tank/k8s
+     -O mountpoint=/var/mnt/phyllo \
+     phyllo raidz2 /dev/disk/by-id/<ID_1> ... /dev/disk/by-id/<ID_8>
+   chroot /host zfs create phyllo/k8s
    ```
    Mountpoints must be under `/var`; the rest of the Talos root filesystem is read-only.
-5. Reboot (`talosctl -n 10.69.60.24 reboot`) and check that `zpool status tank` is
+5. Reboot (`talosctl -n 10.69.60.24 reboot`) and check that `zpool status phyllo` is
    `ONLINE`. That confirms the extension's importer brings the pool back by itself.
 
 ## Replacing a drive
 
 ```bash
-chroot /host zpool status tank                     # find the FAULTED/UNAVAIL member
-chroot /host zpool replace tank <OLD_DISK> <NEW_DISK>
-chroot /host zpool status tank                     # watch the resilver
+chroot /host zpool status phyllo                   # find the FAULTED/UNAVAIL member
+chroot /host zpool replace phyllo <OLD_DISK> <NEW_DISK>
+chroot /host zpool status phyllo                   # watch the resilver
 ```
 
 raidz2 keeps serving with two drives missing, but replace the first one promptly. The
@@ -88,13 +88,13 @@ pool has no hot spare.
 ```bash
 chroot /host zpool status -x                       # "all pools are healthy"
 chroot /host zpool list
-chroot /host zfs list -r tank/k8s
+chroot /host zfs list -r phyllo/k8s
 kubectl -n openebs get pods
 kubectl get zfsvolumes -A
 ```
 
 ## Not backed up yet
 
-Velero's S3 backups cover Ceph PVCs, but nothing copies `tank` off the node yet. A lost
+Velero's S3 backups cover Ceph PVCs, but nothing copies `phyllo` off the node yet. A lost
 node or pool means lost data, so only keep media that can be fetched again until
 off-node backups exist.
