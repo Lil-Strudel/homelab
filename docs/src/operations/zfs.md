@@ -60,6 +60,9 @@ Done once per pool, on drives holding nothing you want.
    wipefs -a /host/dev/disk/by-id/<ID>
    blkdiscard -f /host/dev/disk/by-id/<ID>
    ```
+   The two clone drives in bays 6–7 don't support TRIM, so `blkdiscard` fails on them
+   with `Operation not supported`. `wipefs` is enough there. The pool's `autotrim`
+   skips them the same way.
 4. Create the pool and the parent dataset for the CSI driver:
    ```bash
    chroot /host zpool create -o ashift=12 -o autotrim=on \

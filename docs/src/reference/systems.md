@@ -36,7 +36,7 @@ rem-4, the R730xd:
 | Component | Spec | Used for |
 | --- | --- | --- |
 | Rear SSDs | 2× Samsung 870 EVO 500 GB | Talos OS, on a software RAID 1 mirror |
-| Front SSDs | 8× Samsung 870 EVO 1 TB | ZFS pool `phyllo`, raidz2 |
+| Front SSDs | 8× Samsung 870 EVO 1 TB | ZFS pool `phyllo`, raidz2. Bays 6–7 (serials `S5Y4NFOR…`) are clones: non-Samsung firmware `X0411B0`, no TRIM, untrustworthy SMART. Their full capacity passed `f3probe`; replace them first if the pool reports errors |
 | Storage controller | PERC HBA330 Mini | Pass-through to every bay, no RAID |
 | NIC | Intel X520 2× SFP+ / I350 2× 1G rNDC | Port 1 (10G) to the core switch; the rest unused |
 | GPU | Intel Arc Pro A40 | Media transcoding (incl. AV1) |
