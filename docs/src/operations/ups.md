@@ -14,6 +14,9 @@ The cards stay on DHCP; their addresses are pinned by MAC as `mgmt-40` / `mgmt-4
 `terraform/main.tf`. Metrics flow through the in-cluster `snmp-exporter` — see
 [Observability → UPSes](./observability.md#upses).
 
+Nothing shuts the cluster down cleanly on power loss yet; the design is open in
+[#32](https://github.com/Lil-Strudel/homelab/issues/32).
+
 ## Card configuration as code
 
 The cards cannot be driven by Terraform, but they accept a partial `config.ini` uploaded
@@ -120,7 +123,8 @@ uptime well past the point where an export kills it. That is everything the clus
 with it, so the card is in service with `push` as its only write path. Started after its
 NMC firmware upgrade and did not change with the UPS firmware update or a `format`;
 candidates if it gets worse are UPS firmware 18.0 (the latest for ID1015, updatable with
-output on) and a warranty claim on the card.
+output on) and a warranty claim on the card. Diagnosis and next steps are tracked in
+[#31](https://github.com/Lil-Strudel/homelab/issues/31).
 
 A hung card keeps its link up but sends nothing: the switch port's `rx-bytes` stops
 moving, the card's MAC drops out of the bridge host table, and its DHCP lease expires. The
