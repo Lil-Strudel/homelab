@@ -387,6 +387,17 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "Recyclarr cannot sync Sonarr v5's quality definitions yet (recyclarr#988); raise this bound once it can. See docs/src/operations/media.md.",
+      "matchPackageNames": ["ghcr.io/home-operations/sonarr"],
+      "allowedVersions": "<5"
+    },
+    {
+      "description": "Majors of these break their pairings: Jellyfin plugin ABIs, Shoko and Shokofin, Recyclarr's config schema, gluetun's env names.",
+      "matchPackageNames": ["ghcr.io/recyclarr/recyclarr", "ghcr.io/qdm12/gluetun"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
       "matchManagers": ["terraform"],
       "rangeStrategy": "bump"
     }
