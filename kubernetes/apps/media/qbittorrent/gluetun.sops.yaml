@@ -5,8 +5,8 @@ metadata:
     namespace: media
 type: Opaque
 stringData:
-    WIREGUARD_PRIVATE_KEY: ENC[AES256_GCM,data:GPnDrEl3JGzM,iv:ndkgz/+eYPRQTcAQcMo316JhSqY7naRWOQAZykUidFc=,tag:kqqTFEYPcZ4TcZ0WPH8Yig==,type:str]
-    WIREGUARD_ADDRESSES: ENC[AES256_GCM,data:RywbP6N6Bxsg,iv:4hF3H4NTYAWmU7DJ6kXuw9M/XTtsHY9c2tVIvK3rHy4=,tag:7Ijz7u5r+7mMBtk9VChkCQ==,type:str]
+    WIREGUARD_PRIVATE_KEY: ENC[AES256_GCM,data:s769p1SanhAOzIOH4cSpCLuYA0G7mRpcPXOEW0Rr6qBFNyLXZZtIJiVtjEs=,iv:hCH7iZv5wKnChMttgKS4gaePqipR0su4WiBz8yHo5mU=,tag:TtTcNNJvXpqDBHBg433g8w==,type:str]
+    WIREGUARD_ADDRESSES: ENC[AES256_GCM,data:bPLQOh0PXeWP6qG0QvRddw==,iv:7Q1N5Ve0t3ZTleD5AFAh/weB70YiHIDAX9B8NhLSqMQ=,tag:YuwG7KFyr7gRt6Pa2+W26A==,type:str]
 sops:
     age:
         - enc: |
@@ -28,6 +28,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age19etvk27ryx8ksye4r2pghvqd3ml2f6aqgrsahn5c2tm5hxq5ha8sj88fwd
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-10-13T19:17:33Z"
-    mac: ENC[AES256_GCM,data:ly9y91F1o5+MJzHwsWUYHMZ048fRIbtRE4yRlPKU76hjOkXDRdcXXuZfkjUlNozIpRIVqoWH0BqjqT8A7NWBOhyXiYcnsPdu08tkKUnB1ubFYbLSjsBD50w3sXrcWZWwT75t1vslIRuufjVQtgWcsocByNEnvuzdfuDgJsvapS0=,iv:MiPOl/O7iyUHwRqjKignnq1IsBr1OQHlsQLYAWmdQ8g=,tag:T5Wvu5LnQR1mRn/ifLq1eQ==,type:str]
+    lastmodified: "2026-10-13T23:00:29Z"
+    mac: ENC[AES256_GCM,data:eJGOrACsHa0YleMNfzyvOKVna+R7vBeIYStzw/Jrxlbb+c9gLkLTkYpnP+5Z8XA3NUk3C9EI35m9Q0/3XuuORAOpzbxLHcB9/NHHl+wvB/pxlCP/4aCzcjs1wkR+3IDWYIt0dWGr4RmaSVAuNtx8vWxT3JC3QkgVWvkLqNGZXf4=,iv:6ycoYvbiec2PqKuv0EidNRAlrdrytKAd9wMhUZzR/J8=,tag:cWMCZPm5zJ+ajpT9zmEAmQ==,type:str]
     version: 3.13.3
