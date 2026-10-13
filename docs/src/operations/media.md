@@ -73,7 +73,7 @@ deliberately not backed up; see [Decisions → Media Node](../decisions/media-no
 | Secret | Holds | Source |
 | --- | --- | --- |
 | `media-api-keys` (`api-keys.sops.yaml`) | Sonarr, Radarr, Prowlarr and SABnzbd API keys | Generated; the apps read them from env at start, so the keys are known before first run |
-| `gluetun` (`qbittorrent/gluetun.sops.yaml`) | Mullvad WireGuard private key and address | Mullvad account → WireGuard configuration |
+| `gluetun` (`qbittorrent/gluetun.sops.yaml`) | Mullvad WireGuard private key and tunnel address, not the account number | mullvad.net → Downloads → WireGuard configuration → Generate key; take `PrivateKey` and the IPv4 half of `Address` from the downloaded `.conf`, then delete it |
 | `suwayomi` | Login for the Suwayomi UI | Generated; read it with `sops -d` |
 | `komf` | Kavita API key | Kavita → User settings → API key, after Kavita's first start |
 | `jellystat` | `JWT_SECRET` | Generated |
