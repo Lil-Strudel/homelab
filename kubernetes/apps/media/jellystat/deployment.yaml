@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellystat
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: jellystat
+  template:
+    metadata:
+      labels:
+        app: jellystat
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: jellystat
+          image: ghcr.io/cyfershepard/jellystat:1.1.12
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: HOME
+              value: /tmp
+            - name: POSTGRES_IP
+              value: jellystat-pg-rw
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: jellystat
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: jellystat-pg-app
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jellystat-pg-app
+                  key: password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jellystat
+                  key: JWT_SECRET
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: backup-data
+              mountPath: /app/backend/backup-data
+          startupProbe:
+            httpGet:
+              path: /auth/isconfigured
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /auth/isconfigured
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /auth/isconfigured
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: backup-data
+          emptyDir: {} # Jellystat's own JSON exports; the data itself is in Postgres, which barman backs up

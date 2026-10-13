@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellystat
+  namespace: media
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.63"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - jellystat.lilstrudel.io
+      secretName: jellystat-tls
+  rules:
+    - host: jellystat.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellystat
+                port:
+                  number: 3000

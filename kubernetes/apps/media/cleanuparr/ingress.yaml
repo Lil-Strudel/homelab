@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cleanuparr
+  namespace: media
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.64"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - cleanuparr.lilstrudel.io
+      secretName: cleanuparr-tls
+  rules:
+    - host: cleanuparr.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cleanuparr
+                port:
+                  number: 11011

@@ -56,6 +56,78 @@ data:
             icon: mdi-view-dashboard
             url: https://dashy.lilstrudel.io
 
+      - name: Media
+        icon: mdi-play-box-multiple
+        items:
+          - title: Jellyfin
+            description: Movies, TV and anime, with QSV transcoding on the Arc A40
+            icon: si-jellyfin
+            url: https://jellyfin.lilstrudel.io
+          - title: Seerr
+            description: Request movies and shows
+            icon: mdi-movie-search
+            url: https://seerr.lilstrudel.io
+          - title: Kavita
+            description: Manga, webtoons and ebooks
+            icon: mdi-book-open-page-variant
+            url: https://kavita.lilstrudel.io
+          - title: Audiobookshelf
+            description: Audiobooks and podcasts
+            icon: mdi-headphones
+            url: https://audiobookshelf.lilstrudel.io
+          - title: Jellystat
+            description: Jellyfin watch history and stats
+            icon: mdi-chart-bar
+            url: https://jellystat.lilstrudel.io
+
+      - name: Media Management
+        icon: mdi-download-network
+        items:
+          - title: Sonarr
+            description: TV and anime series
+            icon: si-sonarr
+            url: https://sonarr.lilstrudel.io
+          - title: Radarr
+            description: Movies and anime movies
+            icon: si-radarr
+            url: https://radarr.lilstrudel.io
+          - title: Prowlarr
+            description: Indexers, synced to the arrs
+            icon: mdi-magnify-scan
+            url: https://prowlarr.lilstrudel.io
+          - title: Bazarr
+            description: Subtitles for Sonarr and Radarr
+            icon: mdi-subtitles
+            url: https://bazarr.lilstrudel.io
+          - title: Shoko
+            description: AniDB metadata for the anime library
+            icon: mdi-database-search
+            url: https://shoko.lilstrudel.io
+          - title: Shelfmark
+            description: Ebook and audiobook search and downloads
+            icon: mdi-bookshelf
+            url: https://shelfmark.lilstrudel.io
+          - title: Suwayomi
+            description: Manga and webtoon sources and downloads
+            icon: mdi-book-arrow-down
+            url: https://suwayomi.lilstrudel.io
+          - title: qBittorrent
+            description: Torrents, through Mullvad
+            icon: si-qbittorrent
+            url: https://qbittorrent.lilstrudel.io
+          - title: SABnzbd
+            description: Usenet downloads
+            icon: mdi-download
+            url: https://sabnzbd.lilstrudel.io
+          - title: qbit_manage
+            description: Torrent tagging, share limits and cleanup
+            icon: mdi-tag-multiple
+            url: https://qbit-manage.lilstrudel.io
+          - title: Cleanuparr
+            description: Removes stalled and malicious downloads
+            icon: mdi-broom
+            url: https://cleanuparr.lilstrudel.io
+
       - name: Observability
         icon: mdi-chart-areaspline
         items:
