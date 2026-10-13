@@ -45,6 +45,26 @@ The schematic is committed as `talos/schematics/rem-4.yaml`, and its ID is pinne
 rem-4's machine patch. `upgrade-nodes.sh` reads each node's image from its patch, and
 falls back to `patch.yaml`, so an upgrade never puts the cluster schematic on rem-4.
 
+## GPU access
+
+Pods get the Arc A40 through Intel's GPU device plugin, not a `hostPath` of `/dev/dri`.
+A `hostPath` device node is not added to the container's device cgroup, so it only works
+in a privileged pod; the plugin injects the device properly and lets several pods share
+it (`sharedDevNum`). A pod asks for `gpu.intel.com/i915: 1`. The operator lives in
+platform-controllers rather than core because its webhooks need cert-manager's CRDs.
+
+Talos has no `render` group, but its udev rules already leave `renderD128` at `0666`,
+so pods need no `supplementalGroups`. The card is `card1`/`renderD128`; `card0` is the
+on-board Matrox, which has no render node.
+
+Two kernel log lines are worth knowing:
+
+- `HuC: authenticated for all workloads` is the one that matters. DG2 only encodes in
+  low-power mode, which needs HuC, and HuC authentication goes through the `mei`
+  extension.
+- `Using a reduced BAR size of 256MiB` is expected: the R730xd has no Resizable BAR.
+  It slows bulk VRAM transfers, not the media engines.
+
 ## Non-Intel optics on the X520
 
 The X520's ixgbe driver refuses SFP+ modules that aren't Intel-coded, and every optic

@@ -115,8 +115,10 @@ front of them. See
 | **CloudNativePG** | platform-controllers | Postgres operator, barman-cloud backup plugin, and the image catalog |
 | **Velero** | platform-controllers | Off-cluster PVC backups to S3 |
 | **ddns** | platform-controllers | CronJob keeping Route53 pointed at the WAN address |
+| **Intel device plugins operator** | platform-controllers | Manages the GPU device plugin + CRDs (needs cert-manager for its webhooks) |
 | **`VMServiceScrape`s** | platform-configs | Scrape targets for Ceph and Cilium (need the VM operator's CRDs) |
 | **Ingresses** | platform-configs | Observability hostnames (need the ClusterIssuers from core) |
+| **`GpuDevicePlugin`** | platform-configs | Exposes rem-4's Arc A40 as `gpu.intel.com/i915` (needs the operator's CRD) |
 
 ### Load balancing & the control-plane VIP
 

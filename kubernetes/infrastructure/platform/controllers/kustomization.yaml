@@ -5,6 +5,7 @@ resources:
   - cnpg
   - ddns
   - grafana
+  - intel-device-plugins
   - loki
   - snmp-exporter
   - velero
