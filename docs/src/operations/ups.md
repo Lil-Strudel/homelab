@@ -161,3 +161,4 @@ in `hardware/ups/` or factory default.
 | 2026-10-11 | `ups-smx1500` | SNMPv3 scrape verified from Management with the exporter's credentials. |
 | 2026-10-11 | `ups-smt1000` | Reseated; `format` completed on that cold boot. Admin password reset from factory to `hardware/nmc.sops.yaml`. Hung again after one `config.ini` export. |
 | 2026-10-11 | `ups-smt1000` | Reseated; `nmc.sh push` equivalent (upload only). SNMPv3 verified: 30/30 polls over 15 min, `sysName` `ups-smt1000`. |
+| 2026-10-12 | both | Moved onto their reservations (`.40`, `.41`) by deleting their old dynamic leases on the router — RouterOS keeps renewing a live dynamic lease, so a new reservation waits until it is gone. No card reboot; each took its address at its next renewal. Cluster scrape verified for both. |
