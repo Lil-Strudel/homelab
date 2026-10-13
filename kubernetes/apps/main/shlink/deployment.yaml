@@ -41,6 +41,10 @@ spec:
               value: America/Denver
             - name: TRUSTED_PROXIES
               value: 10.244.0.0/16 # pod CIDR only — else anything in RFC1918 can spoof X-Forwarded-For
+            - name: WEB_WORKER_NUM
+              value: "4" # the default of 0 starts one worker per CPU, which OOMs on rem-4's 56
+            - name: TASK_WORKER_NUM
+              value: "4"
             - name: DB_DRIVER
               value: postgres
             - name: DB_HOST
