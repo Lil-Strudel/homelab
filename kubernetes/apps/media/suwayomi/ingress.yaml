@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: suwayomi
+  namespace: media
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.62"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - suwayomi.lilstrudel.io
+      secretName: suwayomi-tls
+  rules:
+    - host: suwayomi.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: suwayomi
+                port:
+                  number: 4567

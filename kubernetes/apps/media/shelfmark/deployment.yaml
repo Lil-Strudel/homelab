@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shelfmark
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: shelfmark
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: config
+      labels:
+        app: shelfmark
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: shelfmark
+          image: ghcr.io/calibrain/shelfmark-lite:v1.4.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8084
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: INGEST_DIR
+              value: /data/media/books
+            - name: DESTINATION_AUDIOBOOK
+              value: /data/media/audiobooks
+            - name: HARDLINK_TORRENTS
+              value: "true"
+            - name: HARDLINK_TORRENTS_AUDIOBOOK
+              value: "true"
+            - name: USING_EXTERNAL_BYPASSER
+              value: "true"
+            - name: EXT_BYPASSER_URL
+              value: http://byparr:8191
+            - name: AUDIOBOOK_LIBRARY_URL
+              value: https://audiobookshelf.lilstrudel.io
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: tmp
+              mountPath: /tmp/shelfmark
+            - name: data
+              mountPath: /data
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 2Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: shelfmark-config
+        - name: tmp
+          emptyDir: {}
+        - name: data
+          persistentVolumeClaim:
+            claimName: media-data
