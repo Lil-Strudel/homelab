@@ -5,9 +5,10 @@ carries. How to add another is [Adding a Service](./adding-a-service.md); why se
 and exposure work the way they do is
 [Decisions → Service Networking](../decisions/service-networking.md).
 
-Most of them live in `apps/main/` and reconcile as one Flux Kustomization. Minecraft is the
-exception: it sits in `apps/minecraft/` under its own Kustomization, because a cold modpack
-download takes longer than any timeout the shared one should carry.
+Most of them live in `apps/main/` and reconcile as one Flux Kustomization. Two sets have
+their own: Minecraft sits in `apps/minecraft/`, because a cold modpack download takes longer
+than any timeout the shared one should carry, and the media stack sits in `apps/media/` —
+see [Media](./media.md).
 
 | App | Hostname | Shape |
 | --- | --- | --- |
@@ -92,12 +93,13 @@ Minecraft servers up and down, so it holds a token — bound to a namespaced `Ro
 read Services and patch StatefulSet replicas, and nothing else. Every other app pod here has
 no reason to reach the API server and no credential to do it with.
 
-Namespaces enforce Pod Security Admission `restricted`, with one exception:
+Namespaces enforce Pod Security Admission `restricted`, with two exceptions:
 
 | Namespace | Enforce | Why |
 | --- | --- | --- |
 | `dashy`, `vaultwarden`, `immich`, `minecraft`, `factorio`, `rustdesk` | `restricted` | — |
 | `shlink` | `baseline` | The `shlink-web-client` nginx entrypoint writes `servers.json` into the image's html directory, which a non-root UID cannot create. `warn`/`audit` stay at `restricted` so the gap stays visible. |
+| `media` | `privileged` | gluetun needs `NET_ADMIN`. `warn`/`audit` stay at `restricted`, and a `ValidatingAdmissionPolicy` denies everything else `privileged` would allow — see [Decisions → Media Node](../decisions/media-node.md#the-media-stack-in-one-namespace). |
 
 Each namespace also carries a **default-deny `CiliumNetworkPolicy`** covering ingress and
 egress, selecting every endpoint in the namespace. What each app is allowed is then

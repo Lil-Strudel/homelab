@@ -197,6 +197,15 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
+      "matchStrings": ["Intel device plugins operator \\| `(?<currentValue>[0-9.]+)`"],
+      "depNameTemplate": "intel-device-plugins-operator",
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://intel.github.io/helm-charts",
+      "versioningTemplate": "helm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/docs/src/reference/versions\\.md$/"],
       "matchStrings": ["Loki \\| `(?<currentValue>[0-9.]+)`"],
       "depNameTemplate": "loki",
       "datasourceTemplate": "helm",
@@ -321,6 +330,10 @@
       "groupName": "zfs-localpv"
     },
     {
+      "matchPackageNames": ["intel-device-plugins-operator"],
+      "groupName": "intel-device-plugins"
+    },
+    {
       "matchPackageNames": ["victoria-metrics-k8s-stack"],
       "groupName": "victoria-metrics"
     },
@@ -370,6 +383,22 @@
     },
     {
       "matchManagers": ["flux", "custom.regex"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Recyclarr cannot sync Sonarr v5's quality definitions yet (recyclarr#988); raise this bound once it can. See docs/src/operations/media.md.",
+      "matchPackageNames": ["ghcr.io/home-operations/sonarr"],
+      "allowedVersions": "<5"
+    },
+    {
+      "description": "Majors of these break their pairings: Jellyfin plugin ABIs, Shoko and Shokofin, Recyclarr's config schema, gluetun's env names.",
+      "matchPackageNames": [
+        "ghcr.io/jellyfin/jellyfin",
+        "ghcr.io/shokoanime/server",
+        "ghcr.io/recyclarr/recyclarr",
+        "ghcr.io/qdm12/gluetun"
+      ],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
     },

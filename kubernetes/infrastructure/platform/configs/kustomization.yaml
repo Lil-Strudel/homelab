@@ -4,6 +4,7 @@ resources:
   - alloy
   - cnpg
   - grafana
+  - intel-device-plugins
   - loki
   - observability
   - victoria-metrics

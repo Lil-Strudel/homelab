@@ -32,6 +32,9 @@ silently, because a name that matches no volume is simply never copied:
 | `vaultwarden` | `data` | `vaultwarden-data` | attachments, icons, the RSA keypair |
 | `grafana` | `storage` | `grafana` | the Grafana database — dashboards and users |
 | `factorio` | `data` | `factorio-data` | saves, mods, server settings |
+| `media` | `config` | `<app>-config` | each media app's settings and database (Jellyfin, the arrs, qBittorrent, SABnzbd, Shoko, Seerr, Kavita, Komf, Shelfmark, qbit_manage, Cleanuparr) |
+| `media` | `config`, `metadata` | `audiobookshelf-config`, `audiobookshelf-metadata` | Audiobookshelf's database, covers and backups |
+| `media` | `data-dir` | `suwayomi-data` | Suwayomi's library database and extensions |
 
 Opting in per volume is what keeps that list short and the backup trustworthy. A cluster's
 pods are overwhelmingly `emptyDir` scratch, projected ConfigMaps, and CSI socket directories;
@@ -44,7 +47,9 @@ Three classes of volume are left out, each for its own reason:
 
 - **Postgres** — barman owns it; see [The Postgres exception](#the-postgres-exception).
 - **Caches and re-derivable data** — `immich-model-cache` holds CLIP and face-recognition
-  weights that re-download from Hugging Face.
+  weights that re-download from Hugging Face. The media library, `media-data`, is labelled
+  `velero.io/exclude-from-backup`: everything in it can be fetched again, and it would dwarf
+  everything else in the bucket.
 - **Observability data** — `victoria-metrics`' `vmsingle-vm` and `loki`'s `storage-loki-0`.
   Loki's chunks already live in S3, so its PVC is only WAL and cache. Both are also rewritten
   continuously while a backup walks them: VictoriaMetrics merges and deletes TSDB parts as it

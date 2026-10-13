@@ -64,7 +64,9 @@ kubernetes/
 ├── clusters/main/          # bootstrap entry point (--path)
 │   ├── flux-system/        # gotk-components + gotk-sync (Flux itself)
 │   ├── infrastructure.yaml # → the four infrastructure stages
-│   └── apps.yaml           # → apps  (dependsOn platform-configs)
+│   ├── apps.yaml           # → apps  (dependsOn platform-configs)
+│   ├── media.yaml          # → media (dependsOn platform-configs)
+│   └── minecraft.yaml      # → minecraft (dependsOn platform-configs)
 ├── infrastructure/
 │   ├── core/               # primitives: networking, VIP, certificates, storage
 │   │   ├── controllers/    #   installs them (and their CRDs)
@@ -72,8 +74,15 @@ kubernetes/
 │   └── platform/           # services built on the primitives
 │       ├── controllers/    #   observability, databases, backups, ddns
 │       └── configs/        #   scrapes and ingresses
-└── apps/main/              # user-facing workloads
+└── apps/
+    ├── main/               # user-facing workloads
+    ├── media/              # the media stack, all on rem-4
+    └── minecraft/          # the Minecraft fleet
 ```
+
+`media` and `minecraft` reconcile beside `apps` rather than inside it, so a slow or broken
+media app cannot hold the rest of the workloads not-Ready. See
+[Operations → Media](./operations/media.md).
 
 Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage only
 starts once the one before it is applied. Every stage but the last also uses
@@ -115,8 +124,10 @@ front of them. See
 | **CloudNativePG** | platform-controllers | Postgres operator, barman-cloud backup plugin, and the image catalog |
 | **Velero** | platform-controllers | Off-cluster PVC backups to S3 |
 | **ddns** | platform-controllers | CronJob keeping Route53 pointed at the WAN address |
+| **Intel device plugins operator** | platform-controllers | Manages the GPU device plugin + CRDs (needs cert-manager for its webhooks) |
 | **`VMServiceScrape`s** | platform-configs | Scrape targets for Ceph and Cilium (need the VM operator's CRDs) |
 | **Ingresses** | platform-configs | Observability hostnames (need the ClusterIssuers from core) |
+| **`GpuDevicePlugin`** | platform-configs | Exposes rem-4's Arc A40 as `gpu.intel.com/i915` (needs the operator's CRD) |
 
 ### Load balancing & the control-plane VIP
 
@@ -160,8 +171,10 @@ Two tiers:
   [Operations → Storage](./operations/storage.md).
 - **ZFS on rem-4** — one raidz2 pool, `phyllo`, on the R730xd's 8× 1 TB Samsung 870 EVO,
   for media and the apps that manage it. **ZFS-LocalPV** provisions each PVC as a
-  dataset under `phyllo/k8s` (StorageClass `zfs`), and a pod that mounts one is scheduled
-  onto rem-4 automatically. The data is single-host: it survives disk failures, not the
+  dataset under `phyllo/k8s`, and a pod that mounts one is scheduled onto rem-4
+  automatically. StorageClass `zfs` gives a pod its own dataset; `zfs-shared` gives a
+  dataset that several pods mount at once, which is how the media library and the apps
+  that manage it share one filesystem. The data is single-host: it survives disk failures, not the
   loss of the node. See [Operations → ZFS](./operations/zfs.md) and
   [Decisions → Media Node](./decisions/media-node.md).
 

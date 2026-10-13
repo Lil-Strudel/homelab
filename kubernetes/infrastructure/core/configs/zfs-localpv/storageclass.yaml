@@ -15,3 +15,24 @@ allowedTopologies:
       - key: kubernetes.io/hostname
         values:
           - rem-4
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: zfs-shared
+provisioner: zfs.csi.openebs.io
+parameters:
+  poolname: phyllo/k8s
+  fstype: zfs
+  compression: lz4
+  recordsize: 1M
+  shared: "yes"
+  thinprovision: "yes"
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - rem-4

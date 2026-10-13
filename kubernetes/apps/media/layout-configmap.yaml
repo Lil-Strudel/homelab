@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: media-layout
+  namespace: media
+data:
+  layout.sh: |
+    set -eu
+    categories="movies tv anime anime-movies books audiobooks"
+    for c in $categories; do
+      mkdir -p "/data/torrents/$c" "/data/usenet/complete/$c"
+    done
+    mkdir -p /data/usenet/incomplete
+    for c in $categories podcasts manga comics; do
+      mkdir -p "/data/media/$c"
+    done

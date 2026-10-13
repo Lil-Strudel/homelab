@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: suwayomi
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: suwayomi
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: data-dir
+      labels:
+        app: suwayomi
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: layout
+          image: ghcr.io/suwayomi/suwayomi-server:stable@sha256:1fac27c387dc2ea9949e1a01ad7f6d6de9d72d3988338a95476748e5c45c4582
+          command: ["/bin/sh", "/layout/layout.sh"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: layout
+              mountPath: /layout
+      containers:
+        - name: suwayomi
+          image: ghcr.io/suwayomi/suwayomi-server:stable@sha256:1fac27c387dc2ea9949e1a01ad7f6d6de9d72d3988338a95476748e5c45c4582 # numbered tags include preview builds; stable is the release channel
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 4567
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: DOWNLOAD_AS_CBZ
+              value: "true"
+            - name: EXTENSION_STORES
+              value: '["https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json"]'
+            - name: FLARESOLVERR_ENABLED
+              value: "true"
+            - name: FLARESOLVERR_URL
+              value: http://byparr:8191
+            - name: AUTH_MODE
+              value: simple_login
+            - name: AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: suwayomi
+                  key: AUTH_USERNAME
+            - name: AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: suwayomi
+                  key: AUTH_PASSWORD
+          volumeMounts:
+            - name: data-dir
+              mountPath: /home/suwayomi/.local/share/Tachidesk
+            - name: data
+              mountPath: /home/suwayomi/.local/share/Tachidesk/downloads
+              subPath: media/manga
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              memory: 3Gi
+      volumes:
+        - name: data-dir
+          persistentVolumeClaim:
+            claimName: suwayomi-data
+        - name: data
+          persistentVolumeClaim:
+            claimName: media-data
+        - name: layout
+          configMap:
+            name: media-layout

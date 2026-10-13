@@ -122,20 +122,36 @@ locals {
   #     enabled  = true                           # false keeps the path built but closed
   #   }
   services = {
-    "vault.lilstrudel.io"    = { ip = "10.69.65.20", zone = local.domain, expose = null }
-    "dashy.lilstrudel.io"    = { ip = "10.69.65.24", zone = local.domain, expose = null }
-    "immich.lilstrudel.io"   = { ip = "10.69.65.25", zone = local.domain, expose = null }
-    "rustdesk.lilstrudel.io" = { ip = "10.69.65.26", zone = local.domain, expose = null }
-    "ceph.lilstrudel.io"     = { ip = "10.69.65.10", zone = local.domain, expose = null }
-    "mc.lilstrudel.io"       = { ip = "10.69.65.30", zone = local.domain, expose = null, match_subdomain = true }
-    "factorio.lilstrudel.io" = { ip = "10.69.65.31", zone = local.domain, expose = null }
-    "grafana.lilstrudel.io"  = { ip = "10.69.65.40", zone = local.domain, expose = null }
-    "loki.lilstrudel.io"     = { ip = "10.69.65.41", zone = local.domain, expose = null }
-    "vmsingle.lilstrudel.io" = { ip = "10.69.65.42", zone = local.domain, expose = null }
-    "syslog.lilstrudel.io"   = { ip = "10.69.65.43", zone = local.domain, expose = null }
-    "alloy.lilstrudel.io"    = { ip = "10.69.65.44", zone = local.domain, expose = null }
-    "16e.link"               = { ip = "10.69.65.21", zone = "16e.link", expose = null }
-    "admin.16e.link"         = { ip = "10.69.65.22", zone = "16e.link", expose = null }
+    "vault.lilstrudel.io"          = { ip = "10.69.65.20", zone = local.domain, expose = null }
+    "dashy.lilstrudel.io"          = { ip = "10.69.65.24", zone = local.domain, expose = null }
+    "immich.lilstrudel.io"         = { ip = "10.69.65.25", zone = local.domain, expose = null }
+    "rustdesk.lilstrudel.io"       = { ip = "10.69.65.26", zone = local.domain, expose = null }
+    "ceph.lilstrudel.io"           = { ip = "10.69.65.10", zone = local.domain, expose = null }
+    "mc.lilstrudel.io"             = { ip = "10.69.65.30", zone = local.domain, expose = null, match_subdomain = true }
+    "factorio.lilstrudel.io"       = { ip = "10.69.65.31", zone = local.domain, expose = null }
+    "grafana.lilstrudel.io"        = { ip = "10.69.65.40", zone = local.domain, expose = null }
+    "loki.lilstrudel.io"           = { ip = "10.69.65.41", zone = local.domain, expose = null }
+    "vmsingle.lilstrudel.io"       = { ip = "10.69.65.42", zone = local.domain, expose = null }
+    "syslog.lilstrudel.io"         = { ip = "10.69.65.43", zone = local.domain, expose = null }
+    "alloy.lilstrudel.io"          = { ip = "10.69.65.44", zone = local.domain, expose = null }
+    "jellyfin.lilstrudel.io"       = { ip = "10.69.65.50", zone = local.domain, expose = null }
+    "seerr.lilstrudel.io"          = { ip = "10.69.65.51", zone = local.domain, expose = null }
+    "shoko.lilstrudel.io"          = { ip = "10.69.65.52", zone = local.domain, expose = null }
+    "sonarr.lilstrudel.io"         = { ip = "10.69.65.53", zone = local.domain, expose = null }
+    "radarr.lilstrudel.io"         = { ip = "10.69.65.54", zone = local.domain, expose = null }
+    "prowlarr.lilstrudel.io"       = { ip = "10.69.65.55", zone = local.domain, expose = null }
+    "bazarr.lilstrudel.io"         = { ip = "10.69.65.56", zone = local.domain, expose = null }
+    "qbittorrent.lilstrudel.io"    = { ip = "10.69.65.57", zone = local.domain, expose = null }
+    "sabnzbd.lilstrudel.io"        = { ip = "10.69.65.58", zone = local.domain, expose = null }
+    "kavita.lilstrudel.io"         = { ip = "10.69.65.59", zone = local.domain, expose = null }
+    "audiobookshelf.lilstrudel.io" = { ip = "10.69.65.60", zone = local.domain, expose = null }
+    "shelfmark.lilstrudel.io"      = { ip = "10.69.65.61", zone = local.domain, expose = null }
+    "suwayomi.lilstrudel.io"       = { ip = "10.69.65.62", zone = local.domain, expose = null }
+    "jellystat.lilstrudel.io"      = { ip = "10.69.65.63", zone = local.domain, expose = null }
+    "cleanuparr.lilstrudel.io"     = { ip = "10.69.65.64", zone = local.domain, expose = null }
+    "qbit-manage.lilstrudel.io"    = { ip = "10.69.65.65", zone = local.domain, expose = null }
+    "16e.link"                     = { ip = "10.69.65.21", zone = "16e.link", expose = null }
+    "admin.16e.link"               = { ip = "10.69.65.22", zone = "16e.link", expose = null }
   }
 
   # WAN-side entry point for exposed services: the DMZ edge host, reached via dst-nat.

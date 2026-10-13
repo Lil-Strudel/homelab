@@ -1,0 +1,63 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: shoko
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app: shoko
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "8111"
+              protocol: TCP
+    - fromEndpoints:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values: [jellyfin]
+      toPorts:
+        - ports:
+            - port: "8111"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    # AniDB: the UDP API on 9000 and the HTTP API on 9001. Shoko throttles itself to stay
+    # under AniDB's ban limits; anything else sharing this WAN address does not.
+    - toFQDNs:
+        - matchName: "api.anidb.net"
+      toPorts:
+        - ports:
+            - port: "9000"
+              protocol: UDP
+            - port: "9001"
+              protocol: TCP
+    # AniDB images and title dumps, TMDB, and the web UI's GitHub releases.
+    - toFQDNs:
+        - matchName: "anidb.net"
+        - matchPattern: "*.anidb.net"
+        - matchName: "api.themoviedb.org"
+        - matchName: "image.tmdb.org"
+        - matchName: "github.com"
+        - matchName: "api.github.com"
+        - matchPattern: "*.githubusercontent.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

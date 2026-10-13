@@ -14,6 +14,7 @@ is in [Decisions → Media Node](../decisions/media-node.md). Versions are in
 | `zfs` system extension | rem-4's Talos schematic | Kernel module, `zpool`/`zfs` tools, and a service that imports every pool at boot |
 | `zfs-localpv` HelmRelease | core-controllers, namespace `openebs` | CSI controller (any node) and node plugin (rem-4 only) + CRDs, including the VolumeSnapshot CRDs |
 | StorageClass `zfs` | core-configs | `phyllo/k8s`, lz4, `Retain`, `WaitForFirstConsumer`, topology pinned to rem-4 |
+| StorageClass `zfs-shared` | core-configs | As `zfs`, plus `shared: "yes"`, `recordsize=1M` and thin provisioning |
 
 The node plugin runs the host's own `zfs` binary through a chroot, so the userland always
 matches the kernel module that the Talos extension ships.
@@ -22,11 +23,15 @@ matches the kernel module that the Talos extension ships.
 
 | Want | Use | Behaviour |
 | --- | --- | --- |
-| A dataset on the pool | StorageClass `zfs` | The PV is pinned to rem-4, so any pod mounting it schedules there |
+| A dataset for one pod | StorageClass `zfs` | The PV is pinned to rem-4, so any pod mounting it schedules there. The full size is reserved up front |
+| A dataset several pods mount | StorageClass `zfs-shared` | Same pinning; the size is only a quota, and records are 1 MiB for large sequential files |
 
-A `ReadWriteOnce` volume is per *node*, not per pod, so several pods on rem-4 can mount
-the same PVC. That is how media and the apps that manage it share one dataset and get
-hardlinks and atomic moves across it.
+Kubernetes treats `ReadWriteOnce` as per *node*, but ZFS-LocalPV is stricter: its node
+plugin refuses to mount a dataset that is already mounted unless the volume was created
+with `shared: "yes"`. A second pod on a `zfs` volume sits in `ContainerCreating` with
+`device already mounted`. The parameter is copied into the `ZFSVolume` at provisioning
+time, so only a volume created from `zfs-shared` can be shared. That is how media and
+the apps that manage it share one dataset and get hardlinks and atomic moves across it.
 
 `reclaimPolicy` is `Retain`: deleting a PVC leaves the PV, the `ZFSVolume` and the
 dataset in place. When the data is really unwanted, delete the PV and then the

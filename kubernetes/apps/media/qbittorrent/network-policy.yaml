@@ -1,0 +1,41 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app: qbittorrent
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values: [sonarr, radarr, prowlarr, qbit-manage, cleanuparr, shelfmark]
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  # The WireGuard handshake is the only thing allowed to leave the pod: no kube-dns, so a
+  # tunnel that is down cannot leak a lookup or a peer connection.
+  egress:
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+            - 100.64.0.0/10
+            - 169.254.0.0/16
+      toPorts:
+        - ports:
+            - port: "51820"
+              protocol: UDP

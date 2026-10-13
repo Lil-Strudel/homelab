@@ -42,6 +42,9 @@ Flux GitOps, layered with explicit `dependsOn` ordering. Flux's entry point is
 
 `clusters/main` → **core-controllers** → **core-configs** → **platform-controllers** →
 **platform-configs** → **apps** (`apps/main`), each `dependsOn` the one before it.
+**media** (`apps/media`, everything on rem-4) and **minecraft** (`apps/minecraft`) are
+separate Kustomizations that also `dependsOn` platform-configs, so they cannot hold `apps`
+not-Ready.
 
 `infrastructure/` is split into two tiers, each with two stages:
 

@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: seerr
+  namespace: media
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.51"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - seerr.lilstrudel.io
+      secretName: seerr-tls
+  rules:
+    - host: seerr.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: seerr
+                port:
+                  number: 5055
