@@ -1,0 +1,70 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: seerr
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app: seerr
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "5055"
+              protocol: TCP
+    - fromEndpoints:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values: [jellyfin]
+      toPorts:
+        - ports:
+            - port: "5055"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            app: jellyfin
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: sonarr
+      toPorts:
+        - ports:
+            - port: "8989"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: radarr
+      toPorts:
+        - ports:
+            - port: "7878"
+              protocol: TCP
+    # TMDB for discovery and artwork, and the version check.
+    - toFQDNs:
+        - matchName: "api.themoviedb.org"
+        - matchName: "image.tmdb.org"
+        - matchName: "api.github.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

@@ -1,0 +1,69 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app: jellyfin
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
+    - fromEndpoints:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values: [seerr, sonarr, radarr, jellystat]
+      toPorts:
+        - ports:
+            - port: "8096"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            app: shoko
+      toPorts:
+        - ports:
+            - port: "8111"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: seerr
+      toPorts:
+        - ports:
+            - port: "5055"
+              protocol: TCP
+    # Metadata, plugin repositories and their GitHub-hosted downloads, and subtitles.
+    - toFQDNs:
+        - matchName: "api.themoviedb.org"
+        - matchName: "image.tmdb.org"
+        - matchName: "repo.jellyfin.org"
+        - matchName: "github.com"
+        - matchPattern: "*.githubusercontent.com"
+        - matchName: "intro-skipper.org"
+        - matchName: "api.opensubtitles.com"
+        - matchName: "graphql.anilist.co"
+        - matchName: "s4.anilist.co"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

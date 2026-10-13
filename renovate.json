@@ -393,7 +393,12 @@
     },
     {
       "description": "Majors of these break their pairings: Jellyfin plugin ABIs, Shoko and Shokofin, Recyclarr's config schema, gluetun's env names.",
-      "matchPackageNames": ["ghcr.io/recyclarr/recyclarr", "ghcr.io/qdm12/gluetun"],
+      "matchPackageNames": [
+        "ghcr.io/jellyfin/jellyfin",
+        "ghcr.io/shokoanime/server",
+        "ghcr.io/recyclarr/recyclarr",
+        "ghcr.io/qdm12/gluetun"
+      ],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
     },

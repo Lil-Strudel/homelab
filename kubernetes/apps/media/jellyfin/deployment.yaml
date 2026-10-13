@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: config
+      labels:
+        app: jellyfin
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: jellyfin
+          image: ghcr.io/jellyfin/jellyfin:12.2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8096
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: JELLYFIN_PublishedServerUrl
+              value: https://jellyfin.lilstrudel.io
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: cache
+              mountPath: /cache
+            - name: data
+              mountPath: /data
+              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 8Gi
+              gpu.intel.com/i915: 1
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: jellyfin-config
+        - name: cache
+          emptyDir:
+            sizeLimit: 60Gi # transcode segments live under /cache/transcodes
+        - name: data
+          persistentVolumeClaim:
+            claimName: media-data
