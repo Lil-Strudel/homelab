@@ -60,12 +60,10 @@ spec:
       volumes:
         - name: tmp
           emptyDir:
-            medium: Memory
             sizeLimit: 1Gi
         - name: cache
           emptyDir:
-            medium: Memory
-            sizeLimit: 512Mi
+            sizeLimit: 2Gi
         - name: shm
           emptyDir:
             medium: Memory
