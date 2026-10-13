@@ -315,3 +315,18 @@ may call it and whom it may call.
 A pod stuck in `ContainerCreating` with `device already mounted` is a volume from the `zfs`
 class mounted twice; only `zfs-shared` volumes can be shared. See
 [Storage (ZFS)](./zfs.md#what-you-can-claim).
+
+Recyclarr skips an instance whose config fails validation and says why only at debug
+level, so a run that logs nothing for Sonarr or Radarr is a config error. Rerun it with
+debug output and look for `Invalid instances`:
+
+```bash
+kubectl -n media get cronjob recyclarr -o json \
+  | jq '{apiVersion:"batch/v1",kind:"Job",metadata:{name:"recyclarr-debug",namespace:"media"},spec:(.spec.jobTemplate.spec | .template.spec.containers[0].args=["sync","--log","debug"])}' \
+  | kubectl apply -f -
+kubectl -n media logs -f job/recyclarr-debug | grep -A1 'Invalid instances'
+kubectl -n media delete job recyclarr-debug
+```
+
+gluetun refuses to start on a server filter it does not recognise, and logs the valid
+choices. Mullvad's US cities carry their state (`Denver CO`).
