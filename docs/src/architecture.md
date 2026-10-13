@@ -64,7 +64,9 @@ kubernetes/
 ├── clusters/main/          # bootstrap entry point (--path)
 │   ├── flux-system/        # gotk-components + gotk-sync (Flux itself)
 │   ├── infrastructure.yaml # → the four infrastructure stages
-│   └── apps.yaml           # → apps  (dependsOn platform-configs)
+│   ├── apps.yaml           # → apps  (dependsOn platform-configs)
+│   ├── media.yaml          # → media (dependsOn platform-configs)
+│   └── minecraft.yaml      # → minecraft (dependsOn platform-configs)
 ├── infrastructure/
 │   ├── core/               # primitives: networking, VIP, certificates, storage
 │   │   ├── controllers/    #   installs them (and their CRDs)
@@ -72,8 +74,15 @@ kubernetes/
 │   └── platform/           # services built on the primitives
 │       ├── controllers/    #   observability, databases, backups, ddns
 │       └── configs/        #   scrapes and ingresses
-└── apps/main/              # user-facing workloads
+└── apps/
+    ├── main/               # user-facing workloads
+    ├── media/              # the media stack, all on rem-4
+    └── minecraft/          # the Minecraft fleet
 ```
+
+`media` and `minecraft` reconcile beside `apps` rather than inside it, so a slow or broken
+media app cannot hold the rest of the workloads not-Ready. See
+[Operations → Media](./operations/media.md).
 
 Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage only
 starts once the one before it is applied. Every stage but the last also uses

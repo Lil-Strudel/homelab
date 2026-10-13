@@ -63,7 +63,8 @@ Two kernel log lines are worth knowing:
   low-power mode, which needs HuC, and HuC authentication goes through the `mei`
   extension.
 - `Using a reduced BAR size of 256MiB` is expected: the R730xd has no Resizable BAR.
-  It slows bulk VRAM transfers, not the media engines.
+  That limits how fast the CPU can reach VRAM. Whether it costs transcoding throughput is
+  what the [benchmark](#transcoding) measures.
 
 ## Non-Intel optics on the X520
 
@@ -102,3 +103,97 @@ An iDRAC firmware update or reset to defaults can turn the response back on, so 
 again after either; `racadm get system.thermalsettings` also shows it, as
 `ThirdPartyPCIFanResponse`. IPMI over LAN must be enabled on the iDRAC. With the response
 off, the fans idle at about 8,400 RPM, down from about 17,000.
+
+## The media stack in one namespace
+
+A PVC belongs to one namespace, and every media app mounts the same library PVC, so they
+all live in `media`. That collides with Pod Security: gluetun needs `NET_ADMIN` for its
+firewall and routes, and even `baseline` forbids adding it. The namespace therefore
+enforces `privileged`, with `warn` and `audit` left at `restricted` so every deviation still
+shows up.
+
+A `ValidatingAdmissionPolicy` (`apps/media/admission-policy.yaml`) takes back most of what
+`privileged` gives away: no host namespaces, no `hostPath`, no privileged containers, and
+the only added capability allowed anywhere is `NET_ADMIN` on a container named `gluetun`.
+It is a built-in API, so it needs no CRD and sits beside the apps it guards.
+
+The alternatives were worse:
+
+- **qBittorrent in its own privileged namespace**, reaching the library through a second,
+  static PV on the same ZFS volume. The kubelet tracks CSI volumes by driver and volume
+  handle, and with ZFS-LocalPV the handle has to be the `ZFSVolume`'s name, so both PVs
+  would share one handle. Mount and unmount bookkeeping is not built for that.
+- **A PSA exemption by RuntimeClass.** That is an API-server setting, and it exempts any pod
+  in any namespace that names the class.
+- **gluetun as an HTTP proxy** instead of sharing the pod's network. qBittorrent's DHT and
+  uTP are UDP and would either leak or have to be turned off.
+
+## A separate Flux Kustomization
+
+The stack reconciles as `media` (`clusters/main/media.yaml`), not inside `apps`. It is
+nearly twenty workloads with large images. With `wait: true`, one slow pull or one
+crash-looping app would hold `apps` not-Ready, and Vaultwarden would show as unhealthy
+because of a torrent client. On its own, `media` can be slow without hiding problems
+elsewhere.
+
+## The VPN is a sidecar, not a node or a gateway
+
+Only qBittorrent goes through the VPN, so the VPN is part of qBittorrent's pod: gluetun
+runs as a native sidecar and owns the pod's network namespace. Nothing else in the cluster
+changes routing, and the tunnel's lifetime is the pod's. How the layers stack up, and how
+to switch to a provider with port forwarding, is in [Operations → Media](../operations/media.md#the-vpn).
+
+`FIREWALL_OUTBOUND_SUBNETS` is deliberately unset. The service CIDR (`10.96.0.0/12`)
+overlaps Mullvad's tunnel and DNS range (`10.64.0.0/10`), and it is not needed anyway:
+nothing in the pod opens connections into the cluster, and gluetun already routes replies
+to inbound connections back out of `eth0`.
+
+## Configuration lives on the node, not on Ceph
+
+Every config PVC in the stack is on the `zfs` class. The apps are pinned to rem-4 by the
+library regardless, and rem-4 has no OSD, so `ceph-block` would put every SQLite fsync on
+the network for no availability gain: if rem-4 is down, so is everything that would read
+that config. Velero's node agent runs on rem-4 and copies those volumes to S3 like any
+other.
+
+The library itself is excluded from Velero (`velero.io/exclude-from-backup` on
+`media-data`). Everything in it can be fetched again, and it is larger than anything else
+in the bucket by orders of magnitude.
+
+## Transcoding
+
+The library is kept as released and transcoded on demand. It is not converted ahead of
+time.
+
+Pre-transcoding (Tdarr, Unmanic, or AV1 for space) was rejected:
+
+- It rewrites files. That breaks the hardlink to the seeding torrent and changes what the
+  arrs scored, so they grab the release again.
+- TRaSH's anime profiles score AV1 at -10000, so converted files fight the guide.
+- The Shield, the main TV client, cannot decode AV1, so AV1 would create transcodes rather
+  than remove them.
+
+Revisit only for space, when the pool is more than 70% full.
+
+The expectation, before measuring: the Arc Pro A40 has the same media block as the A380
+(DG2, two media engines). Community figures for the A380 are about 20 concurrent 1080p
+SDR transcodes and 6–8 4K HDR→SDR, and an independent test got about 9 and 3. Against a
+peak of 1–3 streams, the GPU should not be the limit. The likely limit is CPU-side libass,
+when the official Android TV app burns in ASS subtitles on anime.
+
+The decision rule:
+
+| Result | Then |
+| --- | --- |
+| The mix (two ASS-anime burn-ins plus one 4K HDR tone-map) holds 1.2× or better | Keep transcoding on demand. Done |
+| ASS burn-in falls short, on CPU | Fix it at the client: Kodi + JellyCon on the Shield, mpv or Findroid on phones. Never pre-burn subtitles |
+| 4K HDR tone-mapping falls short | Keep 4K to the opt-in "max" profiles, so it stays rare |
+
+Measured results (procedure in [Operations → Media](../operations/media.md#benchmark)):
+
+| Case | Ceiling (N at ≥1.0×) | Sustainable (N at ≥1.2×) | Bottleneck |
+| --- | --- | --- | --- |
+| A: 1080p HEVC 10-bit + ASS burn-in → H.264 | not yet measured | | |
+| B: 4K HDR10 → 1080p SDR | not yet measured | | |
+| C: 1080p → 720p 4 Mbps | not yet measured | | |
+| Mix: 2×A + 1×B | not yet measured | | |

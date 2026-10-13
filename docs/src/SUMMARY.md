@@ -28,6 +28,7 @@
 - [DNS & Certificates](./operations/dns-and-certificates.md)
 - [VPN Access](./operations/vpn-access.md)
 - [Applications](./operations/applications.md)
+- [Media](./operations/media.md)
 - [Dashboard (Dashy)](./operations/dashboard.md)
 - [UPS (APC NMC3)](./operations/ups.md)
 - [Minecraft](./operations/minecraft.md)
