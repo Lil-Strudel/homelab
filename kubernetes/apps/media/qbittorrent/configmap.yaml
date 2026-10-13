@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qbittorrent-configure
+  namespace: media
+data:
+  configure.sh: |
+    set -eu
+    conf=/config/qBittorrent/qBittorrent.conf
+    if [ ! -f "$conf" ]; then
+      mkdir -p "${conf%/*}"
+      cp /defaults/qBittorrent.conf "$conf"
+    fi
+
+    # Keys hold backslashes, so they reach awk through ENVIRON, which does no escape processing.
+    set_ini() {
+      SECTION="[$1]" KEY="$2" VALUE="$3" awk '
+        BEGIN { s = ENVIRON["SECTION"]; k = ENVIRON["KEY"] "="; line = k ENVIRON["VALUE"] }
+        $0 == s { insec = 1; print; next }
+        /^\[/ { if (insec && !done) { print line; done = 1 } insec = 0 }
+        insec && index($0, k) == 1 { if (!done) { print line; done = 1 } next }
+        { print }
+        END { if (!done) { if (!insec) print s; print line } }
+      ' "$conf" > "$conf.tmp"
+      mv "$conf.tmp" "$conf"
+    }
+
+    set_ini BitTorrent 'Session\Interface' wg0
+    set_ini BitTorrent 'Session\InterfaceName' wg0
+    set_ini BitTorrent 'Session\DefaultSavePath' /data/torrents
+    set_ini BitTorrent 'Session\DisableAutoTMMByDefault' false
+    set_ini Preferences 'WebUI\AuthSubnetWhitelistEnabled' false

@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # two gluetun pods on one node fight over the same policy-routing table
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: config
+      labels:
+        app: qbittorrent
+    spec:
+      automountServiceAccountToken: false
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 127.0.0.1 # gluetun's resolver, so every lookup goes through the tunnel
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: layout
+          image: ghcr.io/home-operations/qbittorrent:5.2.4
+          command: ["/bin/sh", "/layout/layout.sh"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: layout
+              mountPath: /layout
+        - name: configure
+          image: ghcr.io/home-operations/qbittorrent:5.2.4
+          command: ["/bin/sh", "/scripts/configure.sh"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: configure
+              mountPath: /scripts
+        - name: gluetun
+          image: ghcr.io/qdm12/gluetun:v3.41.3
+          restartPolicy: Always
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: ["NET_ADMIN"] # on top of the runtime defaults, which is the set gluetun is built against
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: VPN_SERVICE_PROVIDER
+              value: mullvad
+            - name: VPN_TYPE
+              value: wireguard
+            - name: WIREGUARD_IMPLEMENTATION
+              value: kernelspace
+            - name: SERVER_CITIES
+              value: Denver
+            - name: FIREWALL_INPUT_PORTS
+              value: "8080"
+            - name: HTTP_CONTROL_SERVER_ADDRESS
+              value: 127.0.0.1:8000
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gluetun
+                  key: WIREGUARD_PRIVATE_KEY
+            - name: WIREGUARD_ADDRESSES
+              valueFrom:
+                secretKeyRef:
+                  name: gluetun
+                  key: WIREGUARD_ADDRESSES
+          startupProbe:
+            exec:
+              command: ["/gluetun-entrypoint", "healthcheck"]
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            exec:
+              command: ["/gluetun-entrypoint", "healthcheck"]
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: gluetun
+              mountPath: /gluetun
+            - name: gluetun-tmp
+              mountPath: /tmp/gluetun
+      containers:
+        - name: qbittorrent
+          image: ghcr.io/home-operations/qbittorrent:5.2.4
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TZ
+              value: America/Denver
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /data/torrents
+              subPath: torrents
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 4Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: media-data
+        - name: layout
+          configMap:
+            name: media-layout
+        - name: configure
+          configMap:
+            name: qbittorrent-configure
+        - name: gluetun
+          emptyDir: {}
+        - name: gluetun-tmp
+          emptyDir: {}

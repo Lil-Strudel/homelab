@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-data
+  namespace: media
+  labels:
+    velero.io/exclude-from-backup: "true"
+spec:
+  storageClassName: zfs-shared
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Ti

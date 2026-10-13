@@ -1,0 +1,53 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sabnzbd
+  namespace: media
+spec:
+  endpointSelector:
+    matchLabels:
+      app: sabnzbd
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - fromEndpoints:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values: [sonarr, radarr, prowlarr, shelfmark]
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # Usenet providers over NNTPS (563, or 443 for providers that offer it) and SABnzbd's
+    # version check. Providers sit behind many hosts, so this is by port, not by name.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+            - 100.64.0.0/10
+            - 169.254.0.0/16
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "563"
+              protocol: TCP
