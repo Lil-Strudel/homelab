@@ -57,6 +57,7 @@ spec:
         - matchName: "api.themoviedb.org"
         - matchName: "image.tmdb.org"
         - matchName: "repo.jellyfin.org"
+        - matchPattern: "*.mirror.jellyfin.org"
         - matchName: "github.com"
         - matchPattern: "*.githubusercontent.com"
         - matchName: "intro-skipper.org"
