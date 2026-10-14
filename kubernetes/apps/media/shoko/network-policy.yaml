@@ -57,6 +57,15 @@ spec:
         - matchName: "github.com"
         - matchName: "api.github.com"
         - matchPattern: "*.githubusercontent.com"
+        - matchName: "www.msftconnecttest.com"
+        - matchName: "detectportal.firefox.com"
+        - matchName: "www.wechat.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toCIDR:
+        - 1.1.1.1/32
       toPorts:
         - ports:
             - port: "443"

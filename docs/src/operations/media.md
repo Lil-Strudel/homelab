@@ -330,3 +330,8 @@ kubectl -n media delete job recyclarr-debug
 
 gluetun refuses to start on a server filter it does not recognise, and logs the valid
 choices. Mullvad's US cities carry their state (`Denver CO`).
+
+Shoko checks four internet endpoints (1.1.1.1, msftconnecttest.com, detectportal.firefox.com
+and wechat.com) before it will contact AniDB, and with none reachable it logs "No internet,
+so not sending AniDB request". All four are in its network policy for that reason; drop one
+and Shoko reports only partial internet.
