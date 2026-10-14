@@ -61,6 +61,7 @@ spec:
         - matchName: "github.com"
         - matchPattern: "*.githubusercontent.com"
         - matchName: "intro-skipper.org"
+        - matchName: "cdn.jsdelivr.net"
         - matchName: "api.opensubtitles.com"
         - matchName: "graphql.anilist.co"
         - matchName: "s4.anilist.co"
