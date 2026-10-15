@@ -102,7 +102,9 @@ pod's life. Four layers keep torrent traffic in the tunnel:
    is no rule for kube-dns.
 3. The pod's DNS is `127.0.0.1`, which is gluetun's resolver, so no lookup leaves outside the
    tunnel.
-4. qBittorrent is bound to `wg0`. The `configure` init container sets this on every start,
+4. qBittorrent is bound to `wg0`, the name gluetun is told to give its interface with
+   `VPN_INTERFACE` (its own default is `tun0`). The `configure` init container sets the
+   binding on every start,
    along with the default save path. It also turns off the image's default auth bypass for
    10.0.0.0/8: every request through the Ingress arrives from the pod CIDR, so the bypass
    would mean no login at all.
@@ -341,3 +343,10 @@ and logs "qbit_manage is only compatible with v… or lower". `QBT_SKIP_QB_VERSI
 `qbit-manage/deployment.yaml` bypasses that while qBittorrent is one patch release ahead
 (5.2.4 against qbit_manage 4.13.0, whose develop branch already supports it). Remove it
 once a qbit_manage release lists the running qBittorrent version.
+
+If gluetun's container restarts on its own (an OOM kill, say), it cannot bring the tunnel
+back: the pod's network namespace outlives the container, and gluetun logs `adding ip rule
+101 … file exists` and retries forever while qBittorrent shows as disconnected. Delete the
+pod to get a fresh namespace: `kubectl -n media delete pod -l app=qbittorrent`. The DNS
+block lists are off (`BLOCK_MALICIOUS=off`, `DNS_UPDATE_PERIOD=0`) because their daily
+refresh is what pushed gluetun over its memory limit.
