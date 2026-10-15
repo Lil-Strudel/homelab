@@ -263,7 +263,9 @@ Settings (Dashboard → Playback → Transcoding):
 - **Low-power H.264 and HEVC encoders on.** DG2 only encodes in low-power mode.
 - HEVC encoding allowed; AV1 encoding off. The Shield and older Android devices cannot
   decode AV1, so an AV1 transcode would itself need transcoding.
-- Tone mapping on. Compare VPP and OpenCL in the benchmark below.
+- Tone mapping on, with **VPP tone mapping** on too. OpenCL tone mapping collapses at three
+  parallel 4K HDR streams on this node; VPP handles more than eight. See
+  [Decisions → Media Node](../decisions/media-node.md#transcoding).
 - Throttle transcodes and delete segments on. Segments live in `/cache/transcodes`, a
   size-limited `emptyDir`.
 
@@ -283,22 +285,35 @@ a Jellyfin major, a driver change, or a change in clients.
    kubectl -n media exec deploy/jellyfin -- /usr/lib/jellyfin-ffmpeg/vainfo --display drm --device /dev/dri/renderD128
    ```
    Expect the iHD driver and `VAEntrypointEncSliceLP` for H.264, HEVC and AV1.
-2. **Test files**, from the real library:
-   - A: 1080p HEVC 10-bit anime with heavy ASS typesetting, to 1080p H.264 with burn-in.
-   - B: 4K HDR10 HEVC, to 1080p SDR (tone-mapped).
-   - C: 1080p H.264, to 720p at 4 Mbps (a phone on a weak link).
-   - D: Dolby Vision profile 5 or 8, if the library has any.
-3. **Capture real commands.** Start each case once from a client forced to transcode.
-   Copy its command line from `/config/log/FFmpeg.Transcode-*.log`, which carries
-   Jellyfin's real filter graph.
-4. **Find the ceiling.** Change each command's output to `-t 120 -f null -` and add
-   `-benchmark`. Run N copies in parallel inside the pod for N = 1, 2, 3, 4, 6, 8. For each,
-   record every process's `speed=`, its CPU from `top`, and the GPU engines from
-   `intel_gpu_top` (in a debug pod:
-   `kubectl debug node/rem-4 -it --profile sysadmin --image=alpine`, then
-   `apk add igt-gpu-tools`). The ceiling is the N where the slowest copy drops below
-   1.0×; 1.2× is the sustainable level, which leaves room for seeking. Also run a mix of
-   two A plus one B.
+2. **Test clips.** `scripts/transcode-bench/` builds them from one 1080p Blu-ray remux in
+   the library, so the content is real even where the format is derived:
+   - A: 1080p HEVC 10-bit, with ASS burn-in to 1080p H.264. `gen-ass.py` writes two
+     subtitle files: `typical` (dialogue, a karaoke line, about three signs on screen) and
+     `extreme` (about 40 animated, blurred, rotating signs at once).
+   - B: 4K HEVC 10-bit tagged HDR10, tone-mapped to 1080p SDR, through OpenCL (`B`, what
+     Jellyfin uses while *VPP tone mapping* is off) and through VPP (`BV`).
+   - C: 1080p H.264 to 720p at 4 Mbps.
+   - P: 1080p H.264 with PGS (Blu-ray image) subtitles burned in.
+
+   Every case also decodes the DTS-HD MA track and encodes AAC stereo, as Jellyfin does for
+   clients without DTS. The pipelines copy Jellyfin's QSV shape (VA-API decode, `hwmap` to
+   QSV, low-power encode); once real sessions have run, compare them against
+   `/config/log/FFmpeg.Transcode-*.log` and adjust `cases.sh` if Jellyfin's graph differs.
+3. **Run it.** Copy the scripts into the pod and run them there:
+   ```bash
+   python3 scripts/transcode-bench/gen-ass.py /tmp
+   POD=$(kubectl -n media get pod -l app=jellyfin -o name | cut -d/ -f2)
+   kubectl -n media exec $POD -- mkdir -p /cache/bench
+   for f in scripts/transcode-bench/*.sh /tmp/typical.ass /tmp/extreme.ass; do kubectl cp $f media/$POD:/cache/bench/; done
+   kubectl -n media exec $POD -- bash /cache/bench/prepare.sh
+   kubectl -n media exec $POD -- bash /cache/bench/matrix.sh | tee bench-results.txt
+   ```
+   `run.sh` starts N copies of a case for 45 seconds and prints each copy's speed and CPU,
+   plus GPU engine load read from the i915 per-client stats in `/proc/<pid>/fdinfo`, which
+   needs no privileged pod. The matrix takes about 25 minutes. Delete `/cache/bench`
+   afterwards (about 750 MB).
+4. **Read it.** The ceiling is the largest N whose slowest copy stays at 1.0× or better;
+   1.2× is the sustainable level, which leaves room for seeking.
 5. **Live check.** Three real sessions at once: Android TV playing ASS anime, a phone at a
    forced low bitrate, and a 4K HDR title in a browser. Watch Dashboard → Active Devices
    for the transcode reasons and the client's playback info for the transcode rate. Seek a

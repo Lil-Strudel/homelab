@@ -189,11 +189,39 @@ The decision rule:
 | ASS burn-in falls short, on CPU | Fix it at the client: Kodi + JellyCon on the Shield, mpv or Findroid on phones. Never pre-burn subtitles |
 | 4K HDR tone-mapping falls short | Keep 4K to the opt-in "max" profiles, so it stays rare |
 
-Measured results (procedure in [Operations → Media](../operations/media.md#benchmark)):
+Measured results, 2026-10-15 (procedure in [Operations → Media](../operations/media.md#benchmark)).
+Speeds are per stream, as a multiple of real time; the clips are derived from a Blu-ray
+remux, and the pipelines copy Jellyfin's QSV graph rather than being captured from it:
 
 | Case | Ceiling (N at ≥1.0×) | Sustainable (N at ≥1.2×) | Bottleneck |
 | --- | --- | --- | --- |
-| A: 1080p HEVC 10-bit + ASS burn-in → H.264 | not yet measured | | |
-| B: 4K HDR10 → 1080p SDR | not yet measured | | |
-| C: 1080p → 720p 4 Mbps | not yet measured | | |
-| Mix: 2×A + 1×B | not yet measured | | |
+| A: 1080p HEVC 10-bit + typical ASS burn-in → H.264 | 6 (1.23× each); 8 collapses to 0.3–0.5× | 6 | libass, one CPU core per stream (1.4× alone) |
+| A, extreme typesetting | 0 (0.13× alone) | 0 | libass |
+| B: 4K HDR10 → 1080p SDR, OpenCL tone mapping | 2 (5.3× each); 3 collapses to 0.8× | 2 | CPU↔GPU frame exchange |
+| B, VPP tone mapping | more than 8 (1.9× each at 8) | more than 8 | the two video engines (97% busy) |
+| C: 1080p → 720p 4 Mbps | more than 8 (4.6× each at 8, about 37 streams' worth) | more than 8 | the two video engines |
+| P: 1080p + PGS burn-in | 6 (3.9× each); 8 turns erratic, slowest 0.7× | 6 | CPU↔GPU frame exchange |
+| Mix: 2×A + 1×B | holds: A 1.36×, B 9.0× | holds | — |
+| Mix: 2×A + 1×B + 1×C | holds: A 1.32×, B 7.6×, C 17.3× | holds | the video engines (95% busy) |
+
+**Decision: transcode on demand.** The mix holds above 1.2× with room to spare, so the
+first row of the rule applies. The GPU's video engines are far from the 1–3 stream peak:
+pipelines that stay on the GPU scale until both engines are full, at roughly 37 1080p
+streams.
+
+Three findings shape how it is used:
+
+- **Pipelines that move frames between CPU and GPU collapse early.** Subtitle burn-in
+  (`hwupload` of a full-frame overlay) and OpenCL tone mapping (`hwmap` to OpenCL and
+  back) fall apart at 3–8 parallel streams while the GPU engines go *idle*. GPU memory is
+  not the cause: one OpenCL and one VPP tone-map each hold about 800 MiB, and VPP scales
+  to 8. The likely cause is the R730xd's lack of Resizable BAR, which leaves the CPU a
+  256 MiB window into VRAM that concurrent copies contend for.
+- **Use VPP tone mapping**, not OpenCL: it stays on the GPU and handles more than 8
+  4K HDR streams against OpenCL's 2. The trade is OpenCL's configurable BT.2390 curve.
+- **ASS burn-in is limited by libass, not the GPU.** One stream of typical typesetting
+  renders at about 1.4× on one core, enough for real time with little margin to seek;
+  heavy typesetting (OP/ED karaoke, sign-dense episodes) drops below real time even
+  alone. Burn-in is a fallback, so anime clients should render ASS themselves (second row
+  of the rule).
+
