@@ -72,6 +72,8 @@ spec:
               value: "true"
             - name: QBT_DRY_RUN
               value: "true" # it deletes files; review a few runs' logs before turning this off
+            - name: QBT_SKIP_QB_VERSION_CHECK
+              value: "true"
           volumeMounts:
             - name: config
               mountPath: /config

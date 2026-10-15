@@ -335,3 +335,9 @@ Shoko checks four internet endpoints (1.1.1.1, msftconnecttest.com, detectportal
 and wechat.com) before it will contact AniDB, and with none reachable it logs "No internet,
 so not sending AniDB request". All four are in its network policy for that reason; drop one
 and Shoko reports only partial internet.
+
+qbit_manage refuses to run against a qBittorrent newer than its release was tested with,
+and logs "qbit_manage is only compatible with v… or lower". `QBT_SKIP_QB_VERSION_CHECK` in
+`qbit-manage/deployment.yaml` bypasses that while qBittorrent is one patch release ahead
+(5.2.4 against qbit_manage 4.13.0, whose develop branch already supports it). Remove it
+once a qbit_manage release lists the running qBittorrent version.
