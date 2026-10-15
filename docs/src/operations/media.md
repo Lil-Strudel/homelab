@@ -199,6 +199,12 @@ Do this once, in order, after the first reconcile.
    - Anime on `/data/media/anime` and `/data/media/anime-movies`, as *Shows* and *Movies*
      libraries with **Shokofin** as the metadata provider and its virtual file system on.
      Turn NFO savers off.
+   - Shokofin registers a library on the first scan that finds something in it, and maps each
+     media folder to a Shoko import folder by asking Shoko about the files it holds. A folder
+     scanned while empty is saved as *Not Mapped* and its files are ignored from then on.
+     Once Shoko has processed the first file in it, open Shokofin → Library, pick the
+     library, click the search icon on the folder (it shows *Refresh Pending*), save, and
+     scan the libraries again. Do this once per anime library.
    - Dashboard → Networking → *Known proxies* `10.244.0.0/16`, *LAN networks* `10.69.0.0/16`.
    - Playback → Transcoding: see [Transcoding](#transcoding).
 10. **Seerr.** Sign in with Jellyfin at `http://jellyfin:8096`. Add Sonarr with the anime
