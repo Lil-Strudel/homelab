@@ -73,6 +73,7 @@ spec:
         - matchPattern: "*.servarr.com"
         - matchName: "thetvdb.com"
         - matchPattern: "*.thetvdb.com"
+        - matchName: "thexem.info"
       toPorts:
         - ports:
             - port: "443"
