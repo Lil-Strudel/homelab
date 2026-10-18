@@ -230,10 +230,11 @@ module "router" {
 
   trunk_ports = ["sfp-sfpplus2"]
   access_ports = {
-    "ether5" = local.vlans["Management"]
-    "ether6" = local.vlans["Management"]
-    "ether7" = local.vlans["Management"]
-    "ether8" = local.vlans["Management"]
+    "ether5"  = local.vlans["Management"]
+    "ether6"  = local.vlans["Management"]
+    "ether7"  = local.vlans["Management"]
+    "ether8"  = local.vlans["Management"]
+    "ether10" = local.vlans["Home"]
   }
 
   bgp_peers = {
