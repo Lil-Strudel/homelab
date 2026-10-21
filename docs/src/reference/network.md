@@ -189,7 +189,7 @@ Beyond the filter policy, the router itself is trimmed to what is actually used:
 | `winbox` (8291), `ssh`, `www-ssl` (6729) | kept, `address` limited to Management + `wg-management` | Winbox and SSH are the human paths; `www-ssl` is the REST endpoint every Terraform provider alias talks to. The address limit holds even if a firewall change goes wrong. |
 | `www-ssl` TLS | `only-1.2` | Drops TLS 1.0/1.1. |
 | SSH | `strong-crypto`, ed25519 host key | Drops weak ciphers and the RSA-2048 host key. |
-| IP Cloud DDNS | off | `vpn.lilstrudel.io` is kept by the in-cluster [ddns job](../operations/dns-and-certificates.md#dynamic-dns), not MikroTik's cloud. |
+| IP Cloud DDNS | left at `auto` | RouterOS only accepts `yes` or `auto`; `auto` stays off while Back To Home is revoked. `vpn.lilstrudel.io` is kept by the in-cluster [ddns job](../operations/dns-and-certificates.md#dynamic-dns), not MikroTik's cloud. |
 | Minimum password length | 16 | Applies to the next password change, not the current one. |
 | MAC-server, MAC-Winbox, neighbour discovery | scoped to `Management_List` | MAC-level access stays as a recovery path for when IP routing is broken, but only from the segment that already has full router access. |
 | Bandwidth-test server | off | Nothing uses it; it is a free DoS amplifier. |

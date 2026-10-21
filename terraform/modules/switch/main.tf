@@ -111,10 +111,6 @@ resource "routeros_system_user_settings" "users" {
   minimum_password_length = 16
 }
 
-resource "routeros_ip_cloud" "cloud" {
-  ddns_enabled = "no"
-}
-
 resource "routeros_tool_bandwidth_server" "btest" {
   enabled = false
 }

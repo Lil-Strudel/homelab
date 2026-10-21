@@ -510,10 +510,6 @@ resource "routeros_system_user_settings" "users" {
   minimum_password_length = 16
 }
 
-resource "routeros_ip_cloud" "cloud" {
-  ddns_enabled = "no"
-}
-
 resource "routeros_tool_bandwidth_server" "btest" {
   enabled = false
 }
@@ -620,7 +616,9 @@ resource "routeros_routing_bgp_connection" "peer" {
 
   lifecycle {
     # RouterOS 7.22 dropped add-path-out and moved router-id to the BGP instance, but the
-    # provider still sends both (terraform-provider-routeros#959)
+    # provider still sends both (terraform-provider-routeros#959). Any in-place update is
+    # rejected, yet the provider saves the new state anyway: make the change on the router
+    # by hand too, or state silently diverges from the device.
     ignore_changes = [add_path_out, router_id]
   }
 }
