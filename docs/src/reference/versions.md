@@ -10,9 +10,9 @@ in lockstep, so the two never drift.
 | --- | --- | --- |
 | Talos Linux | `v1.14.2` | `talos/patch.yaml` + `talos/machine-patches/rem-4-patch.yaml` (installer image tags) |
 | Kubernetes | `1.36.5` | `talos/gen-talos-objects.sh` (`--kubernetes-version`) |
-| Cilium | `1.20.2` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
+| Cilium | `1.20.3` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
 | Flux | `v2.9.6` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
-| kube-vip | `v1.2.4` | `kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml` (image tag) |
+| kube-vip | `v1.3.1` | `kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml` (image tag) |
 | Rook (operator + cluster) | `v1.21.0` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
 | ceph-csi-drivers | `1.1.0` | `core/controllers/rook-ceph/csi-drivers.yaml` |
 | Ceph | `v20.2.4` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
@@ -20,10 +20,10 @@ in lockstep, so the two never drift.
 | cert-manager | `v1.21.2` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.2.1` | `platform/controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.4` | `platform/controllers/velero/helm-release.yaml` (`initContainers` image tag) |
-| aws-cli | `2.37.12` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
+| aws-cli | `2.38.3` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
 | victoria-metrics-k8s-stack | `0.96.0` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
 | Loki | `7.3.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
-| Grafana | `13.5.0` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
+| Grafana | `14.0.1` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
 | Grafana Alloy | `1.13.1` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
 | prometheus-snmp-exporter | `9.18.1` | `platform/controllers/snmp-exporter/helm-release.yaml` (chart version) |
 | Intel device plugins operator | `0.37.1` | `platform/controllers/intel-device-plugins/helm-release.yaml` (chart version) |
