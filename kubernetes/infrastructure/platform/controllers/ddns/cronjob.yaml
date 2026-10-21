@@ -28,7 +28,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: ddns
-              image: amazon/aws-cli:2.37.12
+              image: amazon/aws-cli:2.38.3
               command: ["/bin/sh", "/script/ddns.sh"]
               securityContext:
                 allowPrivilegeEscalation: false
