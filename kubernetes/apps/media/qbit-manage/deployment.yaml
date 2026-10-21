@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: layout
-          image: ghcr.io/stuffanthings/qbit_manage:v4.13.0
+          image: ghcr.io/stuffanthings/qbit_manage:v4.14.0
           command: ["/bin/sh", "/layout/layout.sh"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -41,7 +41,7 @@ spec:
               mountPath: /layout
       containers:
         - name: qbit-manage
-          image: ghcr.io/stuffanthings/qbit_manage:v4.13.0
+          image: ghcr.io/stuffanthings/qbit_manage:v4.14.0
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
