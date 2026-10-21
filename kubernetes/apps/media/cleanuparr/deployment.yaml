@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: cleanuparr
-          image: ghcr.io/cleanuparr/cleanuparr:2.10.9
+          image: ghcr.io/cleanuparr/cleanuparr:2.10.12
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
