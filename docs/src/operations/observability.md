@@ -34,6 +34,14 @@ ConfigMaps still land, because Grafana's dashboard sidecar watches all namespace
 `grafana_dashboard` label and the stack's dashboards are rewritten to the `VictoriaMetrics`
 datasource UID.
 
+The sidecar watches **ConfigMaps only**. The chart's own ClusterRole hardcodes read access
+to every `Secret` in the cluster — including `flux-system/sops-age`, which decrypts the
+whole repo — and its token sits in the Grafana pod. So the release binds to
+`grafana-dashboard-reader` instead (`rbac.useExistingClusterRole`), a ClusterRole defined
+next to it that grants ConfigMaps alone. A dashboard shipped as a Secret will not load;
+ship it as a ConfigMap. Loki's rules sidecar is disabled for the same reason: its
+ClusterRole grants every Secret too, and nothing here defines Loki rules.
+
 ## Access
 
 Every web endpoint in the stack is reached over HTTPS through a Cilium `Ingress` holding a

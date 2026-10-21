@@ -47,9 +47,13 @@ spec:
       limits:
         memory: 1Gi
 
+    rbac:
+      useExistingClusterRole: grafana-dashboard-reader # the chart's own role also grants every Secret in the cluster
+
     sidecar:
       dashboards:
         enabled: true
+        resource: configmap
         label: grafana_dashboard
         labelValue: "1"
         searchNamespace: ALL # the victoria-metrics-k8s-stack writes its dashboard ConfigMaps into its own namespace

@@ -65,6 +65,10 @@ spec:
       ingester:
         chunk_encoding: snappy
 
+    sidecar:
+      rules:
+        enabled: false # its ClusterRole grants every Secret in the cluster, and no rule ConfigMaps exist
+
     singleBinary:
       replicas: 1
       extraArgs:

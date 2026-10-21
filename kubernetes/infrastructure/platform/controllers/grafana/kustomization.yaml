@@ -4,4 +4,5 @@ resources:
 - namespace.yaml
 - helm-repo.yaml
 - secret.sops.yaml
+- clusterrole.yaml
 - helm-release.yaml
