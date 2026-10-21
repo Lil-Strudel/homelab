@@ -96,7 +96,7 @@ for ip in 10.69.60.11 10.69.60.12 10.69.60.13 10.69.60.21 10.69.60.22 10.69.60.2
     --patch 'machine: {install: {image: factory.talos.dev/metal-installer-secureboot/<SCHEMATIC>:<TALOS_VERSION>}}'
 done
 talosctl -n 10.69.60.24 -e 10.69.60.11 --talosconfig talos/talosconfig patch machineconfig --mode=no-reboot \
-  --patch '{apiVersion: v1alpha1, kind: UnattendedInstallConfig, installer: {image: factory.talos.dev/metal-installer-secureboot/<REM_4_SCHEMATIC>:<TALOS_VERSION>}}'
+  --patch @<(sed '/^---$/,$d' machine-patches/rem-4-patch.yaml)
 ```
 
 The patch has to be a strategic merge: these configs carry more than one document (the
@@ -104,6 +104,11 @@ per-node `HostnameConfig`), and `talosctl` rejects JSON patches against multi-do
 configs. `--mode=no-reboot` makes Talos refuse the change rather than reboot; the install
 image is only read at install and upgrade time, so it applies live. Add `--dry-run` first
 to see the diff.
+
+rem-4's patch is the first document of its committed machine patch, which already names
+the new tag once the pin is merged. A patch carrying only `installer` does not work: Talos
+replaces an `UnattendedInstallConfig` document whole instead of merging into it, and
+rejects the result with `provisioning.diskSelector.match is required`.
 
 The bring-up scripts (`gen-talos-objects.sh`, `apply-config-all-nodes.sh`) are **not** an
 upgrade path: `apply-config --insecure` only reaches nodes in maintenance mode, and a
@@ -158,6 +163,30 @@ Revisit once Cilium 1.21 is out and cert-manager lists 1.37, run `upgrade-k8s --
 and check the `selinux_warning_controller_selinux_volume_conflict` metric before moving.
 
 ## Upgrade log
+
+### 2026-10-20 — Talos 1.14.2 → 1.14.4
+
+A patch-only hop with `upgrade-nodes.sh`; Kubernetes stayed on 1.36.5, still the newest
+1.36 patch, with Cilium 1.21 only at pre-releases.
+
+| Step | Duration | Notes |
+| --- | --- | --- |
+| etcd snapshot | seconds | 4,829 keys, 185 MB |
+| makima-1 | ~5 min | First node; the rest of the control plane took ~2.5 min each |
+| rem-1..3 | ~2.5 min each | |
+| rem-4 | 7.5 min | Media pods waited on the i915 device plugin before rescheduling |
+| `install.image` sync | seconds per node | No reboot |
+
+What went wrong or was learned:
+
+- **The rem-4 `install.image` patch in this runbook was invalid** — it named only the
+  installer and Talos rejected it for the missing `provisioning` block. The runbook now
+  patches from the committed machine patch.
+- **`talosctl` creates a missing `--talosconfig` file** rather than failing; run from the
+  repository root, `talos/talosconfig` silently became an empty config. The commands on
+  this page assume `talos/` as the working directory.
+- etcd's in-use share sat at 21% before the upgrade and 63% after, so it was not
+  defragmented.
 
 ### 2026-10-10 — Talos 1.13.5 → 1.13.11 → 1.14.2, Kubernetes 1.36.2 → 1.36.5
 
