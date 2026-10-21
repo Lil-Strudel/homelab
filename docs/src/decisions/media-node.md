@@ -187,7 +187,7 @@ The decision rule:
 | --- | --- |
 | The mix (two ASS-anime burn-ins plus one 4K HDR tone-map) holds 1.2× or better | Keep transcoding on demand. Done |
 | ASS burn-in falls short, on CPU | Fix it at the client: Kodi + JellyCon on the Shield, mpv or Findroid on phones. Never pre-burn subtitles |
-| 4K HDR tone-mapping falls short | Keep 4K to the opt-in "max" profiles, so it stays rare |
+| 4K HDR tone-mapping falls short | Set Seerr's defaults to the 1080p profiles, so 4K stays rare |
 
 Measured results, 2026-10-15 (procedure in [Operations → Media](../operations/media.md#benchmark)).
 Speeds are per stream, as a multiple of real time; the clips are derived from a Blu-ray

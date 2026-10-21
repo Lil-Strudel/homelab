@@ -137,10 +137,14 @@ TRaSH naming for Jellyfin. Each instance gets the same four profiles, chosen per
 
 | Profile | Sonarr (TRaSH base) | Radarr (TRaSH base) | Use for |
 | --- | --- | --- | --- |
-| 1080p | WEB-1080p | HD Bluray + WEB | Default |
-| Max | Remux 2160p (Combined) | Remux 2160p (Combined) | Best official source: 4K remux, falling back to 1080p remux |
-| Anime 1080p | [Anime] Remux-1080p, without remuxes | [Anime] Remux-1080p, without remuxes | Default for anime |
-| Anime Max | [Anime] Remux-1080p | [Anime] Remux-1080p | Anime worth full quality (Demon Slayer, and so on) |
+| 1080p | WEB-1080p | HD Bluray + WEB | Something to keep where size matters |
+| Max | Remux 2160p (Combined) | Remux 2160p (Combined) | Default. Best official source: 4K remux, falling back to 1080p remux |
+| Anime 1080p | [Anime] Remux-1080p, without remuxes | [Anime] Remux-1080p, without remuxes | Anime to keep where size matters |
+| Anime Max | [Anime] Remux-1080p | [Anime] Remux-1080p | Default for anime |
+
+Max is Seerr's default because most titles are watched once and deleted, so the
+size of a remux is only held for a short time. Pick 1080p for a title that will stay in the
+library.
 
 Recyclarr matches profiles by name and never deletes one, so renaming a profile in the config
 creates a new one beside the old. Rename it in Sonarr or Radarr first to keep the titles on
@@ -150,7 +154,10 @@ on) by hand, so Seerr's dropdown shows only these four.
 Pick the profile in Seerr's request approval (the admin can override profile and root
 folder), or change it on the series or movie in Sonarr or Radarr. Do not add the same Sonarr
 or Radarr to Seerr a second time as a "4K server". Seerr then tracks availability twice and
-gets it wrong.
+gets it wrong. A second, non-4K "Radarr Anime" entry pointing at the same Radarr is fine:
+it carries the anime-movies root folder, the `anime` tag and the Anime Max default, which
+Seerr's Radarr settings have no field for. Pick it as the server when requesting an anime
+movie.
 
 Sonarr uses TRaSH's **anime** quality definition, not the series one. Quality definitions
 are per instance, and the series floor for Bluray-1080p (50 MB per minute) rejects the
@@ -208,8 +215,9 @@ Do this once, in order, after the first reconcile.
    - Dashboard → Networking → *Known proxies* `10.244.0.0/16`, *LAN networks* `10.69.0.0/16`.
    - Playback → Transcoding: see [Transcoding](#transcoding).
 10. **Seerr.** Sign in with Jellyfin at `http://jellyfin:8096`. Add Sonarr with the anime
-    root folder and the Anime 1080p profile set as its anime defaults and 1080p as its
-    default, and Radarr with 1080p as its default.
+    root folder and the Anime Max profile set as its anime defaults and Max as its default.
+    Add Radarr twice: *Radarr Movies* (default server, Max) and *Radarr Anime* (root folder
+    `/data/media/anime-movies`, tag `anime`, Anime Max).
 11. **Kavita.** Create libraries: *Manga* on `/data/media/manga/mangas` (Suwayomi's tree,
     one folder per source) and *Book* on `/data/media/books`. Webtoons go in the Manga
     library and use the Webtoon reading mode. Create an API key and put it in the `komf`
