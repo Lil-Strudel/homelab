@@ -45,6 +45,16 @@ variable "services_cidr" {
   type        = string
 }
 
+variable "control_plane_vip" {
+  description = "kube-vip's control-plane address, the one BGP-learned route outside services_cidr"
+  type        = string
+}
+
+variable "admin_sources" {
+  description = "Comma-separated prefixes allowed to reach the router's ssh, winbox and www-ssl services"
+  type        = string
+}
+
 variable "snmp_targets" {
   description = "Management-VLAN hosts the cluster may poll over SNMP (UDP 161). Pod egress is SNAT'd to a Trusted-VLAN node address, so this is the one hole from Trusted into Management."
   type        = list(string)

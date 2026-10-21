@@ -220,6 +220,14 @@ resource "routeros_ip_firewall_filter" "input_established" {
   place_before     = routeros_ip_firewall_filter.input_icmp.id
 }
 
+resource "routeros_ip_firewall_filter" "input_invalid" {
+  chain            = "input"
+  action           = "drop"
+  connection_state = "invalid"
+  comment          = "Drop Invalid"
+  place_before     = routeros_ip_firewall_filter.input_icmp.id
+}
+
 resource "routeros_ip_firewall_filter" "input_icmp" {
   chain        = "input"
   action       = "accept"
@@ -312,6 +320,14 @@ resource "routeros_ip_firewall_filter" "forward_established" {
   place_before     = routeros_ip_firewall_filter.forward_internet.id
 }
 
+resource "routeros_ip_firewall_filter" "forward_invalid" {
+  chain            = "forward"
+  action           = "drop"
+  connection_state = "invalid"
+  comment          = "Drop Invalid"
+  place_before     = routeros_ip_firewall_filter.forward_internet.id
+}
+
 resource "routeros_ip_firewall_filter" "forward_internet" {
   chain              = "forward"
   action             = "accept"
@@ -395,25 +411,108 @@ resource "routeros_ip_firewall_filter" "forward_drop" {
   disabled = !var.enforce_firewall
 }
 
+#######################
+# IPv6 Firewall Rules
+#######################
+# Nothing routes IPv6 here, but every interface still has a link-local address and the
+# router's services answer on it — without these rules the IPv4 policy is bypassable.
+resource "routeros_ipv6_firewall_filter" "input_established" {
+  chain            = "input"
+  action           = "accept"
+  connection_state = "established,related"
+  comment          = "Allow Established & Related"
+  place_before     = routeros_ipv6_firewall_filter.input_invalid.id
+}
+
+resource "routeros_ipv6_firewall_filter" "input_invalid" {
+  chain            = "input"
+  action           = "drop"
+  connection_state = "invalid"
+  comment          = "Drop Invalid"
+  place_before     = routeros_ipv6_firewall_filter.input_icmp.id
+}
+
+resource "routeros_ipv6_firewall_filter" "input_icmp" {
+  chain        = "input"
+  action       = "accept"
+  protocol     = "icmpv6"
+  comment      = "Allow ICMPv6"
+  place_before = routeros_ipv6_firewall_filter.input_management.id
+}
+
+resource "routeros_ipv6_firewall_filter" "input_management" {
+  chain        = "input"
+  action       = "accept"
+  in_interface = "Management_VLAN"
+  comment      = "Allow Management VLAN full router access"
+  place_before = routeros_ipv6_firewall_filter.input_drop.id
+}
+
+resource "routeros_ipv6_firewall_filter" "input_drop" {
+  chain    = "input"
+  action   = "drop"
+  comment  = "Drop All Input (staged: enforce_firewall)"
+  disabled = !var.enforce_firewall
+}
+
+resource "routeros_ipv6_firewall_filter" "forward_drop" {
+  chain    = "forward"
+  action   = "drop"
+  comment  = "Drop All Forward (staged: enforce_firewall)"
+  disabled = !var.enforce_firewall
+}
+
 #################
 # Service Hardening
 #################
-# Only the services being switched off are declared. winbox (8291), ssh, and www-ssl
-# (6729, the REST endpoint every provider alias uses) are deliberately left unmanaged —
-# declaring www-ssl without its certificate attribute would strip the cert and break
-# every subsequent apply.
 resource "routeros_ip_service" "disabled" {
   for_each = {
-    "telnet"  = 23
-    "ftp"     = 21
-    "www"     = 80
-    "api"     = 8728
-    "api-ssl" = 8729
+    "telnet"        = 23
+    "ftp"           = 21
+    "www"           = 80
+    "api"           = 8728
+    "api-ssl"       = 8729
+    "reverse-proxy" = 443
   }
 
   numbers  = each.key
   port     = each.value
   disabled = true
+}
+
+resource "routeros_ip_service" "ssh" {
+  numbers = "ssh"
+  port    = 22
+  address = var.admin_sources
+}
+
+resource "routeros_ip_service" "winbox" {
+  numbers = "winbox"
+  port    = 8291
+  address = var.admin_sources
+}
+
+# certificate must be declared: leaving it out strips the cert from the REST endpoint every
+# provider alias uses, and the next apply cannot connect.
+resource "routeros_ip_service" "www_ssl" {
+  numbers     = "www-ssl"
+  port        = 6729
+  certificate = "tls-cert"
+  tls_version = "only-1.2"
+  address     = var.admin_sources
+}
+
+resource "routeros_ip_ssh_server" "ssh" {
+  strong_crypto = true
+  host_key_type = "ed25519"
+}
+
+resource "routeros_system_user_settings" "users" {
+  minimum_password_length = 16
+}
+
+resource "routeros_ip_cloud" "cloud" {
+  ddns_enabled = "no"
 }
 
 resource "routeros_tool_bandwidth_server" "btest" {
@@ -489,6 +588,12 @@ resource "routeros_ip_dhcp_server_lease" "lease" {
 #############
 # BGP Peering
 #############
+resource "routeros_routing_filter_rule" "cluster_in" {
+  chain   = "cluster-in"
+  rule    = "if ((dst in ${var.services_cidr} && dst-len == 32) || dst == ${var.control_plane_vip}/32) { accept } else { reject }"
+  comment = "Cluster nodes may only announce service /32s and the control-plane VIP"
+}
+
 resource "routeros_routing_bgp_connection" "peer" {
   for_each = var.bgp_peers
 
@@ -504,6 +609,10 @@ resource "routeros_routing_bgp_connection" "peer" {
   remote {
     address = "${each.value}/32"
     as      = "65000"
+  }
+
+  input {
+    filter = routeros_routing_filter_rule.cluster_in.chain
   }
 
   output {

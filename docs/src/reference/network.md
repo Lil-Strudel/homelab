@@ -158,7 +158,25 @@ Router **`input`** is locked to the Management VLAN and the `wg-management` tunn
 exceptions are the services a router has to answer for anyone: DHCP, DNS, and NTP from
 every VLAN and both tunnels, ICMP, BGP from `Trusted_VLAN`, and the two WireGuard listen
 ports from the WAN. That set is what keeps the policy from black-holing the network or
-locking out the VPN.
+locking out the VPN. Both chains drop `connection-state=invalid` right after accepting
+established traffic.
+
+### IPv6
+
+Nothing on the network routes IPv6, and the ISP hands out no prefix — but every router
+interface, `ether1` included, still carries a link-local address, and `ssh`, `winbox` and
+`www-ssl` answer on it. The IPv4 policy does not apply there, so the IPv6 filter mirrors
+its shape: accept established, drop invalid, accept ICMPv6 (neighbour discovery needs it),
+give `Management_VLAN` full access, drop everything else. `forward` is a bare drop. If the
+ISP ever offers a prefix, the forward chain is where the allow rules go.
+
+### BGP import filter
+
+Every peer's `input.filter` is the `cluster-in` chain, which accepts only `/32`s inside
+`10.69.65.0/24` and the control-plane VIP `10.69.60.10/32`, and rejects the rest. Without
+it, any node — or anything that compromises Cilium — could announce a more-specific route
+(say `10.69.100.40/32`) and win it over the connected `/24` by longest-prefix match.
+A new BGP-announced range has to be added to the rule, or its routes are silently dropped.
 
 ### Router hardening
 
@@ -166,13 +184,23 @@ Beyond the filter policy, the router itself is trimmed to what is actually used:
 
 | Setting | State | Why |
 | --- | --- | --- |
-| `telnet`, `ftp`, `www`, `api`, `api-ssl` | disabled | Unused management surfaces. |
-| `winbox` (8291), `ssh`, `www-ssl` (6729) | kept | Winbox and SSH are the human paths; `www-ssl` is the REST endpoint every Terraform provider alias talks to. |
+| `telnet`, `ftp`, `www`, `api`, `api-ssl`, `reverse-proxy` | disabled | Unused management surfaces. |
+| `winbox` (8291), `ssh`, `www-ssl` (6729) | kept, `address` limited to Management + `wg-management` | Winbox and SSH are the human paths; `www-ssl` is the REST endpoint every Terraform provider alias talks to. The address limit holds even if a firewall change goes wrong. |
+| `www-ssl` TLS | `only-1.2` | Drops TLS 1.0/1.1. |
+| SSH | `strong-crypto`, ed25519 host key | Drops weak ciphers and the RSA-2048 host key. |
+| IP Cloud DDNS | off | `vpn.lilstrudel.io` is kept by the in-cluster [ddns job](../operations/dns-and-certificates.md#dynamic-dns), not MikroTik's cloud. |
+| Minimum password length | 16 | Applies to the next password change, not the current one. |
 | MAC-server, MAC-Winbox, neighbour discovery | scoped to `Management_List` | MAC-level access stays as a recovery path for when IP routing is broken, but only from the segment that already has full router access. |
 | Bandwidth-test server | off | Nothing uses it; it is a free DoS amplifier. |
 | `tcp_syncookies` | on | Cheap SYN-flood protection on the router's own listeners. |
 | `accept_redirects`, `accept_source_route` | off | Neither is legitimate traffic here. |
 | `rp_filter` | `loose` | **Not strict:** BGP `/32`s and the kube-vip VIP make return paths legitimately asymmetric, which strict mode would drop. |
+
+The three switches get the same treatment from `modules/switch` — the same disabled
+services, `address` limits, SSH, cloud, and password settings, and MAC-server, MAC-Winbox
+and neighbour discovery scoped to their own `Management_List` (the `Management_VLAN`
+interface). Without that, any device on a switch access port could reach the switch's
+login over layer 2 regardless of VLAN.
 
 A `raw` prerouting chain handles WAN noise before connection tracking, so scans and floods
 cost no conntrack state:

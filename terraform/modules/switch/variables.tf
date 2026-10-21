@@ -25,3 +25,8 @@ variable "trunk_ports" {
 variable "access_ports" {
   type = map(number)
 }
+
+variable "admin_sources" {
+  description = "Comma-separated prefixes allowed to reach the switch's ssh, winbox and www-ssl services"
+  type        = string
+}

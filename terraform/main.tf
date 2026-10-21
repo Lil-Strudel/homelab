@@ -97,6 +97,12 @@ locals {
   # The router only ever learns /32s here over BGP from the Trusted-VLAN workers.
   services_cidr = "10.69.65.0/24"
 
+  control_plane_vip = "10.69.60.10"
+
+  # Management VLAN + the wg-management tunnel: the only sources allowed to reach any
+  # device's ssh, winbox or REST endpoint.
+  admin_sources = "${local.base_ip}.${local.vlans["Management"]}.0/24,${local.base_ip}.80.0/24"
+
   # Listing a zone here grants the cert-manager IAM user write access to it — a zone
   # left out cannot be issued certs via DNS-01. See route53.tf.
   zones = toset([
@@ -218,8 +224,10 @@ module "router" {
 
   base_ip = local.base_ip
 
-  vlans         = local.vlans
-  services_cidr = local.services_cidr
+  vlans             = local.vlans
+  services_cidr     = local.services_cidr
+  control_plane_vip = local.control_plane_vip
+  admin_sources     = local.admin_sources
 
   dns_records           = { for fqdn, svc in local.services : fqdn => svc.ip if !try(svc.match_subdomain, false) }
   dns_subdomain_records = { for fqdn, svc in local.services : fqdn => svc.ip if try(svc.match_subdomain, false) }
@@ -299,6 +307,7 @@ module "core_switch" {
 
   vlans           = local.vlans
   management_vlan = local.vlans["Management"]
+  admin_sources   = local.admin_sources
 
   trunk_ports = ["sfp-sfpplus2", "sfp-sfpplus24"]
   access_ports = {
@@ -325,6 +334,7 @@ module "ethernet_switch" {
 
   vlans           = local.vlans
   management_vlan = local.vlans["Management"]
+  admin_sources   = local.admin_sources
 
   trunk_ports = ["ether2", "combo1"]
   access_ports = {
@@ -349,6 +359,7 @@ module "office_switch" {
 
   vlans           = local.vlans
   management_vlan = local.vlans["Management"]
+  admin_sources   = local.admin_sources
 
   trunk_ports = ["ether1"]
   access_ports = {
