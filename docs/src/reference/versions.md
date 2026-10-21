@@ -23,7 +23,7 @@ in lockstep, so the two never drift.
 | aws-cli | `2.37.12` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
 | victoria-metrics-k8s-stack | `0.95.2` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
 | Loki | `7.3.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
-| Grafana | `13.5.0` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
+| Grafana | `14.0.1` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
 | Grafana Alloy | `1.13.1` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
 | prometheus-snmp-exporter | `9.18.1` | `platform/controllers/snmp-exporter/helm-release.yaml` (chart version) |
 | Intel device plugins operator | `0.37.1` | `platform/controllers/intel-device-plugins/helm-release.yaml` (chart version) |
