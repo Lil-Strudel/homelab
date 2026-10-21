@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: layout
-          image: ghcr.io/home-operations/qbittorrent:5.2.4
+          image: ghcr.io/home-operations/qbittorrent:5.3.0
           command: ["/bin/sh", "/layout/layout.sh"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -44,7 +44,7 @@ spec:
             - name: layout
               mountPath: /layout
         - name: configure
-          image: ghcr.io/home-operations/qbittorrent:5.2.4
+          image: ghcr.io/home-operations/qbittorrent:5.3.0
           command: ["/bin/sh", "/scripts/configure.sh"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -120,7 +120,7 @@ spec:
               mountPath: /tmp/gluetun
       containers:
         - name: qbittorrent
-          image: ghcr.io/home-operations/qbittorrent:5.2.4
+          image: ghcr.io/home-operations/qbittorrent:5.3.0
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
