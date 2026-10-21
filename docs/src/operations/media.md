@@ -133,19 +133,19 @@ the Mullvad address appears.
 ## Quality profiles
 
 Recyclarr (`recyclarr/configmap.yaml`) syncs TRaSH profiles every night at 04:00, plus
-TRaSH naming for Jellyfin. The profile is chosen per title, so "default" and "max" sit side
-by side:
+TRaSH naming for Jellyfin. Each instance gets the same four profiles, chosen per title:
 
-| Instance | Profile | Use for |
-| --- | --- | --- |
-| Sonarr | WEB-1080p | Default for TV |
-| Sonarr | WEB-2160p | TV worth 4K |
-| Sonarr | Anime 1080p | Default for anime: TRaSH's anime scoring, without remuxes |
-| Sonarr | [Anime] Remux-1080p | Anime worth full quality (Demon Slayer, and so on) |
-| Radarr | HD Bluray + WEB | Default for movies |
-| Radarr | UHD Bluray + WEB | Movies worth 4K |
-| Radarr | Remux + WEB 2160p | Full quality (Spider-Verse, Ghibli, and so on) |
-| Radarr | [Anime] Remux-1080p | Anime movies |
+| Profile | Sonarr (TRaSH base) | Radarr (TRaSH base) | Use for |
+| --- | --- | --- | --- |
+| 1080p | WEB-1080p | HD Bluray + WEB | Default |
+| Max | Remux 2160p (Combined) | Remux 2160p (Combined) | Best official source: 4K remux, falling back to 1080p remux |
+| Anime 1080p | [Anime] Remux-1080p, without remuxes | [Anime] Remux-1080p, without remuxes | Default for anime |
+| Anime Max | [Anime] Remux-1080p | [Anime] Remux-1080p | Anime worth full quality (Demon Slayer, and so on) |
+
+Recyclarr matches profiles by name and never deletes one, so renaming a profile in the config
+creates a new one beside the old. Rename it in Sonarr or Radarr first to keep the titles on
+it, and delete any profile not in the table (including the stock Any, SD, HD-720p, and so
+on) by hand, so Seerr's dropdown shows only these four.
 
 Pick the profile in Seerr's request approval (the admin can override profile and root
 folder), or change it on the series or movie in Sonarr or Radarr. Do not add the same Sonarr
@@ -208,7 +208,8 @@ Do this once, in order, after the first reconcile.
    - Dashboard → Networking → *Known proxies* `10.244.0.0/16`, *LAN networks* `10.69.0.0/16`.
    - Playback → Transcoding: see [Transcoding](#transcoding).
 10. **Seerr.** Sign in with Jellyfin at `http://jellyfin:8096`. Add Sonarr with the anime
-    root folder and the Anime 1080p profile set as its anime defaults, and Radarr.
+    root folder and the Anime 1080p profile set as its anime defaults and 1080p as its
+    default, and Radarr with 1080p as its default.
 11. **Kavita.** Create libraries: *Manga* on `/data/media/manga/mangas` (Suwayomi's tree,
     one folder per source) and *Book* on `/data/media/books`. Webtoons go in the Manga
     library and use the Webtoon reading mode. Create an API key and put it in the `komf`
