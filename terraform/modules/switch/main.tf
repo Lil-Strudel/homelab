@@ -68,12 +68,11 @@ module "access_ports" {
 #################
 resource "routeros_ip_service" "disabled" {
   for_each = {
-    "telnet"        = 23
-    "ftp"           = 21
-    "www"           = 80
-    "api"           = 8728
-    "api-ssl"       = 8729
-    "reverse-proxy" = 443
+    "telnet"  = 23
+    "ftp"     = 21
+    "www"     = 80
+    "api"     = 8728
+    "api-ssl" = 8729
   }
 
   numbers  = each.key

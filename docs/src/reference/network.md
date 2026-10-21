@@ -184,7 +184,8 @@ Beyond the filter policy, the router itself is trimmed to what is actually used:
 
 | Setting | State | Why |
 | --- | --- | --- |
-| `telnet`, `ftp`, `www`, `api`, `api-ssl`, `reverse-proxy` | disabled | Unused management surfaces. |
+| `telnet`, `ftp`, `www`, `api`, `api-ssl` | disabled | Unused management surfaces. |
+| `reverse-proxy` (443) | disabled **by hand** | Unused. The routeros provider (1.99.1) rejects it as a service name, so it is set once with `/ip/service/disable reverse-proxy` and Terraform does not track it. Repeat that on a new or reset device. |
 | `winbox` (8291), `ssh`, `www-ssl` (6729) | kept, `address` limited to Management + `wg-management` | Winbox and SSH are the human paths; `www-ssl` is the REST endpoint every Terraform provider alias talks to. The address limit holds even if a firewall change goes wrong. |
 | `www-ssl` TLS | `only-1.2` | Drops TLS 1.0/1.1. |
 | SSH | `strong-crypto`, ed25519 host key | Drops weak ciphers and the RSA-2048 host key. |

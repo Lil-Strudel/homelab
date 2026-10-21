@@ -467,12 +467,11 @@ resource "routeros_ipv6_firewall_filter" "forward_drop" {
 #################
 resource "routeros_ip_service" "disabled" {
   for_each = {
-    "telnet"        = 23
-    "ftp"           = 21
-    "www"           = 80
-    "api"           = 8728
-    "api-ssl"       = 8729
-    "reverse-proxy" = 443
+    "telnet"  = 23
+    "ftp"     = 21
+    "www"     = 80
+    "api"     = 8728
+    "api-ssl" = 8729
   }
 
   numbers  = each.key
