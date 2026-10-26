@@ -177,9 +177,12 @@ Do this once, in order, after the first reconcile.
    qbit_manage owns them. The categories (`tv`, `anime`, `movies`, `anime-movies`, `books`,
    `audiobooks`) save into `/data/torrents/<category>`.
 2. **SABnzbd.** Add the Usenet provider (SSL, port 563). Folders: temporary
-   `/data/usenet/incomplete`, completed `/data/usenet/complete`. Categories as above. Turn
-   off all Sorting. Set a username and password: SABnzbd treats the pod CIDR as local, so
-   without one the UI is open.
+   `/data/usenet/incomplete`, completed `/data/usenet/complete`; the wizard's default
+   `Downloads/` is relative to `/config` and the arrs cannot see it. Categories as above,
+   each with its own name as the folder. Turn off all Sorting. Switches: abort encrypted
+   RARs, abort on TRaSH's unwanted-extensions list, and deobfuscate final filenames. Set a
+   username and password: SABnzbd treats the pod CIDR as local, so without one the UI is
+   open. The provider only downloads; searching needs Usenet indexers in Prowlarr.
 3. **Prowlarr.** Add indexers. Settings → Indexers → add a FlareSolverr proxy at
    `http://byparr:8191`, tagged, and tag only the indexers that need it. Apps → add Sonarr
    (`http://sonarr:8989`) and Radarr (`http://radarr:7878`) with the keys from
