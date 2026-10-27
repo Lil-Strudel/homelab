@@ -66,12 +66,15 @@ spec:
         - ports:
             - port: "8096"
               protocol: TCP
-    # Metadata, update checks, and TMDB artwork.
-    - toFQDNs:
-        - matchName: "radarr.video"
-        - matchPattern: "*.radarr.video"
-        - matchPattern: "*.servarr.com"
-        - matchName: "image.tmdb.org"
+    # Prowlarr must redirect Usenet grabs, so NZBs come straight from each indexer's host.
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+            - 100.64.0.0/10
+            - 169.254.0.0/16
       toPorts:
         - ports:
             - port: "443"

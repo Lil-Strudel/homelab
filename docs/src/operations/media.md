@@ -347,6 +347,11 @@ A drop to a public FQDN means the app's `toFQDNs` list is missing a name. A drop
 two media apps means the edge is missing from both sides' policies; each policy lists who
 may call it and whom it may call.
 
+Prowlarr refuses to proxy Usenet grabs ("Redirect must be enabled for Usenet indexers"), so
+Sonarr and Radarr fetch every NZB from the indexer's own host. That is why both may reach any
+public address on 443. If that rule is lost, grabs fail with "Downloading nzb failed: Http
+request timed out" while searches still work.
+
 A pod stuck in `ContainerCreating` with `device already mounted` is a volume from the `zfs`
 class mounted twice; only `zfs-shared` volumes can be shared. See
 [Storage (ZFS)](./zfs.md#what-you-can-claim).
