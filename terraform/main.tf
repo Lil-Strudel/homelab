@@ -243,6 +243,7 @@ module "router" {
     "ether7"  = local.vlans["Management"]
     "ether8"  = local.vlans["Management"]
     "ether10" = local.vlans["Home"]
+    "ether12" = local.vlans["Management"]
   }
 
   bgp_peers = {
