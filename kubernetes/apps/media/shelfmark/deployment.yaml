@@ -41,6 +41,10 @@ spec:
               value: America/Denver
             - name: INGEST_DIR
               value: /data/media/books
+            - name: FILE_ORGANIZATION
+              value: organize
+            - name: TEMPLATE_ORGANIZE
+              value: "{Author}/{Series/}{Title} ({Year})"
             - name: DESTINATION_AUDIOBOOK
               value: /data/media/audiobooks
             - name: HARDLINK_TORRENTS

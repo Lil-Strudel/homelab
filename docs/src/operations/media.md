@@ -231,6 +231,9 @@ Do this once, in order, after the first reconcile.
     preconfigured. Add sources, and add series to the library to have them downloaded.
 14. **Shelfmark.** Settings → add Prowlarr, qBittorrent (category `books` or `audiobooks`)
     and SABnzbd. Books land in `/data/media/books`, audiobooks in `/data/media/audiobooks`.
+    Book file organization is set by env in `shelfmark/deployment.yaml`: *Rename and
+    Organize* with the path template `{Author}/{Series/}{Title} ({Year})`, because Kavita
+    ignores files at the root of a library and wants each series in its own folder.
 15. **qbit_manage.** In its web UI, write `config.yml`: qBittorrent at `qbittorrent:8080`
     with its login, `root_dir: /data/torrents`, the share limits, and the recycle bin.
     It starts with `QBT_DRY_RUN=true`. Read a few runs' logs, then set it to `false` in
