@@ -156,6 +156,9 @@ locals {
     "jellystat.lilstrudel.io"      = { ip = "10.69.65.63", zone = local.domain, expose = null }
     "cleanuparr.lilstrudel.io"     = { ip = "10.69.65.64", zone = local.domain, expose = null }
     "qbit-manage.lilstrudel.io"    = { ip = "10.69.65.65", zone = local.domain, expose = null }
+    "home.lilstrudel.io"           = { ip = "10.69.65.70", zone = local.domain, expose = null }
+    "z2m.lilstrudel.io"            = { ip = "10.69.65.71", zone = local.domain, expose = null }
+    "zwave.lilstrudel.io"          = { ip = "10.69.65.72", zone = local.domain, expose = null }
     "16e.link"                     = { ip = "10.69.65.21", zone = "16e.link", expose = null }
     "admin.16e.link"               = { ip = "10.69.65.22", zone = "16e.link", expose = null }
   }
