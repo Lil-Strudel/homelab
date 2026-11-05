@@ -15,6 +15,14 @@ spec:
         - ports:
             - port: "8123"
               protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: victoria-metrics
+            app.kubernetes.io/name: vmagent
+      toPorts:
+        - ports:
+            - port: "8123"
+              protocol: TCP
   egress:
     - toEndpoints:
         - matchLabels:

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: home-assistant-prometheus
+    namespace: home-automation
+type: Opaque
+stringData:
+    token: ENC[AES256_GCM,data:23ctNPjzRm7ThVejgzKOvh0EpNOgvDQEgBXUJUzgpJHY3nHGqUuuRRcBIXweYUsAfCoi2Gwq+M+uGk6caFW1QzuqROeTPUSPBGgGGAiI2voWgjKhyz1YUIa2CfHv9jCM84w5lo+ynO7kBckNFIeyutF7HcuaRTJhLMubQo9j0mXU4Zz/pbt0BvH+4vSvwZNEJ/neCVb5QgzPMJ/fFPkYmptd34ky9w8FDLgzkc/ZcwRW/RIHWCLY,iv:3hVvWhySndnk+jo8muf8N4CZwpmu5zrXqPYca2z6HoA=,tag:BioPfFZ+LPDfmMDlF7Q0TQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBhdFFWbmFaOW1vL2RwOW9x
+            TnNQUzIyR0dxMXRhMUNyWXRIT25zWWdhenc4Ck80NUMwNWFocGVDN3RnVE10dUdB
+            ZmpXTWp2VjNGcEt5RDQzUFpjWTMwVkUKLS0tIFNyMW9MbEFWYTFNMmpRaGcybU1a
+            cFJNSkF6aHNvbmdxUGtmNGVNUTFnN0kKORLdLF+a3TOTSsL2pTLPRV3N3iitNzlr
+            3M080VbUI5bSkIp1qAv43XDGp1iJ62jCqrt0LZ1L1bA45lsd3TNNiQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1dhzh7r7c8u8sqdfrpdupk6r37zyk9m6yha3x37964u72rg4degtqy8pzp5
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBZOEZFMkgwaWo5bThwaElE
+            WWdaT2UwdlQvdXlrbUE1VDhYSDNETGxIcnhjCi9BK1dsMVp5NEdGYThIZWtUOGRW
+            WkJjdDR1dkpTRW8zNnRRS3MvZ0tLZDQKLS0tIHp5TElEblNWMHQranNnaS9iR1RV
+            WStMK3dSSGhrWENVRW9pWTVNWFBnZjAKrLnJiD7GQyff/w5FXT1u3oFBuPBfNiHs
+            v3kpGFi1xcFQBZaR2zVKULp8pYdeg1F40UohHqjMa3A6/1dpyCrH7w==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age19etvk27ryx8ksye4r2pghvqd3ml2f6aqgrsahn5c2tm5hxq5ha8sj88fwd
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-05T07:00:49Z"
+    mac: ENC[AES256_GCM,data:hPm0bZVKcP4hO7xosQLMtIT/uAP1JzGagfyxjZqnkjDTR7jvf13JY0x+yps2auSwd8Q5LRCn9vVo/J16r25/V8MR9KSbI5lwelbpUijbIbGMPKMbT+e2SzW8jVFaPurtQewhaZR5onu1bpq70wz+sA2SsKT3OfZhYgp4Fmvn8XY=,iv:c3wS1SP1XsNQDbHnhMmFIOlLkQSvsliwbOhPsCvfEb0=,tag:ECp5K89h80fTQQlx0oG8yw==,type:str]
+    version: 3.13.3

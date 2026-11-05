@@ -12,6 +12,8 @@ resources:
 - service.yaml
 - ingress.yaml
 - network-policy.yaml
+- prometheus-token.sops.yaml
+- scrape.yaml
 configMapGenerator:
 - name: home-assistant
   namespace: home-automation

@@ -1,0 +1,16 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: home-assistant
+  namespace: home-automation
+spec:
+  selector:
+    matchLabels:
+      app: home-assistant
+  podMetricsEndpoints:
+    - port: http
+      path: /api/prometheus
+      interval: 60s
+      bearerTokenSecret:
+        name: home-assistant-prometheus
+        key: token
