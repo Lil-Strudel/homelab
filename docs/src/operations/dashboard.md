@@ -15,6 +15,7 @@ what is on it, and why some tiles have a status dot and others do not.
 | Applications | Vaultwarden, Shlink, the Shlink admin UI, Dashy itself |
 | Media | Jellyfin, Seerr, Kavita, Audiobookshelf, Jellystat |
 | Media Management | The arrs, Shoko, Shelfmark, Suwayomi, the download clients, qbit_manage, Cleanuparr |
+| Home Automation | Home Assistant, Zigbee2MQTT, Z-Wave JS UI |
 | Observability | Grafana, VictoriaMetrics, Loki, the two Alloy endpoints, the syslog sink |
 | Storage | The Ceph dashboard and the NAS |
 | Games | mc-router, the three Minecraft servers, Factorio |

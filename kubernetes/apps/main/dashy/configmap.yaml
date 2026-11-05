@@ -128,6 +128,22 @@ data:
             icon: mdi-broom
             url: https://cleanuparr.lilstrudel.io
 
+      - name: Home Automation
+        icon: mdi-home-automation
+        items:
+          - title: Home Assistant
+            description: Devices, automations and dashboards for the house
+            icon: si-homeassistant
+            url: https://home.lilstrudel.io
+          - title: Zigbee2MQTT
+            description: Zigbee network, pairing and device settings
+            icon: mdi-zigbee
+            url: https://z2m.lilstrudel.io
+          - title: Z-Wave JS UI
+            description: Z-Wave network, pairing and controller backups
+            icon: mdi-z-wave
+            url: https://zwave.lilstrudel.io
+
       - name: Observability
         icon: mdi-chart-areaspline
         items:
