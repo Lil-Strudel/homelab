@@ -57,6 +57,15 @@ Why it has no Ceph OSD, a software boot mirror, and an optics override is in
 
 WiFi: a shared `Strudel` network, CAPsMAN-managed across both APs.
 
+## Smart-home radios
+
+On VLAN 60 (Trusted), reached by the cluster over TCP — see
+[Operations → Home Automation](../operations/home-automation.md#radios).
+
+| Device | Model | IP | Role |
+| --- | --- | --- | --- |
+| Radio bridge (interim) | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E + SONOFF Dongle-PZG23 | `10.69.60.30` | `ser2net`: Zigbee on `6638`, Z-Wave on `6639` |
+
 ## Storage
 
 Cluster storage is Rook-Ceph, one OSD per OptiPlex on the 1 TB NVMe (see

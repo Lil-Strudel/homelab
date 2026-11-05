@@ -35,6 +35,9 @@ silently, because a name that matches no volume is simply never copied:
 | `media` | `config` | `<app>-config` | each media app's settings and database (Jellyfin, the arrs, qBittorrent, SABnzbd, Shoko, Seerr, Kavita, Komf, Shelfmark, qbit_manage, Cleanuparr) |
 | `media` | `config`, `metadata` | `audiobookshelf-config`, `audiobookshelf-metadata` | Audiobookshelf's database, covers and backups |
 | `media` | `data-dir` | `suwayomi-data` | Suwayomi's library database and extensions |
+| `home-automation` | `config` | `home-assistant-config` | Home Assistant's `.storage`, automations, scripts and scenes |
+| `home-automation` | `data` | `zigbee2mqtt-data` | The Zigbee device database and `coordinator_backup.json` |
+| `home-automation` | `store` | `zwave-js-ui-store` | The Z-Wave node cache, settings and NVM backups |
 
 Opting in per volume is what keeps that list short and the backup trustworthy. A cluster's
 pods are overwhelmingly `emptyDir` scratch, projected ConfigMaps, and CSI socket directories;

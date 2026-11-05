@@ -29,6 +29,7 @@
 - [VPN Access](./operations/vpn-access.md)
 - [Applications](./operations/applications.md)
 - [Media](./operations/media.md)
+- [Home Automation](./operations/home-automation.md)
 - [Dashboard (Dashy)](./operations/dashboard.md)
 - [UPS (APC NMC3)](./operations/ups.md)
 - [Minecraft](./operations/minecraft.md)
@@ -46,6 +47,7 @@
 - [Rook-Ceph Values](./decisions/rook-ceph.md)
 - [Media Node](./decisions/media-node.md)
 - [Minecraft Scale-to-Zero](./decisions/minecraft-scale-to-zero.md)
+- [Home Automation](./decisions/home-automation.md)
 - [Commenting](./decisions/commenting.md)
 
 # Archive

@@ -5,10 +5,11 @@ carries. How to add another is [Adding a Service](./adding-a-service.md); why se
 and exposure work the way they do is
 [Decisions → Service Networking](../decisions/service-networking.md).
 
-Most of them live in `apps/main/` and reconcile as one Flux Kustomization. Two sets have
+Most of them live in `apps/main/` and reconcile as one Flux Kustomization. Three sets have
 their own: Minecraft sits in `apps/minecraft/`, because a cold modpack download takes longer
-than any timeout the shared one should carry, and the media stack sits in `apps/media/` —
-see [Media](./media.md).
+than any timeout the shared one should carry; the media stack sits in `apps/media/` —
+see [Media](./media.md); and Home Assistant with its radio bridges sits in
+`apps/home-automation/` — see [Home Automation](./home-automation.md).
 
 | App | Hostname | Shape |
 | --- | --- | --- |

@@ -66,7 +66,8 @@ kubernetes/
 │   ├── infrastructure.yaml # → the four infrastructure stages
 │   ├── apps.yaml           # → apps  (dependsOn platform-configs)
 │   ├── media.yaml          # → media (dependsOn platform-configs)
-│   └── minecraft.yaml      # → minecraft (dependsOn platform-configs)
+│   ├── minecraft.yaml      # → minecraft (dependsOn platform-configs)
+│   └── home-automation.yaml # → home-automation (dependsOn platform-configs)
 ├── infrastructure/
 │   ├── core/               # primitives: networking, VIP, certificates, storage
 │   │   ├── controllers/    #   installs them (and their CRDs)
@@ -77,12 +78,15 @@ kubernetes/
 └── apps/
     ├── main/               # user-facing workloads
     ├── media/              # the media stack, all on rem-4
-    └── minecraft/          # the Minecraft fleet
+    ├── minecraft/          # the Minecraft fleet
+    └── home-automation/    # Home Assistant and the radio bridges
 ```
 
-`media` and `minecraft` reconcile beside `apps` rather than inside it, so a slow or broken
-media app cannot hold the rest of the workloads not-Ready. See
-[Operations → Media](./operations/media.md).
+`media`, `minecraft` and `home-automation` reconcile beside `apps` rather than inside it, so
+a slow or broken media app cannot hold the rest of the workloads not-Ready, and an unrelated
+app cannot hold the house's automations back. See
+[Operations → Media](./operations/media.md) and
+[Operations → Home Automation](./operations/home-automation.md).
 
 Each stage is its own Flux `Kustomization` wired with `dependsOn`, so a stage only
 starts once the one before it is applied. Every stage but the last also uses
