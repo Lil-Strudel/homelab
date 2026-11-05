@@ -66,6 +66,19 @@ sops -d kubernetes/apps/home-automation/mqtt-credentials.sops.yaml | yq .stringD
 
 After Flux brings the namespace up, five things are done once by hand.
 
+0. **Trust the ingress proxy** — only on a brand-new config volume; a restored one already
+   has it. Until this is set, `home.lilstrudel.io` answers `400: Bad Request`, so reach Home
+   Assistant directly instead:
+
+   ```sh
+   kubectl -n home-automation port-forward deploy/home-assistant 8123
+   ```
+
+   At `http://localhost:8123`, onboard (step 1), then under *Settings → System → Network →
+   HTTP server* turn on *Trust X-Forwarded-For* with trusted proxy `10.244.0.0/16`. Home
+   Assistant restarts with the change as a trial: **confirm it within five minutes** or it
+   reverts. Why it is not in YAML is in
+   [Decisions → Home Automation](../decisions/home-automation.md#reverse-proxy-trust-is-in-storage-not-yaml).
 1. **Onboard Home Assistant** at `https://home.lilstrudel.io`: create the owner account, then
    set the home location, units and time zone. These live in the UI, not git — the repo is
    public.
@@ -169,8 +182,10 @@ connection to each device's native API on TCP `6053`, so adding them takes:
   kubectl -n kube-system exec "$AGENT" -- hubble observe --namespace home-automation --verdict DROPPED -f
   ```
 - **Home Assistant answers `400: Bad Request`** — a proxy it does not trust sent
-  `X-Forwarded-For`. The `trusted_proxies` entry in `home-assistant/configuration.yaml` must
-  cover the pod CIDR, which is where Cilium's ingress proxy connects from.
+  `X-Forwarded-For`. The log says `A request from a reverse proxy was received from
+  10.244.x.y`. Proxy trust is not in git: set it as in step 0 of
+  [First-time setup](#first-time-setup), over a port-forward. If a trial change to the HTTP
+  settings lapsed unconfirmed, the UI path works the same way.
 - **Z-Wave JS UI login loops** — the session cookie is `Secure`, and Express only treats the
   request as HTTPS when it trusts the proxy that says so. `TRUST_PROXY` must cover the pod
   CIDR.

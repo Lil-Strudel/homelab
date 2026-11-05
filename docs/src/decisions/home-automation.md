@@ -86,9 +86,9 @@ protected.
 Home Assistant mixes YAML with state it manages itself under `.storage/`. The split here:
 
 - **`configuration.yaml` is a ConfigMap**, mounted read-only. It holds only what the
-  cluster dictates: trusting the pod CIDR as a reverse proxy, the recorder URL (read with
-  `!env_var` from the CNPG-generated Secret), and the Prometheus endpoint. A change rolls the
-  pod, because the ConfigMap is generated with a content hash.
+  cluster dictates: the recorder URL (read with `!env_var` from the CNPG-generated Secret)
+  and the Prometheus endpoint. A change rolls the pod, because the ConfigMap is generated
+  with a content hash.
 - **Everything else is the UI's** — location, units, users, integrations, devices,
   automations, scripts, scenes, dashboards — on the PVC, backed up by Velero. Location in
   particular stays out of git: the repo is public.
@@ -99,6 +99,21 @@ them so the `!include`s resolve on the first start.
 
 MQTT and Z-Wave JS are UI-configured integrations — Home Assistant no longer accepts either in
 YAML — so they are set up once by hand. Their addresses and credentials are in the runbook.
+
+### Reverse-proxy trust is in storage, not YAML
+
+Home Assistant only accepts `X-Forwarded-For` from proxies it trusts, and answers `400` to
+everything else. Cilium's ingress proxy connects from the pod CIDR, so `10.244.0.0/16` has to
+be trusted — and nothing wider, or anything in RFC1918 could spoof a client address.
+
+Since 2026.11 that setting lives in `.storage/http`, edited under *Settings → System →
+Network → HTTP server*; an `http:` block in YAML is deprecated and stops working in 2027.2.
+Home Assistant imports such a block exactly once, as a *trial*: it runs with the new settings
+for five minutes and reverts unless someone confirms them in the UI, and it never reads the
+YAML again either way. That is a poor fit for GitOps — a missed confirmation leaves the
+instance unreachable through the ingress — so the block is not in `configuration.yaml`, and
+the setting is made once and carried by the config volume's backup like the rest of
+`.storage`. The runbook covers setting it on a fresh volume.
 
 ## The image is rootless
 
