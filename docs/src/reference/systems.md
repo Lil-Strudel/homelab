@@ -59,10 +59,6 @@ WiFi: a shared `Strudel` network, CAPsMAN-managed across both APs.
 
 ## Storage
 
-| Device | Model | IP | Role |
-| --- | --- | --- | --- |
-| Zigbee controller | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E | `10.69.60.30` | Home-automation radio |
-
 Cluster storage is Rook-Ceph, one OSD per OptiPlex on the 1 TB NVMe (see
 [Operations → Storage](../operations/storage.md)), plus the ZFS pool on rem-4 (see
 [Operations → ZFS](../operations/zfs.md)).

@@ -339,7 +339,7 @@ resource "routeros_ip_firewall_filter" "forward_internet" {
 
 # Matched on dst-address, not out-interface: service IPs are BGP /32s whose next hop is a
 # Trusted-VLAN node, so these packets leave via Trusted_VLAN. Matching the interface would
-# also expose the nodes themselves — the Talos API, the kube API, and the Zigbee Pi.
+# also expose the nodes themselves — the Talos API, the kube API, and the smart-home radios.
 resource "routeros_ip_firewall_filter" "forward_home_services" {
   chain        = "forward"
   action       = "accept"

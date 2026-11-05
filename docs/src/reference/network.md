@@ -128,7 +128,7 @@ It is enforced (`enforce_firewall = true` in `terraform/main.tf`).
 
 The shape of it is a **user plane / admin plane split**. Home and `wg-home` reach cluster
 *services* and nothing else of the cluster; the machinery behind those services — the
-Talos API, the Kubernetes API, the kubelet, the Zigbee Pi, and every other host on
+Talos API, the Kubernetes API, the kubelet, the smart-home radios, and every other host on
 Trusted — is reachable only from Management and `wg-management`.
 
 | From ↓ | Internet | Reaches | Notes |

@@ -20,7 +20,7 @@ what is on it, and why some tiles have a status dot and others do not.
 | Games | mc-router, the three Minecraft servers, Factorio |
 | Network | Router, both switches, both access points, the WireGuard endpoint |
 | Cluster | The Kubernetes API VIP and all six Talos nodes |
-| Out-of-band | PiKVM, KVM switch, UPS, the Zigbee controller |
+| Out-of-band | PiKVM, KVM switch, UPS |
 | Documentation | The repository and the reference pages |
 
 Tiles whose endpoint is not HTTP — a Minecraft or Factorio address, a node's Talos API, the

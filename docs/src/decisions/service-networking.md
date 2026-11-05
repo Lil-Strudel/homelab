@@ -26,7 +26,7 @@ Three properties follow, and they are the reason for the layout:
 - **Firewall rules match on `dst-address`, never `out-interface`.** A packet to a service
   IP leaves the router via `Trusted_VLAN` toward the node holding the backend, so an
   `out-interface=Trusted_VLAN` rule would grant the *nodes* too — the Talos API, the
-  Kubernetes API, the kubelet, and the Zigbee Pi. Matching the destination range grants
+  Kubernetes API, the kubelet, and the smart-home radios. Matching the destination range grants
   exactly the services. See the [firewall matrix](../reference/network.md#firewall).
 - **The range is only ever a destination.** Pod traffic leaves the cluster SNAT'd to a
   node address, so nothing on the network ever sources from `10.69.65.0/24` and no

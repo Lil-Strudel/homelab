@@ -295,11 +295,6 @@ data:
             description: APC SMT1000RM2UC
             icon: mdi-battery-charging
             url: http://10.69.100.77
-          - title: Zigbee Controller
-            description: Raspberry Pi 4 with a SONOFF ZBDongle-E
-            icon: mdi-zigbee
-            url: 10.69.60.30
-            target: clipboard
 
       - name: Documentation
         icon: mdi-book-open-variant
