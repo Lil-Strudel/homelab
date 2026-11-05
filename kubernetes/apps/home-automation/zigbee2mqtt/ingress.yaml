@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zigbee2mqtt
+  namespace: home-automation
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.71"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - z2m.lilstrudel.io
+      secretName: zigbee2mqtt-tls
+  rules:
+    - host: z2m.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zigbee2mqtt
+                port:
+                  number: 8080

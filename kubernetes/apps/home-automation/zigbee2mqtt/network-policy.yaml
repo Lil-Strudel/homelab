@@ -1,0 +1,52 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: zigbee2mqtt
+  namespace: home-automation
+spec:
+  endpointSelector:
+    matchLabels:
+      app: zigbee2mqtt
+  ingress:
+    - fromEntities:
+        - ingress
+        - host
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          # The toFQDNs rule below depends on the DNS proxy seeing the lookup here.
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            app: mosquitto
+      toPorts:
+        - ports:
+            - port: "1883"
+              protocol: TCP
+    - toCIDR:
+        - 10.69.60.30/32
+      toPorts:
+        - ports:
+            - port: "6638"
+              protocol: TCP
+    # The OTA index and the firmware images it mirrors.
+    - toFQDNs:
+        - matchName: "raw.githubusercontent.com"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

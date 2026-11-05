@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zwave-js-ui
+  namespace: home-automation
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    lbipam.cilium.io/ips: "10.69.65.72"
+spec:
+  ingressClassName: cilium
+  tls:
+    - hosts:
+        - zwave.lilstrudel.io
+      secretName: zwave-js-ui-tls
+  rules:
+    - host: zwave.lilstrudel.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zwave-js-ui
+                port:
+                  number: 8091

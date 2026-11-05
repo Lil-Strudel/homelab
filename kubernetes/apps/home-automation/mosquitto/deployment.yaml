@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  namespace: home-automation
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1883
+        runAsGroup: 1883
+        fsGroup: 1883
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: passwd
+          image: eclipse-mosquitto:2.1.2-alpine
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              mosquitto_passwd -c -b /mosquitto/passwd/passwd zigbee2mqtt "$ZIGBEE2MQTT_PASSWORD"
+              mosquitto_passwd -b /mosquitto/passwd/passwd home-assistant "$HOME_ASSISTANT_PASSWORD"
+              chmod 0600 /mosquitto/passwd/passwd
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          envFrom:
+            - secretRef:
+                name: mqtt-credentials
+          volumeMounts:
+            - name: passwd
+              mountPath: /mosquitto/passwd
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2.1.2-alpine
+          command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: mqtt
+              containerPort: 1883
+          volumeMounts:
+            - name: config
+              mountPath: /mosquitto/config
+            - name: passwd
+              mountPath: /mosquitto/passwd
+            - name: data
+              mountPath: /mosquitto/data
+          readinessProbe:
+            tcpSocket:
+              port: mqtt
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: mqtt
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: mosquitto
+        - name: passwd
+          emptyDir:
+            medium: Memory
+        - name: data
+          persistentVolumeClaim:
+            claimName: mosquitto-data

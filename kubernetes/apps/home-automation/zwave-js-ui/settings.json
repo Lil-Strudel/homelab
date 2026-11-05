@@ -1,0 +1,10 @@
+{
+  "rf": {
+    "region": 9
+  },
+  "serverEnabled": true,
+  "serverPort": 3000,
+  "serverServiceDiscoveryDisabled": true,
+  "enableStatistics": false,
+  "securityKeysLongRange": {}
+}
