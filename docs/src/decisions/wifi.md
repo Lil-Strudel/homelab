@@ -56,20 +56,40 @@ AP1.
 
 ## Channels
 
-- **2.4 GHz: 20 MHz on 1, 6 and 11.** These are the only non-overlapping US channels.
-  The radio would otherwise default to its widest supported width and could land between
-  them. The Zigbee channel choice relies on this (see
-  [Home Automation](home-automation.md#zigbee-channel-25)).
-- **5 GHz: up to 80 MHz, DFS skipped.** The US regulatory profile leaves three non-DFS
-  80 MHz blocks: 36–48, 149–161 and 165–177, enough for each AP to have its own. DFS
-  channels would add room, but a radar detection forces the AP off the channel and
-  disconnects its clients.
-- **Nightly reselection** (`reselect-time=03:00:00..04:00:00`, the form RouterOS stores).
-  Each AP rescans at a random moment inside the window. Two APs that boot together scan
-  at the same moment and can land in the same block, which the manual warns about. The
-  random window pulls them apart and confines the brief client drop to the night.
+Each AP gets its own channels, set in `channel_plan` in `terraform/main.tf`:
+
+| AP | 5 GHz | 2.4 GHz |
+| --- | --- | --- |
+| AP1 | 36–48 (`5180`–`5240`), 80 MHz | 1 (`2412`), 20 MHz |
+| AP2 | 149–161 (`5745`–`5805`), 80 MHz | 11 (`2462`), 20 MHz |
+
+- **A fixed split, not auto-selection.** CAPsMAN does not coordinate channels: each
+  radio picks its own, and two APs that scan at the same moment, at boot or when AP2
+  rejoins, can land in the same block. Ours did twice, which halves both APs' airtime.
+  Splitting the channels makes overlap impossible. Nothing is left to choose, so there is
+  no nightly reselection either, which would only drop clients.
+- **Both 5 GHz radios keep full 80 MHz.** Only two non-DFS 80 MHz blocks exist that
+  every client can use, which is one per AP. DFS channels would add room, but a radar
+  detection forces the AP off and disconnects its clients. The 165–177 block (UNII-4) is
+  non-DFS too, but many clients from before 2020 cannot use it at all.
+- **2.4 GHz at 20 MHz on 1 and 11**, the classic two-AP plan. 40 MHz on 2.4 GHz only
+  overlaps neighbouring networks. The Zigbee channel choice relies on staying at or
+  below 11 (see [Home Automation](home-automation.md#zigbee-channel-25)).
 - **Country `United States`.** RouterOS defaults to Latvia, whose power limits and
   channel set differ.
+
+The manager binds its own profiles directly. AP2's reach it through provisioning rules
+matched on its identity (`identity_regexp`), so a future CAP needs its own entry in
+`channel_plan`.
+
+**Deleting a profile that is still in use inlines it.** When a channel profile is
+deleted while a configuration or interface still uses it, RouterOS copies its values
+onto that object, and those inline values then override any profile assigned later.
+Terraform cannot see them, so its plan stays clean while the radio runs the old settings.
+Point everything at the new profile before deleting the old one. If it happens anyway,
+`/interface/wifi/print detail` shows the resolved values, and
+`/interface/wifi unset <radio> value-name=channel.frequency` (or the same under
+`/interface/wifi/configuration`) clears each leftover field.
 
 ## Hardening
 

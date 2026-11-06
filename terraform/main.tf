@@ -387,6 +387,12 @@ module "wifi_config" {
   passphrase = data.sops_file.secrets.data["wifi1_password"]
   bridge     = module.access_point_1.bridge
   vlan_id    = local.vlans["Home"]
+
+  manager_identity = module.access_point_1.identity
+  channel_plan = {
+    access_point_1 = { "2ghz" = ["2412"], "5ghz" = ["5180", "5200", "5220", "5240"] }
+    access_point_2 = { "2ghz" = ["2462"], "5ghz" = ["5745", "5765", "5785", "5805"] }
+  }
 }
 
 module "access_point_1" {
@@ -397,8 +403,8 @@ module "access_point_1" {
 
   capsman_role = "manager"
   radio_configurations = {
-    wifi1 = module.wifi_config.configuration_names["5ghz"]
-    wifi2 = module.wifi_config.configuration_names["2ghz"]
+    wifi1 = module.wifi_config.configuration_names["access_point_1"]["5ghz"]
+    wifi2 = module.wifi_config.configuration_names["access_point_1"]["2ghz"]
   }
 
   identity = "access_point_1"

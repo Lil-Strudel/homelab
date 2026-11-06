@@ -86,7 +86,7 @@ Two cAP ax APs run under **CAPsMAN**: AP1 is the manager and AP2 a CAP, so the
 
 | SSID | Bands | Clients land on | Security |
 | --- | --- | --- | --- |
-| `Strudel` | 2.4 GHz (20 MHz, channels 1/6/11) + 5 GHz (up to 80 MHz, non-DFS) | Home (VLAN 10) | WPA2/WPA3-PSK, 802.11r, WPS off |
+| `Strudel` | 2.4 GHz (20 MHz) + 5 GHz (80 MHz, non-DFS), a fixed channel split per AP | Home (VLAN 10) | WPA2/WPA3-PSK, 802.11r, WPS off |
 
 The profiles live on AP1 (`terraform/modules/wifi_config`). AP1 binds them to its own
 radios directly, and provisioning rules push them to AP2. Each AP tags client traffic

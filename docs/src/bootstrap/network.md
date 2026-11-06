@@ -83,10 +83,8 @@ skeleton on `ether1`, then swap cables and import that skeleton. The design is i
 9. `terraform plan`, then `terraform apply`. The hardening switches the SSH host key to
    ED25519, so clear the old one with `ssh-keygen -R 10.69.100.<IP>`.
 10. Verify on AP1: `/interface/wifi/capsman/remote-cap print` lists AP2 as `Ok`,
-    `/interface/wifi/monitor [find] once` shows four radios running with the two 5 GHz
-    radios in different 80 MHz blocks, and a client on `Strudel` gets a `10.69.10.x`
-    lease. If both APs booted together and share a 5 GHz block, disable and re-enable
-    one AP's `wifi1` to make it rescan. The nightly reselection fixes it otherwise.
+    `/interface/wifi/monitor [find] once` shows four radios running on the channels in
+    `channel_plan`, and a client on `Strudel` gets a `10.69.10.x` lease.
 
 ## Importing existing RouterOS objects
 
