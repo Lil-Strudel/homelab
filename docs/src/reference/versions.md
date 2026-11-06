@@ -13,9 +13,9 @@ in lockstep, so the two never drift.
 | Cilium | `1.20.3` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
 | Flux | `v2.9.6` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
 | kube-vip | `v1.3.1` | `kubernetes/infrastructure/core/controllers/kube-vip/kube-vip.yaml` (image tag) |
-| Rook (operator + cluster) | `v1.21.0` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
+| Rook (operator + cluster) | `v1.21.2` | `core/controllers/rook-ceph/operator.yaml` + `core/configs/rook-ceph/cluster.yaml` |
 | ceph-csi-drivers | `1.1.0` | `core/controllers/rook-ceph/csi-drivers.yaml` |
-| Ceph | `v20.2.4` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
+| Ceph | `v20.2.5` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
 | ZFS-LocalPV | `2.11.2` | `core/controllers/zfs-localpv/helm-release.yaml` (chart version) |
 | cert-manager | `v1.21.2` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
 | Velero | `12.2.1` | `platform/controllers/velero/helm-release.yaml` (chart version) |
