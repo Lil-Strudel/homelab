@@ -39,5 +39,5 @@ resource "routeros_ip_dhcp_server" "dhcp_server" {
 resource "routeros_ip_dhcp_server_network" "dhcp_server_network" {
   address    = "${local.start_ip}.0/24"
   gateway    = "${local.start_ip}.1"
-  dns_server = ["${local.start_ip}.1", "9.9.9.9", "8.8.8.8"]
+  dns_server = ["${local.start_ip}.1"] # no public fallback: Android Private DNS would prefer it and skip split-horizon
 }

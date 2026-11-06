@@ -11,6 +11,14 @@ truth — the `services` map in `terraform/main.tf`:
   No service declares `expose` and there is no entry point, so the public side mints
   nothing today.
 
+The internal side only works if clients actually ask the router, so DHCP hands out the
+VLAN's gateway as the **sole** DNS server. A public resolver offered as a fallback gets used
+as the primary: Android's Private DNS "Automatic" mode upgrades to DNS-over-TLS/HTTPS with
+any offered server that supports it, which Quad9 and Google do and the router does not.
+The phone then resolves every service name publicly and gets nothing. The router already
+fails over across several upstream resolvers itself. A device with Private DNS set to a
+specific hostname bypasses the router regardless and cannot reach services by name.
+
 Entries are keyed by **FQDN**, so a service can live on a subdomain or on a bare apex,
 and `zone` picks which of the owned domains it belongs to.
 
