@@ -18,6 +18,10 @@ says to bind the same configuration profiles to the local radios instead, so
 that the provisioning rules hand to AP2. Both APs therefore broadcast identical BSS
 settings, which roaming depends on.
 
+The manager's local radios only show the `R` (running) flag, and only become active
+bridge ports, once a client associates. `/interface/wifi/monitor` still reports them as
+`running` while they wait, so an idle AP1 radio flagged inactive is normal.
+
 AP2's radios are provisioned as **dynamic** interfaces (`create-dynamic-enabled`). They
 are recreated on every join, so nothing may reference them, and nothing does: the
 datapath adds them to the bridge.
