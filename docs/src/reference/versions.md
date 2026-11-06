@@ -21,7 +21,7 @@ in lockstep, so the two never drift.
 | Velero | `12.2.3` | `platform/controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.4` | `platform/controllers/velero/helm-release.yaml` (`initContainers` image tag) |
 | aws-cli | `2.39.5` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
-| victoria-metrics-k8s-stack | `0.96.0` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
+| victoria-metrics-k8s-stack | `0.97.1` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
 | Loki | `7.5.0` | `platform/controllers/loki/helm-release.yaml` (chart version) |
 | Grafana | `14.4.0` | `platform/controllers/grafana/helm-release.yaml` (chart version) |
 | Grafana Alloy | `1.15.0` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
