@@ -46,7 +46,7 @@ resource "routeros_wifi_channel" "wifi_channel" {
   width             = each.value.width
   frequency         = each.value.frequency
   skip_dfs_channels = "all"
-  reselect_time     = "03:00..04:00"
+  reselect_time     = "03:00:00..04:00:00"
 }
 
 resource "routeros_wifi_configuration" "wifi_config" {

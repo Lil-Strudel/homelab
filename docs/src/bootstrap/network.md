@@ -28,24 +28,30 @@ Do this per device (router, switches). Access points have their own flow, below:
 
 ## Adopt an access point
 
-An AP's only uplink is a trunk (10G switch `ether3`/`ether4`), which drops untagged
-frames, so it can't DHCP its way in like the generic flow above. Instead, give it its
-Management address by hand at a desk, then import that skeleton. The design is in
+An AP's permanent uplink is a trunk (10G switch `ether3`/`ether4` to the AP's `ether1`),
+which drops untagged frames, so it can't DHCP its way in like the generic flow above.
+Instead, reach the AP over a temporary untagged path on its `ether2` and build the trunk
+skeleton on `ether1`, then swap cables and import that skeleton. The design is in
 [Reference → Network](../reference/network.md#wifi).
 
-1. Power the AP through its PoE injector on `ether1` and connect a laptop to `ether2`.
-   Open WinBox over MAC.
-2. On both APs, make sure the `wifi-qcom` package is installed and `wireless` is not, then
-   bring RouterOS and the RouterBOARD firmware to the same version on both
-   (`/system/routerboard/upgrade`, then reboot). AP1 refuses to provision a CAP on a
+1. Temporarily make `ether3`/`ether4` Management access ports in the `ethernet_switch`
+   block (`access_ports`, not `trunk_ports`) and apply it with
+   `-target=module.ethernet_switch`. Cable each AP's **`ether2`** to its port.
+2. Over MAC-WinBox, add the `routeros_username`/`routeros_password` user from
+   `terraform/secrets.sops.yaml`, reset with
+   `/system/reset-configuration no-defaults=yes skip-backup=yes keep-users=yes`, then add
+   `/ip/dhcp-client add interface=ether2`. The AP is now reachable over SSH on a
+   Management DHCP lease.
+3. Make sure `wifi-qcom` is installed and `wireless` is not. Upgrade both APs to the same
+   RouterOS (`/system/package/update/install`), then the firmware
+   (`/system/routerboard/upgrade` and reboot). AP1 refuses to provision a CAP on a
    different version.
-3. Check `/system/device-mode/print`. If `bandwidth-test` is blocked, the switch module's
+4. Check `/system/device-mode/print`. If `bandwidth-test` is blocked, the switch module's
    `routeros_tool_bandwidth_server` cannot apply.
-4. Reset with `/system/reset-configuration no-defaults=yes skip-backup=yes`, reconnect
-   over MAC, and set the login to the `routeros_username`/`routeros_password` pair in
-   `terraform/secrets.sops.yaml`.
 5. Paste the bootstrap, with `<IP>` set to `20` for AP1 or `21` for AP2. The VLAN table
-   comes before `vlan-filtering`, as the manual warns, so the device stays reachable:
+   comes before `vlan-filtering`, as the manual warns. The address goes **last**: the
+   empty bridge counts as running, so `10.69.100.<IP>/24` gives a second connected route
+   for the subnet and cuts the `ether2` session the moment it is added.
 
    ```routeros
    /certificate add name=root-cert common-name=root-cert key-size=4096 days-valid=3650 key-usage=key-cert-sign,crl-sign
@@ -58,21 +64,29 @@ Management address by hand at a desk, then import that skeleton. The design is i
    /interface/bridge/port add bridge=bridge interface=ether1 frame-types=admit-only-vlan-tagged ingress-filtering=yes
    /interface/bridge/vlan add bridge=bridge tagged=bridge,ether1 vlan-ids=100
    /interface/vlan add interface=bridge name=Management_VLAN vlan-id=100
-   /ip/address add address=10.69.100.<IP>/24 interface=Management_VLAN
-   /ip/route add gateway=10.69.100.1
    /interface/bridge set bridge vlan-filtering=yes
+   /ip/route add gateway=10.69.100.1
+   /ip/address add address=10.69.100.<IP>/24 interface=Management_VLAN
    ```
 
-6. Make the uplinks trunks before plugging in: `terraform apply -target=module.ethernet_switch`.
-7. Move each AP's injector to its switch port, unplug the laptop, and confirm
-   `https://10.69.100.<IP>:6729` answers from the Management VLAN.
-8. Map the ids (below) for each AP's bridge, `Management_VLAN`, address, route,
-   `ether1` bridge port, VLAN 100 bridge entry, `wifi1` and `wifi2`, fill them into the
-   access point block of `scripts/tf_import_mikrotik.sh`, and run those imports.
-9. `terraform plan`, then `terraform apply`.
-10. Verify on AP1: `/interface/wifi/capsman/remote-cap print` lists AP2,
-    `/interface/wifi print` shows four running radios across both APs, and a client on
-    `Strudel` gets a `10.69.10.x` lease.
+6. Return `ether3`/`ether4` to `trunk_ports`. Swapping a port between the two lists in one
+   apply races (the new bridge port is added before the old one is removed), so first
+   apply with `-target` on the two `access_bridge_port` resources, then
+   `-target=module.ethernet_switch`.
+7. Move each AP's cable from `ether2` to `ether1`, confirm `10.69.100.<IP>` answers, and
+   remove the temporary client: `/ip/dhcp-client remove [find interface=ether2]`.
+8. Map the ids (below) for each AP's bridge, `Management_VLAN`, address, route, `ether1`
+   bridge port, VLAN 100 bridge entry, `wifi1` and `wifi2`. Either fill them into the
+   access point block of `scripts/tf_import_mikrotik.sh` and run it, or write them as
+   `import` blocks in a throwaway `terraform/imports.tf`, so one plan previews the imports
+   together with everything else. Delete the file after the apply.
+9. `terraform plan`, then `terraform apply`. The hardening switches the SSH host key to
+   ED25519, so clear the old one with `ssh-keygen -R 10.69.100.<IP>`.
+10. Verify on AP1: `/interface/wifi/capsman/remote-cap print` lists AP2 as `Ok`,
+    `/interface/wifi/monitor [find] once` shows four radios running with the two 5 GHz
+    radios in different 80 MHz blocks, and a client on `Strudel` gets a `10.69.10.x`
+    lease. If both APs booted together and share a 5 GHz block, disable and re-enable
+    one AP's `wifi1` to make it rescan. The nightly reselection fixes it otherwise.
 
 ## Importing existing RouterOS objects
 

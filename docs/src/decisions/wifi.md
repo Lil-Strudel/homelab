@@ -56,13 +56,14 @@ AP1.
   The radio would otherwise default to its widest supported width and could land between
   them. The Zigbee channel choice relies on this (see
   [Home Automation](home-automation.md#zigbee-channel-25)).
-- **5 GHz: up to 80 MHz, DFS skipped.** The two non-DFS US blocks, UNII-1 (36–48) and
-  UNII-3 (149–161), each hold exactly one 80 MHz channel, so each AP can have its own.
-  DFS channels would add room, but a radar detection forces the AP off the channel and
+- **5 GHz: up to 80 MHz, DFS skipped.** The US regulatory profile leaves three non-DFS
+  80 MHz blocks: 36–48, 149–161 and 165–177, enough for each AP to have its own. DFS
+  channels would add room, but a radar detection forces the AP off the channel and
   disconnects its clients.
-- **Nightly reselection** (`reselect-time=03:00..04:00`). Each AP rescans at a random
-  moment inside the window. That keeps the APs from picking the same channel together,
-  which the manual warns about, and confines the brief client drop to the night.
+- **Nightly reselection** (`reselect-time=03:00:00..04:00:00`, the form RouterOS stores).
+  Each AP rescans at a random moment inside the window. Two APs that boot together scan
+  at the same moment and can land in the same block, which the manual warns about. The
+  random window pulls them apart and confines the brief client drop to the night.
 - **Country `United States`.** RouterOS defaults to Latvia, whose power limits and
   channel set differ.
 
