@@ -67,6 +67,10 @@ resource "routeros_wifi_configuration" "wifi_config" {
   channel = {
     config = routeros_wifi_channel.wifi_channel[each.key].name
   }
+
+  steering = {
+    transition_threshold = "-70"
+  }
 }
 
 resource "routeros_wifi_provisioning" "wifi_provisioning" {

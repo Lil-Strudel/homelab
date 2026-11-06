@@ -54,6 +54,19 @@ AP1.
 - **802.11r with FT-over-DS**, as in the manual's CAPsMAN example.
 - **WPS disabled.** It defaults to `push-button`, and the network has no use for it.
 
+## Roaming
+
+802.11k neighbor reports and solicited 802.11v transitions are on by default. Both APs
+share an SSID and authentication settings, so RouterOS puts all four radios in one
+dynamic neighbor group without extra config.
+
+The client still decides when to roam. A phone in AP2's room could hold AP1 at around
+−75 dBm for hours. That never reached the default −80 dBm threshold for unsolicited
+802.11v requests, so the AP never asked it to move. The threshold is raised to
+**−70 dBm**. It is still only a request, and no client is deauthenticated
+(`transition-time` stays `unlimited`). An access-list signal range would force the move,
+but the manual warns that a client rejected repeatedly may start avoiding that AP.
+
 ## Channels
 
 Each AP gets its own channels, set in `channel_plan` in `terraform/main.tf`:
