@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: layout
-          image: ghcr.io/advplyr/audiobookshelf:2.37.1
+          image: ghcr.io/advplyr/audiobookshelf:2.37.2
           command: ["/bin/sh", "/layout/layout.sh"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -41,7 +41,7 @@ spec:
               mountPath: /layout
       containers:
         - name: audiobookshelf
-          image: ghcr.io/advplyr/audiobookshelf:2.37.1
+          image: ghcr.io/advplyr/audiobookshelf:2.37.2
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

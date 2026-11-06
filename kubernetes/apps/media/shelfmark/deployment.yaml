@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: shelfmark
-          image: ghcr.io/calibrain/shelfmark-lite:v1.4.0
+          image: ghcr.io/calibrain/shelfmark-lite:v1.6.1
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
