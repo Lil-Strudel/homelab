@@ -340,11 +340,9 @@ module "ethernet_switch" {
   management_vlan = local.vlans["Management"]
   admin_sources   = local.admin_sources
 
-  trunk_ports = ["ether2", "combo1"]
+  trunk_ports = ["ether2", "ether3", "ether4", "combo1"]
   access_ports = {
     ether1 = local.vlans["Management"]
-    ether3 = local.vlans["Management"]
-    ether4 = local.vlans["Management"]
     ether5 = local.vlans["Management"]
     ether6 = local.vlans["Management"]
     ether7 = local.vlans["Management"]
