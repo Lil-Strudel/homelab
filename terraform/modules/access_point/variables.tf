@@ -18,12 +18,18 @@ variable "vlans" {
   type = map(number)
 }
 
+variable "admin_sources" {
+  description = "Comma-separated prefixes allowed to reach the AP's ssh, winbox and www-ssl services"
+  type        = string
+}
+
 variable "trunk_ports" {
   type = list(string)
 }
 
 variable "access_ports" {
-  type = map(number)
+  type    = map(number)
+  default = {}
 }
 
 variable "capsman_role" {
@@ -34,19 +40,8 @@ variable "capsman_role" {
   }
 }
 
-variable "manager_wifi_config" {
-  description = "Wifi configuration name to bind to this AP's own radios (manager role only)."
-  type        = string
-  default     = ""
-}
-
-variable "virtual_aps" {
-  description = "Extra virtual AP interfaces to create, keyed by interface name."
-  type = map(object({
-    master_interface = string
-    mac_address      = string
-    configuration    = string
-    pvid             = number
-  }))
-  default = {}
+variable "radio_configurations" {
+  description = "Wifi configuration to bind to each of the manager's own radios, keyed by radio name (manager role only)."
+  type        = map(string)
+  default     = {}
 }

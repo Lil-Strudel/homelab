@@ -1,7 +1,22 @@
 terraform import module.router.routeros_ip_dhcp_client.dhcp_client "*1"
 
-tf import 'module.access_point_2.routeros_wifi.wifi1[0]' '*4'
-tf import 'module.access_point_2.routeros_wifi.wifi2[0]' '*5'
+terraform import module.access_point_1.module.base.routeros_interface_bridge.bridge '<ID>'
+terraform import module.access_point_1.module.base.routeros_interface_vlan.management_vlan '<ID>'
+terraform import module.access_point_1.module.base.routeros_ip_address.address '<ID>'
+terraform import module.access_point_1.module.base.routeros_ip_route.route '<ID>'
+terraform import 'module.access_point_1.module.base.module.trunk_ports.routeros_interface_bridge_port.bridge_port["ether1"]' '<ID>'
+terraform import 'module.access_point_1.module.base.module.trunk_ports.routeros_interface_bridge_vlan.bridge_vlan["Management"]' '<ID>'
+terraform import 'module.access_point_1.routeros_wifi.manager_radio["wifi1"]' '<ID>'
+terraform import 'module.access_point_1.routeros_wifi.manager_radio["wifi2"]' '<ID>'
+
+terraform import module.access_point_2.module.base.routeros_interface_bridge.bridge '<ID>'
+terraform import module.access_point_2.module.base.routeros_interface_vlan.management_vlan '<ID>'
+terraform import module.access_point_2.module.base.routeros_ip_address.address '<ID>'
+terraform import module.access_point_2.module.base.routeros_ip_route.route '<ID>'
+terraform import 'module.access_point_2.module.base.module.trunk_ports.routeros_interface_bridge_port.bridge_port["ether1"]' '<ID>'
+terraform import 'module.access_point_2.module.base.module.trunk_ports.routeros_interface_bridge_vlan.bridge_vlan["Management"]' '<ID>'
+terraform import 'module.access_point_2.routeros_wifi.cap_radio["wifi1"]' '<ID>'
+terraform import 'module.access_point_2.routeros_wifi.cap_radio["wifi2"]' '<ID>'
 
 # RouterOS system singletons. Only these three import cleanly; the rest of the /ip and
 # /tool menus are adopted by a normal apply, because for a menu that always exists the

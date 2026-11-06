@@ -200,21 +200,21 @@ provider "routeros" {
   alias    = "crs310"
 }
 
-# provider "routeros" {
-#   hosturl  = "10.69.100.20:6729"
-#   username = data.sops_file.secrets.data["routeros_username"]
-#   password = data.sops_file.secrets.data["routeros_password"]
-#   insecure = true
-#   alias    = "cAPax-1"
-# }
+provider "routeros" {
+  hosturl  = "10.69.100.20:6729"
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
+  insecure = true
+  alias    = "cAPax-1"
+}
 
-# provider "routeros" {
-#   hosturl  = "10.69.100.21:6729"
-#   username = data.sops_file.secrets.data["routeros_username"]
-#   password = data.sops_file.secrets.data["routeros_password"]
-#   insecure = true
-#   alias    = "cAPax-2"
-# }
+provider "routeros" {
+  hosturl  = "10.69.100.21:6729"
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
+  insecure = true
+  alias    = "cAPax-2"
+}
 
 module "router" {
   source = "./modules/router"
@@ -340,7 +340,7 @@ module "ethernet_switch" {
   management_vlan = local.vlans["Management"]
   admin_sources   = local.admin_sources
 
-  trunk_ports = ["ether2", "combo1"]
+  trunk_ports = ["ether2", "ether3", "ether4", "combo1"]
   access_ports = {
     ether1 = local.vlans["Management"]
     ether5 = local.vlans["Management"]
@@ -377,64 +377,61 @@ module "office_switch" {
   }
 }
 
-# module "wifi_config" {
-#   source = "./modules/wifi_config"
-#   providers = {
-#     routeros = routeros.cAPax-1
-#   }
-#
-#   ssid       = "Strudel"
-#   passphrase = data.sops_file.secrets.data["wifi1_password"]
-# }
+module "wifi_config" {
+  source = "./modules/wifi_config"
+  providers = {
+    routeros = routeros.cAPax-1
+  }
 
-# module "access_point_1" {
-#   source = "./modules/access_point"
-#   providers = {
-#     routeros = routeros.cAPax-1
-#   }
-#
-#   capsman_role        = "manager"
-#   manager_wifi_config = module.wifi_config.configuration_name
-#
-#   identity = "access_point_1"
-#
-#   base_ip    = local.base_ip
-#   ip_address = "20"
-#
-#   vlans           = local.vlans
-#   management_vlan = local.vlans["Management"]
-#
-#   trunk_ports = ["ether1"]
-#   access_ports = {
-#     ether2 = local.vlans["Management"]
-#     wifi1  = local.vlans["Management"]
-#     wifi2  = local.vlans["Management"]
-#   }
-# }
+  ssid       = "Strudel"
+  passphrase = data.sops_file.secrets.data["wifi1_password"]
+  bridge     = module.access_point_1.bridge
+  vlan_id    = local.vlans["Home"]
+}
 
-# module "access_point_2" {
-#   source = "./modules/access_point"
-#   providers = {
-#     routeros = routeros.cAPax-2
-#   }
-#
-#   depends_on   = [module.access_point_1]
-#   capsman_role = "client"
-#
-#   identity = "access_point_2"
-#
-#   base_ip    = local.base_ip
-#   ip_address = "21"
-#
-#   vlans           = local.vlans
-#   management_vlan = local.vlans["Management"]
-#
-#   trunk_ports = ["ether1"]
-#   access_ports = {
-#     wifi1 = local.vlans["Management"]
-#     wifi2 = local.vlans["Management"]
-#   }
-# }
+module "access_point_1" {
+  source = "./modules/access_point"
+  providers = {
+    routeros = routeros.cAPax-1
+  }
+
+  capsman_role = "manager"
+  radio_configurations = {
+    wifi1 = module.wifi_config.configuration_names["5ghz"]
+    wifi2 = module.wifi_config.configuration_names["2ghz"]
+  }
+
+  identity = "access_point_1"
+
+  base_ip    = local.base_ip
+  ip_address = "20"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+  admin_sources   = local.admin_sources
+
+  trunk_ports = ["ether1"]
+}
+
+module "access_point_2" {
+  source = "./modules/access_point"
+  providers = {
+    routeros = routeros.cAPax-2
+  }
+
+  capsman_role = "client"
+
+  identity = "access_point_2"
+
+  base_ip    = local.base_ip
+  ip_address = "21"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+  admin_sources   = local.admin_sources
+
+  trunk_ports = ["ether1"]
+}
 
 ##########################################
 # Syslog: every device ships to Loki
@@ -475,20 +472,20 @@ module "syslog_office_switch" {
   target_ip = local.services["syslog.lilstrudel.io"].ip
 }
 
-# module "syslog_access_point_1" {
-#   source = "./modules/syslog"
-#   providers = {
-#     routeros = routeros.cAPax-1
-#   }
-#
-#   target_ip = local.services["syslog.lilstrudel.io"].ip
-# }
+module "syslog_access_point_1" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.cAPax-1
+  }
 
-# module "syslog_access_point_2" {
-#   source = "./modules/syslog"
-#   providers = {
-#     routeros = routeros.cAPax-2
-#   }
-#
-#   target_ip = local.services["syslog.lilstrudel.io"].ip
-# }
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_access_point_2" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.cAPax-2
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}

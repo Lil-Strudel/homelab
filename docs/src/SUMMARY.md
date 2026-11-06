@@ -43,6 +43,7 @@
 - [Service Networking](./decisions/service-networking.md)
 - [BGP Timers](./decisions/bgp-timers.md)
 - [WAN RA MTU Syslog](./decisions/wan-ra-mtu.md)
+- [WiFi](./decisions/wifi.md)
 - [kube-vip Manifest](./decisions/kube-vip.md)
 - [Rook-Ceph Values](./decisions/rook-ceph.md)
 - [Media Node](./decisions/media-node.md)

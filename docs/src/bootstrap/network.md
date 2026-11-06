@@ -6,7 +6,7 @@ cluster needs. Run from `terraform/`. Design and addressing are in
 
 ## Adopt a device into Terraform
 
-Do this per device (router, switches, APs):
+Do this per device (router, switches). Access points have their own flow, below:
 
 1. Plug all MikroTiks into a **separate** router first — avoids the IP chicken-and-egg.
 2. Factory reset (no users, no default config, no backup).
@@ -25,6 +25,54 @@ Do this per device (router, switches, APs):
    apply again. Run Terraform from the Management VLAN, since enforcement restricts
    router admin to Management and `wg-management`.
 9. Run the import script (below), then `terraform apply`.
+
+## Adopt an access point
+
+An AP's only uplink is a trunk (10G switch `ether3`/`ether4`), which drops untagged
+frames, so it can't DHCP its way in like the generic flow above. Instead, give it its
+Management address by hand at a desk, then import that skeleton. The design is in
+[Reference → Network](../reference/network.md#wifi).
+
+1. Power the AP through its PoE injector on `ether1` and connect a laptop to `ether2`.
+   Open WinBox over MAC.
+2. On both APs, make sure the `wifi-qcom` package is installed and `wireless` is not, then
+   bring RouterOS and the RouterBOARD firmware to the same version on both
+   (`/system/routerboard/upgrade`, then reboot). AP1 refuses to provision a CAP on a
+   different version.
+3. Check `/system/device-mode/print`. If `bandwidth-test` is blocked, the switch module's
+   `routeros_tool_bandwidth_server` cannot apply.
+4. Reset with `/system/reset-configuration no-defaults=yes skip-backup=yes`, reconnect
+   over MAC, and set the login to the `routeros_username`/`routeros_password` pair in
+   `terraform/secrets.sops.yaml`.
+5. Paste the bootstrap, with `<IP>` set to `20` for AP1 or `21` for AP2. The VLAN table
+   comes before `vlan-filtering`, as the manual warns, so the device stays reachable:
+
+   ```routeros
+   /certificate add name=root-cert common-name=root-cert key-size=4096 days-valid=3650 key-usage=key-cert-sign,crl-sign
+   /certificate add name=tls-cert common-name=tls-cert key-size=4096 days-valid=3650 key-usage=digital-signature,key-agreement,tls-server
+   /certificate sign root-cert
+   /certificate sign tls-cert ca=root-cert
+   /ip/service set www-ssl certificate=tls-cert port=6729 disabled=no
+
+   /interface/bridge add name=bridge vlan-filtering=no
+   /interface/bridge/port add bridge=bridge interface=ether1 frame-types=admit-only-vlan-tagged ingress-filtering=yes
+   /interface/bridge/vlan add bridge=bridge tagged=bridge,ether1 vlan-ids=100
+   /interface/vlan add interface=bridge name=Management_VLAN vlan-id=100
+   /ip/address add address=10.69.100.<IP>/24 interface=Management_VLAN
+   /ip/route add gateway=10.69.100.1
+   /interface/bridge set bridge vlan-filtering=yes
+   ```
+
+6. Make the uplinks trunks before plugging in: `terraform apply -target=module.ethernet_switch`.
+7. Move each AP's injector to its switch port, unplug the laptop, and confirm
+   `https://10.69.100.<IP>:6729` answers from the Management VLAN.
+8. Map the ids (below) for each AP's bridge, `Management_VLAN`, address, route,
+   `ether1` bridge port, VLAN 100 bridge entry, `wifi1` and `wifi2`, fill them into the
+   access point block of `scripts/tf_import_mikrotik.sh`, and run those imports.
+9. `terraform plan`, then `terraform apply`.
+10. Verify on AP1: `/interface/wifi/capsman/remote-cap print` lists AP2,
+    `/interface/wifi print` shows four running radios across both APs, and a client on
+    `Strudel` gets a `10.69.10.x` lease.
 
 ## Importing existing RouterOS objects
 

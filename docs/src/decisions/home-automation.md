@@ -153,7 +153,7 @@ too.
 
 ## Zigbee channel 25
 
-Wi-Fi channels are auto-selected on the access points, so any of 1, 6 or 11 may be in use.
+The access points pick their 2.4 GHz channel from 1, 6 and 11, so any of them may be in use.
 Zigbee channel 25 sits above Wi-Fi channel 11, so it overlaps none of them. It is also a
 ZLL channel, which older Zigbee Light Link devices require. Changing it later means re-pairing
 some devices, so it is pinned in the manifest.

@@ -61,6 +61,8 @@ VLAN 100.
 | 10G switch | `combo1` | Trunk | Core switch |
 | 10G switch | `ether1` | Management | rem-4 iDRAC |
 | 10G switch | `ether2` | Trunk | Office switch |
+| 10G switch | `ether3` | Trunk | Access point 1 (via PoE injector) |
+| 10G switch | `ether4` | Trunk | Access point 2 (via PoE injector) |
 | 10G switch | `ether5` | Management | KVM switch |
 | 10G switch | `ether6` | Management | PiKVM |
 | 10G switch | `ether7`, `ether8` | Management | UPSes |
@@ -78,13 +80,19 @@ outbound work, such as `check-for-updates`.
 
 ## WiFi
 
-Two cAPax APs run under **CAPsMAN**, with AP1 as manager and AP2 as client, so the
-`Strudel` SSID roams seamlessly across both.
+Two cAP ax APs run under **CAPsMAN**: AP1 is the manager and AP2 a CAP, so the
+`Strudel` SSID roams across both with 802.11r/k/v. Each AP trunks every VLAN on its
+`ether1` and is managed on VLAN 100, exactly like a switch; `ether2` is off the bridge.
 
-The APs are currently disconnected, so their blocks in `terraform/main.tf` are commented
-out and their resources were removed from state. The devices still hold that config, so
-uncommenting alone would make Terraform try to create resources that already exist:
-reconnect them, then re-import with `scripts/tf_import_mikrotik.sh` before the next apply.
+| SSID | Bands | Clients land on | Security |
+| --- | --- | --- | --- |
+| `Strudel` | 2.4 GHz (20 MHz, channels 1/6/11) + 5 GHz (up to 80 MHz, non-DFS) | Home (VLAN 10) | WPA2/WPA3-PSK, 802.11r, WPS off |
+
+The profiles live on AP1 (`terraform/modules/wifi_config`). AP1 binds them to its own
+radios directly, and provisioning rules push them to AP2. Each AP tags client traffic
+with the datapath's VLAN on the CAP itself, so client traffic never passes through AP1.
+Why each setting is what it is: [Decisions → WiFi](../decisions/wifi.md). Adopting an
+AP: [Bootstrap → Network](../bootstrap/network.md#adopt-an-access-point).
 
 ## BGP
 
