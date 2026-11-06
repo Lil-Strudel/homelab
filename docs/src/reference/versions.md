@@ -18,7 +18,7 @@ in lockstep, so the two never drift.
 | Ceph | `v20.2.4` (Tentacle) | `core/configs/rook-ceph/cluster.yaml` (`cephImage.tag`) |
 | ZFS-LocalPV | `2.11.2` | `core/controllers/zfs-localpv/helm-release.yaml` (chart version) |
 | cert-manager | `v1.21.2` | `core/controllers/cert-manager/oci-repo.yaml` (`ref.tag`) |
-| Velero | `12.2.1` | `platform/controllers/velero/helm-release.yaml` (chart version) |
+| Velero | `12.2.3` | `platform/controllers/velero/helm-release.yaml` (chart version) |
 | velero-plugin-for-aws | `v1.14.4` | `platform/controllers/velero/helm-release.yaml` (`initContainers` image tag) |
 | aws-cli | `2.39.5` | `platform/controllers/ddns/cronjob.yaml` (image tag) |
 | victoria-metrics-k8s-stack | `0.96.0` | `platform/controllers/victoria-metrics/helm-release.yaml` (chart version) |
