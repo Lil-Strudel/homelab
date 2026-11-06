@@ -164,6 +164,30 @@ and check the `selinux_warning_controller_selinux_volume_conflict` metric before
 
 ## Upgrade log
 
+### 2026-11-06 — Talos 1.14.4 → 1.14.5, Kubernetes 1.36.5 → 1.36.6
+
+Two patch hops with `upgrade-nodes.sh` and `upgrade-k8s`, run straight after the weekly
+Renovate merges, once the Rook bump had finished rolling Ceph to its new release.
+
+| Step | Duration | Notes |
+| --- | --- | --- |
+| etcd snapshot | seconds | 4,889 keys, 185 MB |
+| makima-1 | ~3 min | |
+| makima-2, makima-3, rem-1..3 | ~2–2.5 min each | |
+| rem-4 | ~4 min, plus ~9 min for media pods | First attempt failed; see below |
+| `install.image` sync | seconds per node | No reboot |
+| `upgrade-k8s` → 1.36.6 | 6 min | No manifest changes; dry run listed no deprecated APIs |
+
+What went wrong or was learned:
+
+- **rem-4's first attempt timed out pulling its installer** from `factory.talos.dev` (its
+  own schematic, which no other node uses). The error came before the drain, so nothing
+  was disrupted and the script cleared `noout` on exit; re-running with `rem-4` alone
+  eight minutes later worked.
+- **`--progress plain` prints `error: reboot sequence completed`** and
+  `error: stopAllServices task completed` for every node. These are normal progress
+  events, not failures.
+
 ### 2026-10-20 — Talos 1.14.2 → 1.14.4
 
 A patch-only hop with `upgrade-nodes.sh`; Kubernetes stayed on 1.36.5, still the newest
