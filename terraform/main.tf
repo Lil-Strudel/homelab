@@ -281,10 +281,10 @@ module "router" {
 
   wg_home_peers = {
     home-phone  = { public_key = "X7PrlehY0YkbVyv5hC0/xokHpnt927U8FTk3LFLF3lc=", address = "10.69.70.2/32" }
-    home-laptop = { public_key = "25l6Q7lmYuTl4SvDsrcVXSKSeJY7UlR3mXPXuJ94mVg=", address = "10.69.70.3/32" }
+    home-laptop = { public_key = "Q9orqASTgur6XGd/A7shxZM54tnPUhQ2gAlZgS4jYiM=", address = "10.69.70.3/32" }
   }
   wg_management_peers = {
-    mgmt-laptop = { public_key = "KJ/Z4ibFkUg9ZbJlND1kmqP36oF2vr2dFn3AyZqEE1k=", address = "10.69.80.2/32" }
+    mgmt-laptop = { public_key = "/cXRdojMazZKohtJy5v7BkYz8FoqhsydZvr9j25jfS0=", address = "10.69.80.2/32" }
   }
 }
 
