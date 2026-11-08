@@ -80,7 +80,8 @@ is deleted, or the finalizer strands the namespace.
    ```
 4. **Remove the public edge.** Run `terraform -chdir=terraform/cnh destroy`, then delete `terraform/cnh/`.
    Destroying the registered-domain resource only drops it from state, so `quikk.live` keeps
-   pointing at Cloudflare's nameservers until changed in Route53 Domains.
+   pointing at Cloudflare's nameservers until changed in Route53 Domains. Terraform cannot
+   delete the tunnel's route config on its own, but Cloudflare drops it along with the tunnel.
 5. **Remove external accounts.** Delete the GHCR packages under the app repo, then revoke the Cloudflare, Dash0, OpenAI and GitHub tokens.
 6. **Verify:**
    ```bash

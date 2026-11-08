@@ -53,6 +53,7 @@ resource "cloudflare_zone" "app" {
 
 resource "aws_route53domains_registered_domain" "app" {
   domain_name = local.domain
+  auto_renew  = false
 
   dynamic "name_server" {
     for_each = cloudflare_zone.app.name_servers
