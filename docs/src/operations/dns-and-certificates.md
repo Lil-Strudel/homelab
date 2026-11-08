@@ -139,7 +139,9 @@ Widening the zone list rewrites the policy in place and does **not** rotate the 
 key, so the `route53-credentials` Secret below stays valid.
 
 Both profiles resolve through AWS SSO / IAM Identity Center. Configure them once with
-the helper (writes a managed block into `~/.aws/config`, then logs in):
+the helper, which logs in and writes a managed block into `~/.aws/config` with one
+profile per account the login can reach, named after the account (`StrudeLAN` →
+`strudelan`). Re-run it to pick up new accounts:
 
 ```bash
 ./scripts/aws_sso_setup.sh
