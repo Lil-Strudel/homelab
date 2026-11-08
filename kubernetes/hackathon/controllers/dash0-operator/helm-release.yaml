@@ -36,7 +36,7 @@ spec:
           key: token
       agent0Connector:
         enabled: true
-        serverAddress: REPLACE_WITH_DASH0_OUTBOUND_CONNECTOR_ENDPOINT
+        serverAddress: outbound-connector.us-west-2.aws.dash0.com:443
         secretRef:
           name: dash0-authorization
           key: token
