@@ -33,6 +33,7 @@
 - [Dashboard (Dashy)](./operations/dashboard.md)
 - [UPS (APC NMC3)](./operations/ups.md)
 - [Minecraft](./operations/minecraft.md)
+- [Hackathon (temporary)](./operations/hackathon.md)
 - [Adding a Service](./operations/adding-a-service.md)
 - [Upgrades](./operations/upgrades.md)
 - [Talos & Kubernetes Upgrades](./operations/talos-upgrades.md)

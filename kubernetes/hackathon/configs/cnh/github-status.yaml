@@ -1,0 +1,22 @@
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: github
+  namespace: cnh
+spec:
+  type: github
+  address: https://github.com/Lil-Strudel/2026-cn-hackathon
+  secretRef:
+    name: github-status
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: github-status
+  namespace: cnh
+spec:
+  providerRef:
+    name: github
+  eventSources:
+    - kind: Kustomization
+      name: app

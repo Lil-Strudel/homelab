@@ -1,0 +1,5 @@
+apiVersion: operator.dash0.com/v1beta1
+kind: Dash0Monitoring
+metadata:
+  name: dash0-monitoring-resource
+  namespace: cnh
