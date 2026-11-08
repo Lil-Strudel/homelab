@@ -371,7 +371,7 @@ module "office_switch" {
     ether3 = local.vlans["Home"]
     ether4 = local.vlans["Home"]
     ether5 = local.vlans["Home"]
-    ether6 = local.vlans["Home"]
+    ether6 = local.vlans["Management"]
     ether7 = local.vlans["Trusted"]
     ether8 = local.vlans["Management"]
   }
