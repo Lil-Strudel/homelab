@@ -55,6 +55,7 @@ Ingress pins the LoadBalancer IP the hostname resolves to.
 | `https://vmsingle.lilstrudel.io` | `vmsingle-vm:8428` | VictoriaMetrics API and `vmui` |
 | `https://loki.lilstrudel.io` | `loki-gateway:80` | Loki query and push API |
 | `https://alloy.lilstrudel.io` | `alloy-syslog:12345` | `alloy-syslog` component UI and metrics |
+| `https://hubble.lilstrudel.io` | `kube-system/hubble-ui:80` | Hubble network flow UI (see [Network flows](#network-flows-hubble)) |
 
 `syslog.lilstrudel.io` (`10.69.65.43`) is the one endpoint that is not fronted this way. It
 is the UDP 514 sink for the MikroTik devices, and an Ingress cannot carry UDP, so
@@ -199,6 +200,25 @@ Loki's own ingest metrics.
 One upstream-generated warning accounts for the large majority of router syslog and is
 dropped at `alloy-syslog`. The reasoning and the ways to see it anyway are in
 [WAN RA MTU Syslog](../decisions/wan-ra-mtu.md).
+
+## Network flows (Hubble)
+
+Hubble is Cilium's flow observability layer. Every Cilium agent records the flows on its own
+node; **Hubble Relay** aggregates them cluster-wide and **Hubble UI** draws the service map.
+Both are enabled in the Cilium HelmRelease (`hubble.relay`, `hubble.ui`), so they share
+Cilium's version and lifecycle. Relay talks to the agents over mTLS, with certificates issued
+by a chart-managed CronJob rather than at template time, so Flux upgrades do not rotate them.
+
+The UI is at `https://hubble.lilstrudel.io` (LAN or VPN only). For the CLI, port-forward Relay
+and query the whole cluster at once instead of exec'ing into one node's agent:
+
+```bash
+kubectl -n kube-system port-forward svc/hubble-relay 4245:80 &
+hubble observe --server localhost:4245 --namespace <ns> --verdict DROPPED -f
+```
+
+`hubble` is the standalone Hubble CLI. Without Relay, `kubectl -n kube-system exec <cilium-agent>
+-- hubble observe` still works, but it only sees flows on that agent's node.
 
 ## Health check
 

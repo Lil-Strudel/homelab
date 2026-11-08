@@ -140,6 +140,7 @@ locals {
     "vmsingle.lilstrudel.io"       = { ip = "10.69.65.42", zone = local.domain, expose = null }
     "syslog.lilstrudel.io"         = { ip = "10.69.65.43", zone = local.domain, expose = null }
     "alloy.lilstrudel.io"          = { ip = "10.69.65.44", zone = local.domain, expose = null }
+    "hubble.lilstrudel.io"         = { ip = "10.69.65.45", zone = local.domain, expose = null }
     "jellyfin.lilstrudel.io"       = { ip = "10.69.65.50", zone = local.domain, expose = null }
     "seerr.lilstrudel.io"          = { ip = "10.69.65.51", zone = local.domain, expose = null }
     "shoko.lilstrudel.io"          = { ip = "10.69.65.52", zone = local.domain, expose = null }

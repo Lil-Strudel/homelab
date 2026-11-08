@@ -33,6 +33,9 @@ helm install cilium cilium/cilium \
     --set ingressController.enabled=true \
     --set ingressController.loadbalancerMode=dedicated \
     --set ingressController.default=true \
+    --set hubble.tls.auto.method=cronJob \
+    --set hubble.relay.enabled=true \
+    --set hubble.ui.enabled=true \
     --set prometheus.enabled=true \
     --set prometheus.metricsService=true \
     --set operator.prometheus.metricsService=true
