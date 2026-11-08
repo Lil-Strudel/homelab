@@ -9,7 +9,7 @@ spec:
       app.kubernetes.io/name: cloudflared
   egress:
     - toFQDNs:
-        - matchPattern: "*.argotunnel.com"
+        - matchPattern: "*.v2.argotunnel.com"
         - matchPattern: "*.cftunnel.com"
       toPorts:
         - ports:
