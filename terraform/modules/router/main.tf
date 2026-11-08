@@ -203,13 +203,12 @@ resource "routeros_interface_list_member" "internet_list_member_wg" {
 # Input Firewall Rules
 ######################
 resource "routeros_ip_firewall_filter" "input_wireguard" {
-  chain             = "input"
-  action            = "accept"
-  protocol          = "udp"
-  dst_port          = "${var.wg_home_port},${var.wg_management_port}"
-  in_interface_list = routeros_interface_list.wan_list.name
-  comment           = "Allow WireGuard from WAN"
-  place_before      = routeros_ip_firewall_filter.input_established.id
+  chain        = "input"
+  action       = "accept"
+  protocol     = "udp"
+  dst_port     = "${var.wg_home_port},${var.wg_management_port}"
+  comment      = "Allow WireGuard"
+  place_before = routeros_ip_firewall_filter.input_established.id
 }
 
 resource "routeros_ip_firewall_filter" "input_established" {

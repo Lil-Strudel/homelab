@@ -117,8 +117,11 @@ the router-side setup is in [Bootstrap → Network](../bootstrap/network.md).
 ## WireGuard / Remote Access
 
 Two built-in WireGuard tunnels on the router provide roadwarrior VPN access from
-anywhere. Both listen on the WAN and are reached at **`vpn.lilstrudel.io`**, whose address
-is kept current by the [dynamic-DNS job](../operations/dns-and-certificates.md#dynamic-dns).
+anywhere, including from inside the LAN. Both are reached at **`vpn.lilstrudel.io`**, whose
+address is kept current by the [dynamic-DNS job](../operations/dns-and-certificates.md#dynamic-dns).
+That name resolves to the WAN address on every network, so a client on a VLAN hits the
+router's `input` chain on that VLAN's interface — which is why the listen ports are open
+on every interface, not just the WAN.
 Because MikroTik WireGuard is L3-only, each tunnel is its own routed `/24` — a client is
 *routed* toward a role, not bridged onto a VLAN's L2 segment — and its reach is set by
 firewall rules that mirror that role.
@@ -167,7 +170,8 @@ list narrows it again — see [Operations → UPS](../operations/ups.md).
 Router **`input`** is locked to the Management VLAN and the `wg-management` tunnel. The
 exceptions are the services a router has to answer for anyone: DHCP, DNS, and NTP from
 every VLAN and both tunnels, ICMP, BGP from `Trusted_VLAN`, and the two WireGuard listen
-ports from the WAN. That set is what keeps the policy from black-holing the network or
+ports from any interface (they are already open to the internet, and a peer still needs a
+registered key). That set is what keeps the policy from black-holing the network or
 locking out the VPN. Both chains drop `connection-state=invalid` right after accepting
 established traffic.
 
