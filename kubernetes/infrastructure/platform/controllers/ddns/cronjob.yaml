@@ -13,6 +13,7 @@ spec:
     spec:
       backoffLimit: 2
       activeDeadlineSeconds: 180
+      ttlSecondsAfterFinished: 86400 # a failed Job keeps KubeJobFailed firing until it is deleted
       template:
         metadata:
           labels:

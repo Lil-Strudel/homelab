@@ -110,7 +110,10 @@ level=info event=ddns_run_complete ip=<addr> updated=1 unchanged=0 failed=0
 
 `ddns_record_updated` marks a real address change; `ddns_wan_lookup_failed`,
 `ddns_zone_lookup_failed`, and `ddns_record_update_failed` are the error events, and any
-of them fails the Job.
+of them fails the Job. Finished Jobs are deleted after a day (`ttlSecondsAfterFinished`).
+`KubeJobFailed` fires for as long as a failed Job exists, so without that one transient
+failure would keep the alert firing until three newer failures pushed it out of
+`failedJobsHistoryLimit`. A real outage still shows up, because every run fails again.
 
 ```bash
 kubectl -n ddns get cronjob ddns
