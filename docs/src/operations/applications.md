@@ -16,6 +16,7 @@ see [Media](./media.md); and Home Assistant with its radio bridges sits in
 | Dashy | `dashy.lilstrudel.io` | HTTPS via a Cilium `Ingress`; the lab's landing page — see [Dashboard](./dashboard.md) |
 | Vaultwarden | `vault.lilstrudel.io` | HTTPS via a Cilium `Ingress` + `letsencrypt-prod` cert; Postgres backing store |
 | Immich | `immich.lilstrudel.io` | HTTPS via a Cilium `Ingress`; photo library on 100Gi of `ceph-block`, Postgres backing store |
+| Ovumcy | `period.lilstrudel.io` | HTTPS via a Cilium `Ingress`; period tracker on SQLite, internal-only |
 | Shlink | `16e.link` | HTTPS via a Cilium `Ingress`; short-link API and redirects; Postgres backing store |
 | Shlink admin UI | `admin.16e.link` | Its own `Ingress`, IP, and certificate — internal-only permanently |
 | Minecraft | `*.mc.lilstrudel.io` | Raw TCP `25565` `LoadBalancer` fronting a fleet of servers — see [Minecraft](./minecraft.md) |
@@ -98,7 +99,7 @@ Namespaces enforce Pod Security Admission `restricted`, with two exceptions:
 
 | Namespace | Enforce | Why |
 | --- | --- | --- |
-| `dashy`, `vaultwarden`, `immich`, `minecraft`, `factorio`, `rustdesk` | `restricted` | — |
+| `dashy`, `vaultwarden`, `immich`, `ovumcy`, `minecraft`, `factorio`, `rustdesk` | `restricted` | — |
 | `shlink` | `baseline` | The `shlink-web-client` nginx entrypoint writes `servers.json` into the image's html directory, which a non-root UID cannot create. `warn`/`audit` stay at `restricted` so the gap stays visible. |
 | `media` | `privileged` | gluetun needs `NET_ADMIN`. `warn`/`audit` stay at `restricted`, and a `ValidatingAdmissionPolicy` denies everything else `privileged` would allow — see [Decisions → Media Node](../decisions/media-node.md#the-media-stack-in-one-namespace). |
 
@@ -153,6 +154,12 @@ kubectl -n rustdesk logs deploy/rustdesk -c hbbs | grep '^.*Key:'
 
 The log is the only way to read it — the image has no shell, so `kubectl exec ... cat
 /root/id_ed25519.pub` will not run.
+
+## Ovumcy
+
+`ovumcy-fence` is deliberately left out of backups: restoring it alongside the database
+defeats the app's restore detection. Registration is closed; create accounts with
+`kubectl -n ovumcy exec -it deploy/ovumcy -- /app/ovumcy users create <email>`.
 
 ## The Shlink admin UI is internal-only
 

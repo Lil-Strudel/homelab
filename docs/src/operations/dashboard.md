@@ -12,7 +12,7 @@ what is on it, and why some tiles have a status dot and others do not.
 
 | Section | Covers |
 | --- | --- |
-| Applications | Vaultwarden, Shlink, the Shlink admin UI, Dashy itself |
+| Applications | Vaultwarden, Immich, Ovumcy, Shlink, the Shlink admin UI, RustDesk, Dashy itself |
 | Media | Jellyfin, Seerr, Kavita, Audiobookshelf, Jellystat |
 | Media Management | The arrs, Shoko, Shelfmark, Suwayomi, the download clients, qbit_manage, Cleanuparr |
 | Home Automation | Home Assistant, Zigbee2MQTT, Z-Wave JS UI |
@@ -50,7 +50,7 @@ leave through an Ingress and come back.
 Five endpoints are probed: Grafana, VictoriaMetrics, Loki, `alloy-syslog`, and the Ceph
 dashboard. Everything else is deliberately left unchecked:
 
-- **Vaultwarden, Shlink, Minecraft, Factorio** each run their own default-deny policy.
+- **Vaultwarden, Ovumcy, Shlink, Minecraft, Factorio** each run their own default-deny policy.
   Probing them would mean widening those policies to admit a dashboard — a new allowed
   flow into a password vault in exchange for a status dot.
 - **Network gear, nodes, and out-of-band devices** sit on Management and Trusted, which

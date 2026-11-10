@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovumcy
+  namespace: ovumcy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ovumcy
+  template:
+    metadata:
+      annotations:
+        backup.velero.io/backup-volumes: data
+      labels:
+        app: ovumcy
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ovumcy
+          image: ghcr.io/ovumcy/ovumcy-web:v2.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DB_PATH
+              value: /app/data/ovumcy.db
+            - name: CALENDAR_FEED_FENCE_PATH
+              value: /app/fence/calendar-feed.fence
+            - name: REGISTRATION_MODE
+              value: closed
+            - name: COOKIE_SECURE
+              value: "true"
+            - name: TRUST_PROXY_ENABLED
+              value: "true"
+            - name: TRUSTED_PROXIES
+              value: 10.244.0.0/16 # the pod CIDR: Cilium's Envoy reaches the pod from its node's cilium_host address
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ovumcy
+                  key: SECRET_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: fence
+              mountPath: /app/fence
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ovumcy-data
+        - name: fence
+          persistentVolumeClaim:
+            claimName: ovumcy-fence
+        - name: tmp
+          emptyDir: {}
