@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mc-router
-          image: itzg/mc-router:1.54.2
+          image: itzg/mc-router:1.56.5
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
