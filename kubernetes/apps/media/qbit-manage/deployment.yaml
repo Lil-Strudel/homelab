@@ -71,7 +71,7 @@ spec:
             - name: QBT_SHARE_LIMITS
               value: "true"
             - name: QBT_DRY_RUN
-              value: "true" # it deletes files; review a few runs' logs before turning this off
+              value: "false"
             - name: QBT_SKIP_QB_VERSION_CHECK
               value: "true"
           volumeMounts:

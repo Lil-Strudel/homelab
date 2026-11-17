@@ -170,8 +170,8 @@ Pre-transcoding (Tdarr, Unmanic, or AV1 for space) was rejected:
 - It rewrites files. That breaks the hardlink to the seeding torrent and changes what the
   arrs scored, so they grab the release again.
 - TRaSH's anime profiles score AV1 at -10000, so converted files fight the guide.
-- The Shield, the main TV client, cannot decode AV1, so AV1 would create transcodes rather
-  than remove them.
+- The main TV client, an Ugoos AM6B+ running CoreELEC, cannot decode AV1, so AV1 would
+  create transcodes rather than remove them.
 
 Revisit only for space, when the pool is more than 70% full.
 
@@ -186,7 +186,7 @@ The decision rule:
 | Result | Then |
 | --- | --- |
 | The mix (two ASS-anime burn-ins plus one 4K HDR tone-map) holds 1.2× or better | Keep transcoding on demand. Done |
-| ASS burn-in falls short, on CPU | Fix it at the client: Kodi + JellyCon on the Shield, mpv or Findroid on phones. Never pre-burn subtitles |
+| ASS burn-in falls short, on CPU | Fix it at the client: the Jellyfin for Kodi add-on in CoreELEC on the AM6B+, mpv or Findroid on phones. Never pre-burn subtitles |
 | 4K HDR tone-mapping falls short | Set Seerr's defaults to the 1080p profiles, so 4K stays rare |
 
 Measured results, 2026-10-15 (procedure in [Operations → Media](../operations/media.md#benchmark)).

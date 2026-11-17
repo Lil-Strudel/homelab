@@ -223,7 +223,10 @@ Do this once, in order, after the first reconcile.
     `/data/media/anime-movies`, tag `anime`, Anime Max).
 11. **Kavita.** Create libraries: *Manga* on `/data/media/manga/mangas` (Suwayomi's tree,
     one folder per source) and *Book* on `/data/media/books`. Webtoons go in the Manga
-    library and use the Webtoon reading mode. Create an API key and put it in the `komf`
+    library and use the Webtoon reading mode. Manga from anywhere other than Suwayomi goes
+    in `mangas/Manual/<Series>/`, inside the same root. A second root folder would break
+    scanning: Kavita aborts the whole library scan when any root is empty, and the Suwayomi
+    root is empty until something downloads. Create an API key and put it in the `komf`
     secret (see [Secrets](#secrets)).
 12. **Audiobookshelf.** Libraries on `/data/media/audiobooks` and a Podcast library on
     `/data/media/podcasts`.
@@ -234,10 +237,16 @@ Do this once, in order, after the first reconcile.
     Book file organization is set by env in `shelfmark/deployment.yaml`: *Rename and
     Organize* with the path template `{Author}/{Series/}{Title} ({Year})`, because Kavita
     ignores files at the root of a library and wants each series in its own folder.
+    Shelfmark is for ebooks and audiobooks only. A manga it downloads lands in the Book
+    library, which reads only EPUB and PDF and ignores comic archives, and the renaming
+    strips the chapter numbers. Get manga through Suwayomi, or hardlink the correctly
+    named torrent files into `mangas/Manual/`.
 15. **qbit_manage.** In its web UI, write `config.yml`: qBittorrent at `qbittorrent:8080`
     with its login, `root_dir: /data/torrents`, the share limits, and the recycle bin.
-    It starts with `QBT_DRY_RUN=true`. Read a few runs' logs, then set it to `false` in
-    `qbit-manage/deployment.yaml`.
+    It deletes torrents and their files, so on a fresh `config.yml` set `QBT_DRY_RUN` to
+    `true` in `qbit-manage/deployment.yaml` until a few runs' logs look right, then back
+    to `false`. While dry run is on it logs "Deleted .torrent AND content files" without
+    deleting anything, and finished torrents pile up in qBittorrent.
 16. **Cleanuparr.** Connect qBittorrent, Sonarr and Radarr. Turn on the queue cleaner and
     the malware blocker. Leave its **download cleaner off**: qbit_manage owns seeding
     limits and cleanup, and two tools deleting torrents disagree.
@@ -276,8 +285,8 @@ Settings (Dashboard → Playback → Transcoding):
 - Hardware acceleration **Intel QuickSync (QSV)**, device `/dev/dri/renderD128`.
 - Hardware decoding for H.264, HEVC, HEVC 10-bit, HEVC RExt, VP9 and AV1.
 - **Low-power H.264 and HEVC encoders on.** DG2 only encodes in low-power mode.
-- HEVC encoding allowed; AV1 encoding off. The Shield and older Android devices cannot
-  decode AV1, so an AV1 transcode would itself need transcoding.
+- HEVC encoding allowed; AV1 encoding off. The Ugoos AM6B+ (CoreELEC) and older Android
+  devices cannot decode AV1, so an AV1 transcode would itself need transcoding.
 - Tone mapping on, with **VPP tone mapping** on too. OpenCL tone mapping collapses at three
   parallel 4K HDR streams on this node; VPP handles more than eight. See
   [Decisions → Media Node](../decisions/media-node.md#transcoding).
@@ -285,8 +294,9 @@ Settings (Dashboard → Playback → Transcoding):
   size-limited `emptyDir`.
 
 Most transcodes of anime are caused by subtitles, not codecs. Clients that render ASS
-themselves direct-play: Jellyfin Media Player, the web client, Kodi with JellyCon, and mpv
-or Findroid on Android. The official Android TV app burns ASS in, which forces a transcode.
+themselves direct-play: Jellyfin Media Player, the web client, Kodi with the Jellyfin for
+Kodi add-on, and mpv or Findroid on Android. The official Android TV app burns ASS in,
+which forces a transcode.
 libass renders on the CPU even when the overlay and encode run on the GPU.
 
 ### Benchmark
