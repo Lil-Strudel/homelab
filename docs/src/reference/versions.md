@@ -27,8 +27,8 @@ in lockstep, so the two never drift.
 | Grafana Alloy | `1.15.0` | `platform/controllers/alloy/helm-release.yaml` (chart version) |
 | prometheus-snmp-exporter | `9.21.0` | `platform/controllers/snmp-exporter/helm-release.yaml` (chart version) |
 | Intel device plugins operator | `0.37.1` | `platform/controllers/intel-device-plugins/helm-release.yaml` (chart version) |
-| CloudNativePG | `0.29.1` | `platform/controllers/cnpg/operator.yaml` (chart version) |
-| plugin-barman-cloud | `0.8.1` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
+| CloudNativePG | `0.29.2` | `platform/controllers/cnpg/operator.yaml` (chart version) |
+| plugin-barman-cloud | `0.9.0` | `platform/controllers/cnpg/plugin-barman-cloud.yaml` (chart version) |
 | PostgreSQL | `18-standard-trixie` | `platform/configs/cnpg/image-catalog.yaml` (tag + digest) |
 | mdBook | `v0.5.4` | `.github/workflows/docs.yml` (`MDBOOK_VERSION`) |
 | APC NMC3 firmware (Smart-UPS) | `2.5.5.1` | on each UPS card — not tracked by Renovate; see [UPS](../operations/ups.md#firmware) |
