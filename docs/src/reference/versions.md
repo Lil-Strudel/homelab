@@ -8,7 +8,7 @@ in lockstep, so the two never drift.
 
 | Component | Version | Pinned in |
 | --- | --- | --- |
-| Talos Linux | `v1.14.5` | `talos/patch.yaml` + `talos/machine-patches/rem-4-patch.yaml` (installer image tags) |
+| Talos Linux | `v1.14.6` | `talos/patch.yaml` + `talos/machine-patches/rem-4-patch.yaml` (installer image tags) |
 | Kubernetes | `1.36.6` | `talos/gen-talos-objects.sh` (`--kubernetes-version`) |
 | Cilium | `1.20.4` | `kubernetes/infrastructure/core/controllers/cilium/helm-release.yaml` |
 | Flux | `v2.10.0` | `flux bootstrap --version` + `clusters/main/flux-system/gotk-components.yaml` |
