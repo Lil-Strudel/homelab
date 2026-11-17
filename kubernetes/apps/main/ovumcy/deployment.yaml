@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ovumcy
-          image: ghcr.io/ovumcy/ovumcy-web:v2.1.0
+          image: ghcr.io/ovumcy/ovumcy-web:v2.2.1
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
