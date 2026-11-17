@@ -146,6 +146,12 @@ Max is Seerr's default because most titles are watched once and deleted, so the
 size of a remux is only held for a short time. Pick 1080p for a title that will stay in the
 library.
 
+Anime Max stops at 1080p and scores the top anime Blu-ray encoders above remuxes, which is
+right for series. For an anime film with a 4K disc, pick Max instead: it takes the UHD remux
+where Anime Max settles for a 1080p encode. In Seerr the server decides the folder and the
+profile decides the quality, so request it on *Radarr Anime* with the profile overridden to
+Max.
+
 Recyclarr matches profiles by name and never deletes one, so renaming a profile in the config
 creates a new one beside the old. Rename it in Sonarr or Radarr first to keep the titles on
 it, and delete any profile not in the table (including the stock Any, SD, HD-720p, and so
@@ -220,7 +226,10 @@ Do this once, in order, after the first reconcile.
 10. **Seerr.** Sign in with Jellyfin at `http://jellyfin:8096`. Add Sonarr with the anime
     root folder and the Anime Max profile set as its anime defaults and Max as its default.
     Add Radarr twice: *Radarr Movies* (default server, Max) and *Radarr Anime* (root folder
-    `/data/media/anime-movies`, tag `anime`, Anime Max).
+    `/data/media/anime-movies`, tag `anime`, Anime Max). Under Metadata Providers, set
+    Anime to **TVDB**. Seerr sends Sonarr season numbers, not episodes, and TMDB splits
+    anime into seasons differently from TVDB: TMDB has Bleach as two seasons where TVDB has
+    seventeen, so "all seasons" on TMDB data monitors only TVDB seasons 1 and 2.
 11. **Kavita.** Create libraries: *Manga* on `/data/media/manga/mangas` (Suwayomi's tree,
     one folder per source) and *Book* on `/data/media/books`. Webtoons go in the Manga
     library and use the Webtoon reading mode. Manga from anywhere other than Suwayomi goes
@@ -380,6 +389,13 @@ kubectl -n media get cronjob recyclarr -o json \
 kubectl -n media logs -f job/recyclarr-debug | grep -A1 'Invalid instances'
 kubectl -n media delete job recyclarr-debug
 ```
+
+Sonarr searches anime one episode at a time, and a season search holds every episode's
+results until the season is done. A long, popular season returns over a thousand releases
+per episode and fails with `System.OutOfMemoryException`; .NET caps its heap at 75% of the
+container limit, so this happens well before the pod is OOM-killed. Search such a season in
+batches instead, with an `EpisodeSearch` command of about five episode IDs at a time. Run
+one series search at a time: two at once crashed Sonarr at its old 1 GiB limit.
 
 gluetun refuses to start on a server filter it does not recognise, and logs the valid
 choices. Mullvad's US cities carry their state (`Denver CO`).
