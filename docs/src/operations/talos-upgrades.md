@@ -164,6 +164,27 @@ and check the `selinux_warning_controller_selinux_volume_conflict` metric before
 
 ## Upgrade log
 
+### 2026-11-17 — Talos 1.14.5 → 1.14.6
+
+A patch-only hop with `upgrade-nodes.sh`, run after the weekly Renovate merges. Kubernetes
+stayed on 1.36.6, still the newest 1.36 patch. `talosctl` was still the 1.14.5 client, which
+drove the upgrade without trouble.
+
+| Step | Duration | Notes |
+| --- | --- | --- |
+| etcd snapshot | seconds | 4,375 keys, 185 MB |
+| makima-1 | ~5 min | |
+| makima-2, makima-3, rem-1..3 | ~3 min each | |
+| rem-4 | ~6.5 min, plus ~10 min for media pods | Installer pulled first time |
+| `install.image` sync | seconds per node | No reboot |
+
+What went wrong or was learned:
+
+- **rem-4's media pods sat in `ContainerCreating` for a few minutes** with `FailedMount`
+  and `FailedCreatePodSandBox` events. They are pinned to rem-4 by their volumes, so they
+  scheduled the moment it was uncordoned, before its CSI and Cilium agents were up. They
+  recovered on their own; no action needed.
+
 ### 2026-11-06 — Talos 1.14.4 → 1.14.5, Kubernetes 1.36.5 → 1.36.6
 
 Two patch hops with `upgrade-nodes.sh` and `upgrade-k8s`, run straight after the weekly
