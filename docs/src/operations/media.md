@@ -246,6 +246,12 @@ Do this once, in order, after the first reconcile.
     Book file organization is set by env in `shelfmark/deployment.yaml`: *Rename and
     Organize* with the path template `{Author}/{Series/}{Title} ({Year})`, because Kavita
     ignores files at the root of a library and wants each series in its own folder.
+    Audiobooks are organized the same way, with the template
+    `{Author}/{Series/}{Title}/{Title}{ - Part }{PartNumber}`. Audiobookshelf makes every
+    file at a library's root its own book, so Shelfmark's default *Rename Only*, which
+    drops multi-file downloads into the root under their original names, turns a
+    chaptered audiobook into one book per chapter. The trailing `{PartNumber}` keeps the
+    files of a multi-file download from overwriting each other in the book's folder.
     Shelfmark is for ebooks and audiobooks only. A manga it downloads lands in the Book
     library, which reads only EPUB and PDF and ignores comic archives, and the renaming
     strips the chapter numbers. Get manga through Suwayomi, or hardlink the correctly

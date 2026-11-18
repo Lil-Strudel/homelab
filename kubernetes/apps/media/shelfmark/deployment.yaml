@@ -47,6 +47,10 @@ spec:
               value: "{Author}/{Series/}{Title} ({Year})"
             - name: DESTINATION_AUDIOBOOK
               value: /data/media/audiobooks
+            - name: FILE_ORGANIZATION_AUDIOBOOK
+              value: organize
+            - name: TEMPLATE_AUDIOBOOK_ORGANIZE
+              value: "{Author}/{Series/}{Title}/{Title}{ - Part }{PartNumber}"
             - name: HARDLINK_TORRENTS
               value: "true"
             - name: HARDLINK_TORRENTS_AUDIOBOOK
