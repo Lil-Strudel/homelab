@@ -13,7 +13,8 @@ not USB sticks on a node. Why it is built this way is in
 | Home Assistant | `home.lilstrudel.io` | Devices, automations, dashboards; recorder on its own CNPG cluster |
 | Zigbee2MQTT | `z2m.lilstrudel.io` | Drives the Zigbee radio; publishes devices to Mosquitto |
 | Z-Wave JS UI | `zwave.lilstrudel.io` | Drives the Z-Wave radio; Home Assistant connects to its websocket server |
-| Mosquitto | — (in-cluster) | MQTT broker between Zigbee2MQTT and Home Assistant |
+| ambient2mqtt | — (in-cluster) | Bridges the apartment's Ambient thermostat, lock and lights from the Ambient cloud to Mosquitto; scaled to zero until [it has its credentials](#finishing-ambient2mqtt) |
+| Mosquitto | — (in-cluster) | MQTT broker between the bridges and Home Assistant |
 
 Every hostname is internal: a pinned IP in the `10.69.65.70`–`.72` band in `local.services`,
 reachable from the Home VLAN and WireGuard. Mosquitto and the Z-Wave JS websocket (`3000`) are
@@ -21,6 +22,7 @@ reachable from the Home VLAN and WireGuard. Mosquitto and the Z-Wave JS websocke
 
 ```
 Zigbee radio ──tcp──► zigbee2mqtt ──mqtt──► mosquitto ◄──mqtt── home-assistant ──► home-assistant-pg
+Ambient cloud ◄─https── ambient2mqtt ─mqtt─┘                          │
 Z-Wave radio ──tcp──► zwave-js-ui ◄────────── websocket :3000 ──────┘
 ```
 
@@ -47,7 +49,8 @@ Change one without the other and the app crash-loops on a refused connection.
 
 | Secret | File | Holds |
 | --- | --- | --- |
-| `mqtt-credentials` | `mqtt-credentials.sops.yaml` | The `zigbee2mqtt` and `home-assistant` MQTT passwords |
+| `mqtt-credentials` | `mqtt-credentials.sops.yaml` | The `zigbee2mqtt`, `home-assistant` and `ambient2mqtt` MQTT passwords |
+| `ambient2mqtt` | `ambient2mqtt/secret.sops.yaml` | Ambient app login (`AMBIENT_USERNAME`, `AMBIENT_PASSWORD`) and the captured `AMBIENT_CLIENT_APP_ID` |
 | `zigbee2mqtt` | `zigbee2mqtt/secret.sops.yaml` | Zigbee network key, PAN ID, extended PAN ID; frontend token |
 | `zwave-js-ui` | `zwave-js-ui/secret.sops.yaml` | S0, S2 (×3) and Long Range (×2) keys; UI login; session secret |
 | `home-assistant-pg-backup` | `home-assistant/postgres-backup-secret.sops.yaml` | The `homelab-cnpg-home-assistant` IAM key |
@@ -96,6 +99,29 @@ After Flux brings the namespace up, five things are done once by hand.
 5. **Log in to Zigbee2MQTT** with the frontend token, `ZIGBEE2MQTT_CONFIG_FRONTEND_AUTH_TOKEN`
    from `zigbee2mqtt`.
 
+## Finishing ambient2mqtt
+
+ambient2mqtt ([repo](https://github.com/Lil-Strudel/ambient2mqtt), private) logs in to the
+Ambient cloud as the resident's app does. Device discovery also needs the app install's
+`client-app-id`, captured once from the app's traffic. Until all three values are in the
+`ambient2mqtt` Secret, the Deployment stays at `replicas: 0`. To finish it:
+
+1. Set each value without echoing it or writing it to disk in plaintext:
+
+   ```sh
+   F=kubernetes/apps/home-automation/ambient2mqtt/secret.sops.yaml
+   for KEY in AMBIENT_USERNAME AMBIENT_PASSWORD AMBIENT_CLIENT_APP_ID; do
+     printf '%s: ' "$KEY"; IFS= read -rs VALUE; echo
+     jq -Rn --arg v "$VALUE" '$v' | sops set --value-stdin "$F" "[\"stringData\"][\"$KEY\"]"
+   done; unset VALUE
+   ```
+
+2. Set `replicas: 1` in `ambient2mqtt/deployment.yaml` and push.
+3. Check the log: `kubectl -n home-automation logs deploy/ambient2mqtt`. `loaded devices` with
+   a non-zero count means it is working, and the thermostat, lock and lights appear in Home
+   Assistant through MQTT discovery. `check AMBIENT_CLIENT_APP_ID` in an error means the
+   cloud rejected the ID; re-capture it as the repo's `docs/ambient-api/CAPTURE.md` describes.
+
 ## Metrics
 
 `vmagent` scrapes Home Assistant's `/api/prometheus` every minute (`home-assistant/scrape.yaml`):
@@ -131,6 +157,7 @@ read -rs HA_TOKEN && printf 'apiVersion: v1\nkind: Secret\nmetadata:\n  name: ho
 | Z-Wave JS UI store, incl. the node cache and NVM backups | Velero, pod volume `store` | `velero/` |
 | Recorder database | barman-cloud, daily base backup + WAL | `cnpg/home-assistant/` |
 | Mosquitto retained messages | not backed up — rebuilt when the clients reconnect | — |
+| ambient2mqtt | stateless; nothing to back up | — |
 
 A full restore is the usual two moves: Flux redeploys the workloads, and Velero restores the
 three volumes (see [Backups](./backups.md)). The database restores from barman — see

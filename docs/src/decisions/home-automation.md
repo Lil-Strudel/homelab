@@ -128,8 +128,22 @@ Every cloud integration, the version check, and mobile push notifications reach 
 hosts, and that set grows each time an integration is added. An FQDN allowlist would break
 integrations silently as they are added, so Home Assistant may reach any public address on
 `443`. Private ranges stay excluded, so it still cannot reach the rest of the network.
-Zigbee2MQTT and Z-Wave JS UI have short, fixed lists (the OTA index on GitHub; the Z-Wave
-device database on npm and the firmware service) and are allowlisted by name.
+Zigbee2MQTT, Z-Wave JS UI and ambient2mqtt have short, fixed lists (the OTA index on GitHub;
+the Z-Wave device database on npm and the firmware service; Ambient's auth and
+device-discovery hosts) and are allowlisted by name.
+
+## ambient2mqtt ships scaled to zero
+
+The apartment's thermostat, lock and lights belong to the building's Ambient system and are
+only reachable through Ambient's cloud, which has no public API. ambient2mqtt speaks the
+app's reverse-engineered protocol and publishes the devices over MQTT discovery, the same
+way Zigbee2MQTT does, so Home Assistant needs no custom integration.
+
+Its device-discovery calls need the app install's `client-app-id`, captured from the app's
+traffic, and the bridge was deployed before that value was available. Run without it, the
+bridge would crash-loop. So the Deployment and its Secret land with placeholder values at
+`replicas: 0`, and finishing it is one Secret edit and one replica bump
+([runbook](../operations/home-automation.md#finishing-ambient2mqtt)).
 
 ## No host networking
 
