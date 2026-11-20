@@ -33,6 +33,7 @@ spec:
             - |
               mosquitto_passwd -c -b /mosquitto/passwd/passwd zigbee2mqtt "$ZIGBEE2MQTT_PASSWORD"
               mosquitto_passwd -b /mosquitto/passwd/passwd home-assistant "$HOME_ASSISTANT_PASSWORD"
+              mosquitto_passwd -b /mosquitto/passwd/passwd ambient2mqtt "$AMBIENT2MQTT_PASSWORD"
               chmod 0600 /mosquitto/passwd/passwd
           securityContext:
             allowPrivilegeEscalation: false

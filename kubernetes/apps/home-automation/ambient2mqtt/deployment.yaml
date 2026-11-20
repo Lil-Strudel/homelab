@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ambient2mqtt
+  namespace: home-automation
+spec:
+  replicas: 0 # until AMBIENT_CLIENT_APP_ID is in the secret; see docs/src/operations/home-automation.md
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ambient2mqtt
+  template:
+    metadata:
+      labels:
+        app: ambient2mqtt
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ambient2mqtt
+          image: ghcr.io/lil-strudel/ambient2mqtt:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: MQTT_URL
+              value: tcp://mosquitto:1883
+            - name: MQTT_USERNAME
+              value: ambient2mqtt
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: AMBIENT2MQTT_PASSWORD
+          envFrom:
+            - secretRef:
+                name: ambient2mqtt
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi

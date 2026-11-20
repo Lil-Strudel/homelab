@@ -12,7 +12,7 @@ spec:
         - matchExpressions:
             - key: app
               operator: In
-              values: [zigbee2mqtt, home-assistant]
+              values: [zigbee2mqtt, home-assistant, ambient2mqtt]
       toPorts:
         - ports:
             - port: "1883"
