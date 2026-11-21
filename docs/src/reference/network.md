@@ -55,7 +55,7 @@ VLAN 100.
 | Router | `ether1` | WAN | House modem |
 | Router | `sfp-sfpplus2` | Trunk | Core switch `sfp-sfpplus2` |
 | Router | `ether5`–`ether8` | Management | Local management access |
-| Router | `ether10` | Trunk | Media switch `ether1` |
+| Router | `ether10` | Trunk | Media switch `ether2` |
 | Core switch | `sfp-sfpplus2` | Trunk | Router |
 | Core switch | `sfp-sfpplus24` | Trunk | 10G switch `combo1` |
 | Core switch | `sfp-sfpplus1`, `3`, `9`, `11`, `17`, `19` | Trusted | Cluster nodes |
@@ -72,11 +72,16 @@ VLAN 100.
 | Office switch | `ether2`–`ether5` | Home | Office devices |
 | Office switch | `ether6` | Management | Local management access |
 | Office switch | `ether8` | Management | Local management access |
-| Media switch | `ether1` | Trunk | Router `ether10` |
-| Media switch | `ether2` | Trusted | Radio bridge |
-| Media switch | `ether3`–`ether5` | Home | Media center devices |
+| Media switch | `ether2` | Trunk | Router `ether10` |
+| Media switch | `ether3` | Trusted | Radio bridge |
+| Media switch | `ether1`, `ether4`, `ether5` | Home | Media center devices |
 
 Ports not listed are off the bridge.
+
+The media switch's trunk sits on `ether2`, not `ether1`, because this hEX S revision
+(E60iUGS, Airoha EN7523) wires `ether1` straight to the CPU rather than the switch chip.
+`ether1` can never be hardware-offloaded, so anything crossing it is bridged in software.
+Only a low-traffic device belongs there.
 
 Switches and access points run their own resolver pointed at the router
 (`10.69.100.1`) with `allow-remote-requests` off — a client of the router's resolver, never

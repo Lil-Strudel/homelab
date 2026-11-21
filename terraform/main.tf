@@ -400,10 +400,10 @@ module "media_switch" {
   management_vlan = local.vlans["Management"]
   admin_sources   = local.admin_sources
 
-  trunk_ports = ["ether1"]
+  trunk_ports = ["ether2"]
   access_ports = {
-    ether2 = local.vlans["Trusted"]
-    ether3 = local.vlans["Home"]
+    ether1 = local.vlans["Home"]
+    ether3 = local.vlans["Trusted"]
     ether4 = local.vlans["Home"]
     ether5 = local.vlans["Home"]
   }
