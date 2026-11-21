@@ -222,6 +222,11 @@ connection to each device's native API on TCP `6053`, so adding them takes:
   AGENT=$(kubectl -n kube-system get pod -l k8s-app=cilium --field-selector spec.nodeName="$NODE" -o name)
   kubectl -n kube-system exec "$AGENT" -- hubble observe --namespace home-automation --verdict DROPPED -f
   ```
+- **A Zigbee device shows as unavailable** — Zigbee2MQTT's availability tracking marks a
+  device offline when a router stops answering pings (after 10 minutes) or a battery device
+  has been silent for 25 hours. Check that it is powered, then its link quality on the
+  Zigbee2MQTT map. A button that is only pressed rarely can go unavailable while working fine;
+  pressing it brings it back.
 - **Home Assistant answers `400: Bad Request`** — a proxy it does not trust sent
   `X-Forwarded-For`. The log says `A request from a reverse proxy was received from
   10.244.x.y`. Proxy trust is not in git: set it as in step 0 of
