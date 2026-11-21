@@ -13,7 +13,7 @@ not USB sticks on a node. Why it is built this way is in
 | Home Assistant | `home.lilstrudel.io` | Devices, automations, dashboards; recorder on its own CNPG cluster |
 | Zigbee2MQTT | `z2m.lilstrudel.io` | Drives the Zigbee radio; publishes devices to Mosquitto |
 | Z-Wave JS UI | `zwave.lilstrudel.io` | Drives the Z-Wave radio; Home Assistant connects to its websocket server |
-| ambient2mqtt | — (in-cluster) | Bridges the apartment's Ambient thermostat, lock and lights from the Ambient cloud to Mosquitto; scaled to zero until [it has its credentials](#finishing-ambient2mqtt) |
+| ambient2mqtt | — (in-cluster) | Bridges the apartment's Ambient thermostat, lock and lights from the Ambient cloud to Mosquitto; polled every five minutes |
 | Mosquitto | — (in-cluster) | MQTT broker between the bridges and Home Assistant |
 
 Every hostname is internal: a pinned IP in the `10.69.65.70`–`.72` band in `local.services`,
@@ -98,12 +98,12 @@ After Flux brings the namespace up, five things are done once by hand.
 5. **Log in to Zigbee2MQTT** with the frontend token, `ZIGBEE2MQTT_CONFIG_FRONTEND_AUTH_TOKEN`
    from `zigbee2mqtt`.
 
-## Finishing ambient2mqtt
+## ambient2mqtt credentials
 
 ambient2mqtt ([repo](https://github.com/Lil-Strudel/ambient2mqtt), private) logs in to the
 Ambient cloud as the resident's app does. Device discovery also needs the app install's
-`client-app-id`, captured once from the app's traffic. Until all three values are in the
-`ambient2mqtt` Secret, the Deployment stays at `replicas: 0`. To finish it:
+`client-app-id`, captured once from the app's traffic. All three live in the `ambient2mqtt`
+Secret. To set or change them:
 
 1. Set each value without echoing it or writing it to disk in plaintext:
 
@@ -115,12 +115,12 @@ Ambient cloud as the resident's app does. Device discovery also needs the app in
    done; unset VALUE
    ```
 
-2. Set `replicas: 1` in `ambient2mqtt/deployment.yaml` and push.
+2. Push, and once Flux has applied it, restart the bridge — a changed Secret does not roll the
+   pod: `kubectl -n home-automation rollout restart deploy/ambient2mqtt`.
 3. Check the log: `kubectl -n home-automation logs deploy/ambient2mqtt`. `loaded devices` with
    a non-zero count means it is working, and the thermostat, lock and lights appear in Home
    Assistant through MQTT discovery. A rejected login or ID gives up at once instead (see
    below).
-4. Add the alert automation from [When ambient2mqtt gives up](#when-ambient2mqtt-gives-up).
 
 ### When ambient2mqtt gives up
 
@@ -155,7 +155,7 @@ the problem is fixed. To recover:
 
 1. Read the reason: `kubectl -n home-automation logs deploy/ambient2mqtt | grep 'stopped calling'`.
 2. Fix the cause. `HTTP 401` on login means the password changed; reset it as in step 1 of
-   [Finishing ambient2mqtt](#finishing-ambient2mqtt). `check AMBIENT_CLIENT_APP_ID` means the
+   [ambient2mqtt credentials](#ambient2mqtt-credentials). `check AMBIENT_CLIENT_APP_ID` means the
    ID was rejected; re-capture it as the repo's `docs/ambient-api/CAPTURE.md` describes. Any
    other rejection likely means Ambient changed its API, and the bridge needs updating.
 3. Restart it: `kubectl -n home-automation rollout restart deploy/ambient2mqtt`. A healthy

@@ -149,18 +149,12 @@ restart it, and the crash-loop backoff tops out at five minutes, so a crash loop
 login every five minutes forever. Instead, the bridge idles with every entity unavailable
 and the reason published over MQTT, where Home Assistant can notify someone.
 
-## ambient2mqtt ships scaled to zero
+## ambient2mqtt is a bridge, not an integration
 
 The apartment's thermostat, lock and lights belong to the building's Ambient system and are
 only reachable through Ambient's cloud, which has no public API. ambient2mqtt speaks the
 app's reverse-engineered protocol and publishes the devices over MQTT discovery, the same
 way Zigbee2MQTT does, so Home Assistant needs no custom integration.
-
-Its device-discovery calls need the app install's `client-app-id`, captured from the app's
-traffic, and the bridge was deployed before that value was available. Run without it, the
-bridge would crash-loop. So the Deployment and its Secret land with placeholder values at
-`replicas: 0`, and finishing it is one Secret edit and one replica bump
-([runbook](../operations/home-automation.md#finishing-ambient2mqtt)).
 
 ## No host networking
 
