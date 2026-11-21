@@ -118,8 +118,48 @@ Ambient cloud as the resident's app does. Device discovery also needs the app in
 2. Set `replicas: 1` in `ambient2mqtt/deployment.yaml` and push.
 3. Check the log: `kubectl -n home-automation logs deploy/ambient2mqtt`. `loaded devices` with
    a non-zero count means it is working, and the thermostat, lock and lights appear in Home
-   Assistant through MQTT discovery. `check AMBIENT_CLIENT_APP_ID` in an error means the
-   cloud rejected the ID; re-capture it as the repo's `docs/ambient-api/CAPTURE.md` describes.
+   Assistant through MQTT discovery. A rejected login or ID gives up at once instead (see
+   below).
+4. Add the alert automation from [When ambient2mqtt gives up](#when-ambient2mqtt-gives-up).
+
+### When ambient2mqtt gives up
+
+ambient2mqtt never retries Ambient indefinitely. A failed poll is retried with a doubling
+delay of up to an hour, and after eight failures in a row (about four hours of outage) it
+gives up. A rejected login, a rejected client app ID, or a reply that no longer matches the API
+gives up at once, because retrying cannot fix those and repeated failed logins can get the
+account locked.
+
+When it gives up, the pod stays `Running` but stops calling Ambient. Every Ambient entity in Home
+Assistant goes unavailable, and the log and the retained MQTT topic `ambient2mqtt/problem`
+both say why. To be told, add this automation in Home Assistant (*Settings → Automations →
+Create → Edit in YAML*):
+
+```yaml
+alias: ambient2mqtt gave up
+triggers:
+  - trigger: mqtt
+    topic: ambient2mqtt/problem
+conditions:
+  - condition: template
+    value_template: "{{ trigger.payload != '' }}"
+actions:
+  - action: notify.mobile_app_strudel_grapheneos
+    data:
+      title: ambient2mqtt gave up
+      message: "{{ trigger.payload }}"
+```
+
+The topic is retained, so the notification repeats each time Home Assistant restarts until
+the problem is fixed. To recover:
+
+1. Read the reason: `kubectl -n home-automation logs deploy/ambient2mqtt | grep 'stopped calling'`.
+2. Fix the cause. `HTTP 401` on login means the password changed; reset it as in step 1 of
+   [Finishing ambient2mqtt](#finishing-ambient2mqtt). `check AMBIENT_CLIENT_APP_ID` means the
+   ID was rejected; re-capture it as the repo's `docs/ambient-api/CAPTURE.md` describes. Any
+   other rejection likely means Ambient changed its API, and the bridge needs updating.
+3. Restart it: `kubectl -n home-automation rollout restart deploy/ambient2mqtt`. A healthy
+   start clears `ambient2mqtt/problem`.
 
 ## Metrics
 

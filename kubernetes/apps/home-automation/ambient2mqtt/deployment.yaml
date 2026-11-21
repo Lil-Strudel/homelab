@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ambient2mqtt
-          image: ghcr.io/lil-strudel/ambient2mqtt:0.1.0
+          image: ghcr.io/lil-strudel/ambient2mqtt:0.1.1
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

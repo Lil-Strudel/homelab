@@ -141,6 +141,14 @@ outside Home Assistant — at the thermostat, the lock's keypad, or the Ambient 
 take up to five minutes to appear. Commands sent from Home Assistant are unaffected: the bridge
 polls again 3 and 8 seconds after each one to confirm the new state.
 
+For the same reason, it gives up rather than retrying forever. A bridge stuck on a rejected
+login or an API that has changed would otherwise retry around the clock, which is the
+behaviour most likely to get the account flagged. It also fails quietly, because a stale
+entity looks like a working one. Giving up does not exit the process: Kubernetes would
+restart it, and the crash-loop backoff tops out at five minutes, so a crash loop is itself a
+login every five minutes forever. Instead, the bridge idles with every entity unavailable
+and the reason published over MQTT, where Home Assistant can notify someone.
+
 ## ambient2mqtt ships scaled to zero
 
 The apartment's thermostat, lock and lights belong to the building's Ambient system and are
