@@ -71,7 +71,6 @@ VLAN 100.
 | Office switch | `ether1` | Trunk | 10G switch `ether2` |
 | Office switch | `ether2`–`ether5` | Home | Office devices |
 | Office switch | `ether6` | Management | Local management access |
-| Office switch | `ether7` | Trusted | Radio bridge (interim Pi) |
 | Office switch | `ether8` | Management | Local management access |
 | Media switch | `ether1` | Trunk | Router `ether10` |
 | Media switch | `ether2` | Trusted | Radio bridge |
