@@ -30,12 +30,11 @@ Z-Wave radio ──tcp──► zwave-js-ui ◄────────── we
 
 | Radio | Hardware | Endpoint |
 | --- | --- | --- |
-| Zigbee | SONOFF ZBDongle-E (EFR32MG21, EmberZNet), on the interim Pi | `tcp://10.69.60.30:6638` |
-| Z-Wave | SONOFF Dongle-PZG23 (Z-Wave 800), on the interim Pi | `tcp://10.69.60.30:6639` |
+| Zigbee | SONOFF ZBDongle-E (EFR32MG21, EmberZNet), on the radio Pi | `tcp://10.69.60.30:6638` |
+| Z-Wave | SONOFF Dongle-PZG23 (Z-Wave 800), on the radio Pi | `tcp://10.69.60.30:6639` |
 
-The Pi runs `ser2net` to put both USB sticks on the network. It is temporary and not managed
-as code; the SONOFF Dongle Max (Zigbee) and Dongle-MZG23 (Z-Wave), both PoE, replace it — see
-[Swapping a radio](#swapping-a-radio).
+The radio Pi runs `ser2net` to put both USB sticks on the network. It sits on the media
+switch, on Trusted, with a static lease (`trusted-30` in `terraform/main.tf`).
 
 Each endpoint is written in **two** places, and both must change together:
 
@@ -170,12 +169,14 @@ rebuild their device lists by interviewing the network.
 Power the old radio off before the new one comes up. Two coordinators with the same network
 parameters on the air at once confuse every device that hears both.
 
-### Zigbee: ZBDongle-E → Dongle Max
+### Zigbee: another EmberZNet coordinator
 
-Both are EmberZNet, so Zigbee2MQTT can carry the network across.
+Zigbee2MQTT can carry the network across to any EmberZNet coordinator, such as another
+ZBDongle-E or a network one like the SONOFF Dongle Max.
 
-1. In the Dongle Max's web console, set it to Zigbee over Ethernet and note its TCP port. Give
-   it a static lease on Trusted in `dhcp_leases` in `terraform/main.tf`.
+1. Put the new radio on the network: plugged into the radio Pi with its own `ser2net` port,
+   or, for a network radio, set to Zigbee over Ethernet in its web console with a static lease
+   on Trusted in `dhcp_leases` in `terraform/main.tf`. Note its TCP endpoint.
 2. Check that `coordinator_backup.json` in the Zigbee2MQTT volume is recent; Zigbee2MQTT
    writes it on start and periodically.
 3. Point `ZIGBEE2MQTT_CONFIG_SERIAL_PORT` and the policy's `toCIDR`/port at the new
@@ -185,19 +186,19 @@ Both are EmberZNet, so Zigbee2MQTT can carry the network across.
    If the IEEE address could not be written to the new chip, the log says so, and devices
    that do not rejoin on their own need re-pairing.
 
-### Z-Wave: Dongle-PZG23 → Dongle-MZG23
+### Z-Wave: another 800-series controller
 
-Both are 800-series, so the NVM moves across without conversion.
+Between 800-series controllers, such as another PZG23 or the PoE Dongle-MZG23, the NVM moves
+across without conversion.
 
 1. In Z-Wave JS UI, take a fresh NVM backup (*Control Panel → Advanced actions → Backup*)
    and download it.
-2. Set the MZG23 to Ethernet in its web console, note the port, and give it a static lease.
+2. Put the new controller on the network as in the Zigbee steps, and note its endpoint.
 3. Point `ZWAVE_PORT` and the policy's `toCIDR`/port at it, and push.
 4. Restore the NVM backup onto the new controller (*Advanced actions → Restore*). The
    security keys do not move with the NVM — they come from the `zwave-js-ui` Secret, unchanged.
 
-Once both radios have moved, retire the Pi: drop its `trusted-30` lease and update
-[Systems](../reference/systems.md).
+Update [Systems](../reference/systems.md) with the new hardware.
 
 ## ESPHome (planned)
 

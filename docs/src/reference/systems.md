@@ -65,7 +65,7 @@ On VLAN 60 (Trusted), reached by the cluster over TCP — see
 
 | Device | Model | IP | Role |
 | --- | --- | --- | --- |
-| Radio bridge (interim) | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E + SONOFF Dongle-PZG23 | `10.69.60.30` | `ser2net`: Zigbee on `6638`, Z-Wave on `6639` |
+| Radio Pi | Raspberry Pi 4 (4 GB) + SONOFF ZBDongle-E + SONOFF Dongle-PZG23 | `10.69.60.30` | `ser2net`: Zigbee on `6638`, Z-Wave on `6639` |
 
 ## Storage
 

@@ -15,12 +15,11 @@ plugin. That pins both workloads to one node, adds a privileged DaemonSet, and t
 drain into a radio outage. With network radios, the pods are ordinary Deployments that land on
 any worker and reschedule like everything else.
 
-It also matches where the hardware is going. The SONOFF Dongle Max (Zigbee) and Dongle-MZG23
-(Z-Wave 800) are each a radio SoC with an ESP32 in front of it that serves the radio's UART
-over TCP, powered over PoE. Until they arrive, a Raspberry Pi runs `ser2net` to give the two
-USB sticks — a ZBDongle-E and a Dongle-PZG23 — the same interface. Swapping hardware is then a
-change of address in two manifests plus a radio migration, not a redesign. The Pi is
-deliberately not managed as code: it exists for a few weeks.
+A Raspberry Pi runs `ser2net` to put the two USB sticks — a ZBDongle-E and a Dongle-PZG23 — on
+the network. The plan was to replace it with PoE radios (the SONOFF Dongle Max and
+Dongle-MZG23, each a radio SoC with an ESP32 serving its UART over TCP), but the Pi does the
+same job with hardware already on hand, so it stayed. Swapping to network radios later is a
+change of address in two manifests plus a radio migration, not a redesign.
 
 `ser2net` runs each port with `kickolduser`. A radio serves one client, and when a pod is
 rescheduled the old TCP session can linger half-open; without `kickolduser` the new pod is
