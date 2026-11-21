@@ -203,6 +203,14 @@ provider "routeros" {
 }
 
 provider "routeros" {
+  hosturl  = "10.69.100.14:6729"
+  username = data.sops_file.secrets.data["routeros_username"]
+  password = data.sops_file.secrets.data["routeros_password"]
+  insecure = true
+  alias    = "hexs"
+}
+
+provider "routeros" {
   hosturl  = "10.69.100.20:6729"
   username = data.sops_file.secrets.data["routeros_username"]
   password = data.sops_file.secrets.data["routeros_password"]
@@ -241,13 +249,12 @@ module "router" {
 
   internet_vlans = ["Home", "Guest", "DMZ", "Trusted", "Management"]
 
-  trunk_ports = ["sfp-sfpplus2"]
+  trunk_ports = ["sfp-sfpplus2", "ether10"]
   access_ports = {
     "ether5"  = local.vlans["Management"]
     "ether6"  = local.vlans["Management"]
     "ether7"  = local.vlans["Management"]
     "ether8"  = local.vlans["Management"]
-    "ether10" = local.vlans["Home"]
     "ether12" = local.vlans["Management"]
   }
 
@@ -379,6 +386,30 @@ module "office_switch" {
   }
 }
 
+module "media_switch" {
+  source = "./modules/switch"
+  providers = {
+    routeros = routeros.hexs
+  }
+
+  identity = "media_switch"
+
+  base_ip    = local.base_ip
+  ip_address = "14"
+
+  vlans           = local.vlans
+  management_vlan = local.vlans["Management"]
+  admin_sources   = local.admin_sources
+
+  trunk_ports = ["ether1"]
+  access_ports = {
+    ether2 = local.vlans["Trusted"]
+    ether3 = local.vlans["Home"]
+    ether4 = local.vlans["Home"]
+    ether5 = local.vlans["Home"]
+  }
+}
+
 module "wifi_config" {
   source = "./modules/wifi_config"
   providers = {
@@ -475,6 +506,15 @@ module "syslog_office_switch" {
   source = "./modules/syslog"
   providers = {
     routeros = routeros.crs310
+  }
+
+  target_ip = local.services["syslog.lilstrudel.io"].ip
+}
+
+module "syslog_media_switch" {
+  source = "./modules/syslog"
+  providers = {
+    routeros = routeros.hexs
   }
 
   target_ip = local.services["syslog.lilstrudel.io"].ip

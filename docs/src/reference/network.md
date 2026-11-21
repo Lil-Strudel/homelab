@@ -42,11 +42,12 @@ Two ranges sit outside the VLAN scheme:
 
 ## Switching
 
-The router's single trunk, `sfp-sfpplus2`, carries all VLANs to the **core switch**
+The router's main trunk, `sfp-sfpplus2`, carries all VLANs to the **core switch**
 (CRS326), which aggregates SFP+ links and passes the trunk on to the **10G switch**
 (CRS312), which distributes 10G copper and trunks on to the **office switch** (CRS310).
-Every switch hangs off that one SFP+ uplink, so the router's trunk has to be configured
-before anything downstream is reachable. Each switch has its own management IP on
+A second trunk, `ether10`, feeds the **media switch** (hEX S) directly. Every switch hangs
+off one of those two router trunks, so the router's trunks have to be configured before
+anything downstream is reachable. Each switch has its own management IP on
 VLAN 100.
 
 | Device | Port | Mode | Connects to |
@@ -54,6 +55,7 @@ VLAN 100.
 | Router | `ether1` | WAN | House modem |
 | Router | `sfp-sfpplus2` | Trunk | Core switch `sfp-sfpplus2` |
 | Router | `ether5`–`ether8` | Management | Local management access |
+| Router | `ether10` | Trunk | Media switch `ether1` |
 | Core switch | `sfp-sfpplus2` | Trunk | Router |
 | Core switch | `sfp-sfpplus24` | Trunk | 10G switch `combo1` |
 | Core switch | `sfp-sfpplus1`, `3`, `9`, `11`, `17`, `19` | Trusted | Cluster nodes |
@@ -71,6 +73,9 @@ VLAN 100.
 | Office switch | `ether6` | Management | Local management access |
 | Office switch | `ether7` | Trusted | Radio bridge (interim Pi) |
 | Office switch | `ether8` | Management | Local management access |
+| Media switch | `ether1` | Trunk | Router `ether10` |
+| Media switch | `ether2` | Trusted | Radio bridge |
+| Media switch | `ether3`–`ether5` | Home | Media center devices |
 
 Ports not listed are off the bridge.
 

@@ -52,6 +52,7 @@ Why it has no Ceph OSD, a software boot mirror, and an optics override is in
 | Core switch | MikroTik CRS326-24S+2Q+RM | `10.69.100.10` | SFP+ aggregation |
 | 10G switch | MikroTik CRS312-4C+8XG-RM | `10.69.100.11` | 10G copper distribution |
 | Office switch | MikroTik CRS310-8G+2S+IN | `10.69.100.12` | Office desk ports |
+| Media switch | MikroTik hEX S (E60iUGS) | `10.69.100.14` | Media center: TV, smart-home radios |
 | Access point 1 | MikroTik cAPax (cAPGi-5HaxD2HaxD) | `10.69.100.20` | CAPsMAN **manager** |
 | Access point 2 | MikroTik cAPax (cAPGi-5HaxD2HaxD) | `10.69.100.21` | CAPsMAN **client** |
 
