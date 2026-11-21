@@ -33,6 +33,8 @@ spec:
           env:
             - name: TZ
               value: America/Denver
+            - name: AMBIENT_POLL_INTERVAL
+              value: 5m
             - name: MQTT_URL
               value: tcp://mosquitto:1883
             - name: MQTT_USERNAME

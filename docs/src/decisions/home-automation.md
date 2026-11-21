@@ -131,6 +131,16 @@ Zigbee2MQTT, Z-Wave JS UI and ambient2mqtt have short, fixed lists (the OTA inde
 the Z-Wave device database on npm and the firmware service; Ambient's auth and
 device-discovery hosts) and are allowlisted by name.
 
+## ambient2mqtt polls every five minutes
+
+Ambient has no push channel, so the bridge polls the device inventory. The app polls every
+30 seconds, but only while it is open on a phone. The bridge never closes, and at 30 seconds
+it would make 2,880 calls a day from one resident account, a pattern no person produces.
+Five minutes (288 a day) keeps the account looking ordinary. The cost is lag for changes made
+outside Home Assistant — at the thermostat, the lock's keypad, or the Ambient app — which can
+take up to five minutes to appear. Commands sent from Home Assistant are unaffected: the bridge
+polls again 3 and 8 seconds after each one to confirm the new state.
+
 ## ambient2mqtt ships scaled to zero
 
 The apartment's thermostat, lock and lights belong to the building's Ambient system and are
