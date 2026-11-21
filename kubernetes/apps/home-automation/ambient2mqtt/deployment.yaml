@@ -4,7 +4,7 @@ metadata:
   name: ambient2mqtt
   namespace: home-automation
 spec:
-  replicas: 0 # until AMBIENT_CLIENT_APP_ID is in the secret; see docs/src/operations/home-automation.md
+  replicas: 1
   strategy:
     type: Recreate
   selector:
