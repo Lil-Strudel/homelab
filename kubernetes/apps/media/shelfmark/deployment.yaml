@@ -66,6 +66,8 @@ spec:
                   key: SHELFMARK_API_KEY
             - name: DIRECT_DOWNLOAD_ENABLED
               value: "true"
+            - name: SUPPORTED_FORMATS
+              value: epub
             - name: AA_MIRROR_URLS
               value: https://annas-archive.gl
             - name: AA_DONATOR_KEY

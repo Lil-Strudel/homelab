@@ -125,9 +125,10 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
      "es":["spanish","espanol","espa","castellano","spa"],"it":["italian","italiano","ita"],"nl":["dutch","nederlands"],
      "pt":["portuguese","portugues"],"ru":["russian"],"pl":["polish","polski"],"ca":["catalan","catala","catal"]} as $langs
   | ([$langs | to_entries[] | select(.key != $lang) | .value[]]) as $foreign
-  | (if $ct == "audiobook" then {"m4b":0,"mp3":1,"m4a":2} else {"epub":0,"azw3":1,"mobi":2} end) as $rank
+  | (if $ct == "audiobook" then {"m4b":0,"mp3":1,"m4a":2} else {"epub":0} end) as $rank
   | [.releases | to_entries[] | .value + {i: .key}]
-  | map(. + {fmt: (.format // ([.title | ascii_downcase | scan("\\b(epub|azw3|mobi|pdf|m4b|mp3|m4a|cbz|cbr|djvu|fb2)\\b")] | first | .[0]?))})
+  | map(. + {fmt: (if $ct == "ebook" and (.title | ascii_downcase | test("\\bepub\\b")) then "epub"
+      else .format // ([.title | ascii_downcase | scan("\\b(epub|azw3|mobi|pdf|m4b|mp3|m4a|cbz|cbr|djvu|fb2)\\b")] | first | .[0]?) end)})
   | map(. + {r: (if .fmt == null then 5 else $rank[.fmt | ascii_downcase] end)})
   | map(select(.r != null))
   | map(select(.protocol != "torrent" or (.seeders // 0) >= 1))
@@ -174,9 +175,9 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
 ' /tmp/shelfmark-releases.json
 ```
 
-Each line is: `index  format  protocol  seeders  size  check  release-name`. Bad formats,
-dead torrents and releases tagged with another language are already removed. The best
-lines come first.
+Each line is: `index  format  protocol  seeders  size  check  release-name`. Bad formats
+(anything but epub for ebooks), dead torrents and releases tagged with another language are
+already removed. The best lines come first.
 
 The `check` column says what is wrong with a release:
 
@@ -224,7 +225,7 @@ curl -sS --max-time 120 -X POST -H "X-Api-Key: $SHELFMARK_API_KEY" -H "Content-T
   elif .inspected != true then "UNCHECKED"
   else
     (if $ct == "audiobook" then ["m4b","mp3","m4a","mp4","flac","ogg","opus","aac","wma","wav"]
-     else ["epub","mobi","azw3","fb2","djvu"] end) as $good
+     else ["epub"] end) as $good
     | ["exe","msi","bat","cmd","scr","com","lnk","js","vbs","ps1","jar","apk","dll","iso","sh"] as $danger
     | [.files[].path | ascii_downcase | split(".") | if length > 1 then last else "" end] as $ext
     | ([$ext[] | select(IN($danger[]))] | unique) as $found

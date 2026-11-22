@@ -254,6 +254,9 @@ Do this once, in order, after the first reconcile.
     Book file organization is set by env in `shelfmark/deployment.yaml`: *Rename and
     Organize* with the path template `{Author}/{Series/}{Title} ({Year})`, because Kavita
     ignores files at the root of a library and wants each series in its own folder.
+    `SUPPORTED_FORMATS` is `epub`, also by env: every reader takes epub, so the library keeps
+    one copy of each book, and the extra mobi or azw3 files inside a download are dropped.
+    Audiobook formats are a separate setting. Books with no epub release are skipped.
     Audiobooks are organized the same way, with the template
     `{Author}/{Series/}{Title}/{Title}{ - Part }{PartNumber}`. Audiobookshelf makes every
     file at a library's root its own book, so Shelfmark's default *Rename Only*, which
