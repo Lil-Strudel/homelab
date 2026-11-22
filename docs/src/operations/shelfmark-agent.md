@@ -3,7 +3,9 @@
 These are instructions for an AI agent that downloads books through
 [Shelfmark](./media.md). They are written for a small model, so every step is a command to
 copy and the checks are done by the commands, not by judgement. Give the agent this page as
-its instructions.
+its instructions, and set `SHELFMARK_API_KEY` in its environment to the key of that name in
+`media-api-keys` (`sops -d kubernetes/apps/media/api-keys.sops.yaml`). The agent must run
+somewhere that reaches `shelfmark.lilstrudel.io`: the Home VLAN or WireGuard.
 
 ---
 

@@ -61,6 +61,11 @@ spec:
               value: http://byparr:8191
             - name: AUDIOBOOK_LIBRARY_URL
               value: https://audiobookshelf.lilstrudel.io
+            - name: SHELFMARK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-api-keys
+                  key: SHELFMARK_API_KEY
           volumeMounts:
             - name: config
               mountPath: /config
