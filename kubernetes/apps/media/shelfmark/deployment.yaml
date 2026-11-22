@@ -66,6 +66,16 @@ spec:
                 secretKeyRef:
                   name: media-api-keys
                   key: SHELFMARK_API_KEY
+            - name: DIRECT_DOWNLOAD_ENABLED
+              value: "true"
+            - name: AA_MIRROR_URLS
+              value: https://annas-archive.gl
+            - name: AA_DONATOR_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-api-keys
+                  key: AA_DONATOR_KEY
+                  optional: true
           volumeMounts:
             - name: config
               mountPath: /config

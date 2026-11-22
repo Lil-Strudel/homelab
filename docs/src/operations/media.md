@@ -72,7 +72,7 @@ deliberately not backed up; see [Decisions → Media Node](../decisions/media-no
 
 | Secret | Holds | Source |
 | --- | --- | --- |
-| `media-api-keys` (`api-keys.sops.yaml`) | Sonarr, Radarr, Prowlarr, SABnzbd and Shelfmark API keys | Generated; the apps read them from env at start, so the keys are known before first run. The Shelfmark key acts as its first admin and is what the [Shelfmark Agent](./shelfmark-agent.md) uses |
+| `media-api-keys` (`api-keys.sops.yaml`) | Sonarr, Radarr, Prowlarr, SABnzbd and Shelfmark API keys, and the optional Anna's Archive donator key | Generated; the apps read them from env at start, so the keys are known before first run. The Shelfmark key acts as its first admin and is what the [Shelfmark Agent](./shelfmark-agent.md) uses. `AA_DONATOR_KEY` comes from the Anna's Archive account page after donating; add it with `sops set` and restart Shelfmark |
 | `gluetun` (`qbittorrent/gluetun.sops.yaml`) | Mullvad WireGuard private key and tunnel address, not the account number | mullvad.net → Downloads → WireGuard configuration → Generate key; take `PrivateKey` and the IPv4 half of `Address` from the downloaded `.conf`, then delete it |
 | `suwayomi` | Login for the Suwayomi UI | Generated; read it with `sops -d` |
 | `komf` | Kavita API key | Kavita → User settings → API key, after Kavita's first start |
@@ -109,8 +109,11 @@ pod's life. Four layers keep torrent traffic in the tunnel:
    10.0.0.0/8: every request through the Ingress arrives from the pod CIDR, so the bypass
    would mean no login at all.
 
-SABnzbd and Prowlarr stay off the VPN. Usenet runs over TLS to the provider, and indexers
-are better reached from the home address than from a shared VPN exit.
+SABnzbd, Prowlarr and Shelfmark's direct downloads stay off the VPN. Usenet and direct
+downloads run over TLS to one server and upload nothing, unlike a torrent swarm, and indexers
+are better reached from the home address than from a shared VPN exit. Shelfmark could not use
+the tunnel anyway: its own WireGuard needs root, and behind gluetun's proxy the Cloudflare
+clearance Byparr solves from the home address would not match the address downloading.
 
 **Mullvad has no port forwarding**, so qBittorrent cannot accept incoming peers. That is
 fine for public trackers. On private trackers, where ratio depends on being connectable,
@@ -243,6 +246,10 @@ Do this once, in order, after the first reconcile.
     preconfigured. Add sources, and add series to the library to have them downloaded.
 14. **Shelfmark.** Settings → add Prowlarr, qBittorrent (category `books` or `audiobooks`)
     and SABnzbd. Books land in `/data/media/books`, audiobooks in `/data/media/audiobooks`.
+    Direct download (Anna's Archive, ebooks only) is turned on by env in the same deployment,
+    with the mirror pinned in `AA_MIRROR_URLS`. Anna's Archive domains move, so when its
+    searches start failing, check Shelfmark's README for the current one. Searches go through
+    Byparr; downloads are slow and wait in a queue unless `AA_DONATOR_KEY` is set.
     Book file organization is set by env in `shelfmark/deployment.yaml`: *Rename and
     Organize* with the path template `{Author}/{Series/}{Title} ({Year})`, because Kavita
     ignores files at the root of a library and wants each series in its own folder.
