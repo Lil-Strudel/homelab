@@ -1,0 +1,310 @@
+# Shelfmark Agent
+
+These are instructions for an AI agent that downloads books through
+[Shelfmark](./media.md). They are written for a small model, so every step is a command to
+copy and the checks are done by the commands, not by judgement. Give the agent this page as
+its instructions.
+
+---
+
+# Downloading books with Shelfmark
+
+Shelfmark finds books and downloads them into the library. You control it with `curl`
+and read its answers with `jq`. Never open the web page.
+
+Copy the commands below exactly. Only replace the words in CAPITALS.
+
+Downloading the wrong book is worse than downloading nothing. When a step says to stop and
+ask, stop and ask.
+
+## Before you start
+
+These environment variables must already be set:
+
+- `SHELFMARK_URL` is `https://shelfmark.lilstrudel.io`
+- `SHELFMARK_API_KEY` is the API key
+
+Test them:
+
+```bash
+curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" | jq -e 'has("error") | not' >/dev/null && echo OK
+```
+
+If this does not print `OK`, stop and tell the user that Shelfmark is unreachable or the
+key is wrong.
+
+## Decide two things first
+
+1. **Type.** If the user says "audiobook", "listen" or "audio", set `CT=audiobook`.
+   Otherwise set `CT=ebook`.
+2. **Language.** Set `WANT_LANG=en`, unless the user asked for another language. Then
+   use its two-letter code (`de`, `fr`, `es`…).
+
+```bash
+CT=ebook
+WANT_LANG=en
+```
+
+If the user asks for manga, comics or webtoons, do not use Shelfmark. Tell them to use
+Suwayomi instead.
+
+## Do these steps for each book, one book at a time
+
+### Step 1: find the book
+
+Search by the title only. This also finds other books with similar names, which step 2
+uses to reject look-alikes.
+
+```bash
+curl -sS -G -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/metadata/search" \
+  --data-urlencode "query=TITLE" -d content_type=$CT -d limit=10 \
+  > /tmp/shelfmark-search.json
+jq -r '.error // (.books[] | [.provider_id, .title, (.authors | join(", ")), (.publish_year // "-"), (.series_name // "-"), (.series_position // "-")] | @tsv)' /tmp/shelfmark-search.json
+```
+
+Each line is: `id  title  authors  year  series  number-in-series`.
+
+Choose the line whose title **and** author match what the user asked for:
+
+- Prefer the line whose title is exactly the requested title over a longer one. "Dune" is
+  not "Dune Messiah" and not "Dune: The Graphic Novel".
+- Never choose a summary, study guide, workbook, companion, graphic novel or box set
+  unless the user asked for one.
+- **The user gave no author, and two lines have the same title by different authors:**
+  stop and ask the user which author they mean.
+- **The right author is not listed:** run the search again with
+  `query=TITLE AUTHOR` (same command, same file). Still no match: report "not found" and
+  go to the next book.
+
+Save the id: `BOOK_ID=THE_ID`
+
+### Step 2: list the downloads and check them
+
+This command can take up to 5 minutes. Run it once and wait. Do not run it twice at the
+same time.
+
+```bash
+curl -sS -G --max-time 360 -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/releases" \
+  -d provider=hardcover -d book_id="$BOOK_ID" -d content_type=$CT \
+  > /tmp/shelfmark-releases.json
+jq -r '.error // empty' /tmp/shelfmark-releases.json
+```
+
+If that printed an error, look it up in **Errors** below. Otherwise check the candidates:
+
+```bash
+jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-search.json '
+  def words: ascii_downcase | gsub("[^a-z0-9]+"; " ") | split(" ")
+    | map(select(length > 0 and (IN("the","a","an","of","and","to","in","on","for","by") | not)));
+  def inlist($l): . as $x | any($l[]; . == $x);
+  def allin($l): all(.[]; inlist($l));
+  .book as $b
+  | ([$b.title] + ($b.title | split(":")) | map(words) | map(select(length > 0))) as $titles
+  | ([$b.title, ($b.series_name // ""), ($b.authors | join(" "))] | join(" ") | words) as $ours
+  | ($b.authors | map(words | map(select(inlist(["jr","sr","ii","iii"]) | not)) | last) | map(select(. != null))) as $surnames
+  | ["edition","deluxe","illustrated","anniversary","annotated","novel","special","collector","collectors","unabridged","book","volume","vol","part"] as $generic
+  | ([$search[0].books[]? | select(.provider_id != $b.provider_id) | {t: .title, w: (.title | words)}
+      | select(any(.w[]; (inlist($ours) or inlist($generic)) | not))]) as $similar
+  | ["collection","omnibus","boxset","box","boxed","trilogy","duology","anthology","compendium"] as $packwords
+  | ["sample","excerpt","preview","teaser","summary","sparknotes","cliffsnotes","workbook","guide","analysis",
+     "abridged","condensed","dramatized","dramatised","dramatization","dramatisation","radio","bbc","cast",
+     "graphic","comic","comics","manga","adaptation","ocr","scan","scanned"] as $badwords
+  | ([.releases[].size_bytes | select(. != null and . > 0)] | sort) as $sizes
+  | (if ($sizes | length) > 0 then $sizes[($sizes | length) / 2 | floor] else null end) as $median
+  | (if $median then ([$sizes[] | select(. <= 2.5 * $median)] | max) else null end) as $ref
+  | (if $ct == "audiobook" then {"m4b":0,"mp3":1,"m4a":2} else {"epub":0,"azw3":1,"mobi":2} end) as $rank
+  | [.releases | to_entries[] | .value + {i: .key}]
+  | map(. + {r: (if .format == null then 5 else $rank[.format | ascii_downcase] end)})
+  | map(select(.r != null))
+  | map(select(.protocol == "nzb" or (.seeders // 0) >= 1))
+  | map(select(.language == null or .language == $lang))
+  | map(
+      ([.title, (.extra.book_title // "" | tostring), (.extra.author // "" | tostring)] | join(" ") | words) as $hay
+      | (.title | ascii_downcase) as $raw
+      | ([$raw | scan("(?:#|\\bbook ?|\\bbk\\.? ?|\\bvol(?:ume)?\\.? ?)(\\d+)") | .[0] | tonumber]) as $nums
+      | . + {problems: (
+          (if any($titles[]; allin($hay)) then [] else ["title not in name"] end)
+          + (if any($surnames[]; inlist($hay)) then [] else ["author not in name"] end)
+          + [$similar[] | select(.w | allin($hay)) | "looks like \(.t)"]
+          + (if $b.series_position != null and ($nums | length) > 0
+                and (any($nums[]; . == ($b.series_position | floor)) | not)
+             then ["series #\($nums | map(tostring) | join(",")), want #\($b.series_position | if . == floor then floor else . end)"] else [] end)
+          + (if ($raw | test("(\\bbooks?|\\bvols?|\\bvolumes?|#) ?\\d+ ?(-|to|&|and) ?\\d+|complete (series|collection)"))
+                or any($packwords[]; inlist($hay) and (inlist($ours) | not))
+             then ["several books"] else [] end)
+          + [$badwords[] | select(inlist($hay) and (inlist($ours) | not)) | "bad copy: \(.)"]
+          + (if .size_bytes == null then []
+             elif $ct == "audiobook" and .size_bytes < 20000000 then ["too small"]
+             elif $ct == "audiobook" and $ref != null and ($sizes | length) >= 2 and .size_bytes < 0.67 * $ref then ["smaller than other copies"]
+             elif $ct == "ebook" and .size_bytes < 100000 then ["too small"]
+             else [] end)
+          + (if .size_bytes != null and $median != null and ($sizes | length) >= 3 and .size_bytes > 3 * $median
+             then ["much bigger than other copies"] else [] end)
+        )})
+  | sort_by((.problems | length > 0), .r, (if .protocol == "nzb" then 0 else 1 end), -(.seeders // 0))
+  | .[:10][]
+  | [.i, (.format // "?"), .protocol, (.seeders // "-"), (.size // "?"),
+     (if (.problems | length) == 0 then "OK" else (.problems | join("; ")) end), .title] | @tsv
+' /tmp/shelfmark-releases.json
+```
+
+Each line is: `index  format  protocol  seeders  size  check  release-name`. Bad formats,
+dead torrents and other languages are already removed. The best lines come first.
+
+The `check` column says what is wrong with a release:
+
+| Check | Means |
+| --- | --- |
+| `OK` | Nothing wrong was found |
+| `title not in name` / `author not in name` | The release name does not mention this book or its author |
+| `looks like <other title>` | The release is probably a different book with a similar name |
+| `series #N, want #M` | The release is a different book of the same series |
+| `several books` | A collection or box set, not one book |
+| `bad copy: <word>` | A sample, summary, abridged or dramatized version, graphic novel, or bad scan |
+| `too small` / `smaller than other copies` | Probably a sample or a low-quality copy |
+| `much bigger than other copies` | Probably several books in one download |
+
+Choose the **first line whose check is exactly `OK`**. Also read its release name: if it
+clearly names a different book, skip it and take the next `OK` line.
+
+Never choose a line that is not `OK`. If there is no `OK` line, do not download. Tell the
+user the book and the first three lines with their checks, and let them decide.
+
+Save the first column: `I=THE_INDEX`
+
+### Step 3: build the request and look inside the download
+
+```bash
+jq --argjson i "$I" --arg ct "$CT" '
+  .book as $b | .releases[$i] + {
+    title: $b.title,
+    author: ($b.authors | join(", ")),
+    year: ($b.publish_year | if . then tostring else null end),
+    series_name: $b.series_name,
+    series_position: $b.series_position,
+    subtitle: $b.subtitle,
+    preview: $b.cover_url,
+    content_type: $ct
+  }' /tmp/shelfmark-releases.json > /tmp/shelfmark-payload.json
+ID=$(jq -r .source_id /tmp/shelfmark-payload.json)
+curl -sS --max-time 120 -X POST -H "X-Api-Key: $SHELFMARK_API_KEY" -H "Content-Type: application/json" \
+  --data @/tmp/shelfmark-payload.json "$SHELFMARK_URL/api/releases/inspect" \
+  | jq -r --arg ct "$CT" '
+  if .error then "error: \(.error)"
+  elif .inspected != true then "UNCHECKED"
+  else
+    (if $ct == "audiobook" then ["m4b","mp3","m4a","mp4","flac","ogg","opus","aac","wma","wav"]
+     else ["epub","mobi","azw3","fb2","djvu"] end) as $good
+    | ["exe","msi","bat","cmd","scr","com","lnk","js","vbs","ps1","jar","apk","dll","iso","sh"] as $danger
+    | [.files[].path | ascii_downcase | split(".") | if length > 1 then last else "" end] as $ext
+    | ([$ext[] | select(IN($danger[]))] | unique) as $found
+    | [ (if ($found | length) > 0 then "dangerous files: \($found | join(","))" else empty end),
+        (if any($ext[]; IN($good[])) then empty else "no book file inside" end),
+        (if .plan.is_pack and ($ct == "ebook" or ([.plan.books[].series_position | select(. != null)] | unique | length) >= 2)
+         then "contains \(.plan.books | length) books" else empty end) ]
+    | if length == 0 then "OK" else join("; ") end
+  end'
+```
+
+The last line printed is the result:
+
+| Result | What to do |
+| --- | --- |
+| `OK` | The files look right. Go to step 4. |
+| `UNCHECKED` | This kind of download cannot be looked inside (usenet). Go to step 4. |
+| anything else | Do not download it. Go back to the list from step 2, choose the next `OK` line, and do step 3 again. |
+
+The request copies the title, author, year and series from the book. Shelfmark uses them
+to name the folder in the library. Without them the book is filed in the wrong folder, so
+never send a release on its own.
+
+### Step 4: queue the download
+
+First check that this book is not already in the queue:
+
+```bash
+curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" | jq -r '.[][] | .title'
+```
+
+If the book's title is listed, do not queue it again. Otherwise:
+
+```bash
+curl -sS -X POST -H "X-Api-Key: $SHELFMARK_API_KEY" -H "Content-Type: application/json" \
+  --data @/tmp/shelfmark-payload.json "$SHELFMARK_URL/api/releases/download"
+```
+
+Success prints `{"priority":0,"status":"queued"}`. Anything with `"error"` failed: see
+**Errors**.
+
+### Step 5: wait for it to finish
+
+```bash
+curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" \
+  | jq -r --arg id "$ID" 'to_entries[] | .key as $state | (.value[$id] // empty)
+      | [$state, (.progress // 0), (.status_message // ""), (.download_path // "")] | @tsv'
+```
+
+It prints: `state  progress  message  path`. Run it every 30 seconds (`sleep 30`
+between checks).
+
+| State | What to do |
+| --- | --- |
+| `queued`, `resolving`, `locating`, `downloading` | Still working. Check again in 30 seconds. |
+| `complete` | Go to step 6. |
+| `error` | Read the message. Go back to the list from step 2, choose the next `OK` line, and do steps 3 to 5 again. After 3 failed releases, give up on this book and report the messages. |
+| `cancelled` | Someone cancelled it. Do not retry. Report it. |
+| nothing printed | The download is gone from the queue. Report that and do not retry. |
+
+Torrents can take hours. If a download is still running after 30 minutes, stop
+checking. Report "still downloading" with its progress. Shelfmark keeps downloading
+without you, so skip step 6 for this book.
+
+### Step 6: check the downloaded file (epub only)
+
+Only do this if the path from step 5 ends in `.epub`. For any other file, skip this step.
+
+```bash
+curl -sS -G -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/localdownload" \
+  --data-urlencode "id=$ID" -o /tmp/shelfmark-book.epub
+unzip -p /tmp/shelfmark-book.epub '*.opf' | grep -oE '<dc:(title|creator)[^>]*>[^<]*' | sed 's/<[^>]*>//'
+rm -f /tmp/shelfmark-book.epub
+```
+
+It prints the title and author written inside the book. If `unzip` is missing or nothing
+is printed, report "could not check the file" and continue.
+
+If the title inside is a different book, or the author is a different person, **do not
+delete anything and do not download again**. Tell the user: "This may be the wrong book:
+the file says TITLE by AUTHOR. It is at PATH." Small differences are fine, like a
+subtitle, "The" at the start, or initials instead of a first name.
+
+## Rules
+
+- Queue only one download per book.
+- Use only these endpoints: `GET /api/status`, `GET /api/metadata/search`,
+  `GET /api/releases`, `POST /api/releases/inspect`, `POST /api/releases/download`,
+  `GET /api/localdownload`, and the cancel below. The key has admin rights. Never call
+  `/api/settings`, `/api/admin`, or anything else.
+- Cancel only when you queued the wrong book, or the user asks you to:
+  `curl -sS -X DELETE -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/download/$(jq -rn --arg id "$ID" '$id|@uri')/cancel"`
+
+## Errors
+
+| You see | Meaning | Do |
+| --- | --- | --- |
+| `{"error": "Unauthorized"}` | The key is missing or wrong | Stop. Tell the user. |
+| `No metadata provider configured` or `not available` | The book database is down | Stop. Tell the user. |
+| An `error` from step 2 | The download search failed | Wait 60 seconds, then run step 2 once more. If it fails again, report the error and go to the next book. |
+| `curl: (28)` | Timed out | Run the same command once more. |
+| `Failed to queue release` or other `error` from step 4 | Shelfmark refused this release | Choose the next `OK` line from step 2 and do step 3 again. |
+| `{"releases": [], ...}` | No downloads exist for this edition | Go back to step 1 and try the next matching line once. Otherwise report "no downloads found". |
+
+## When you are finished
+
+Give the user one line per book:
+
+```
+<title> by <author>: complete | still downloading (NN%) | failed (<reason>) | not found | needs your choice (<why>) | may be wrong (<what the file says>)
+```
+
+Also name the release you chose for every book that was queued.

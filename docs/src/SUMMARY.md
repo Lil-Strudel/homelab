@@ -29,6 +29,7 @@
 - [VPN Access](./operations/vpn-access.md)
 - [Applications](./operations/applications.md)
 - [Media](./operations/media.md)
+- [Shelfmark Agent](./operations/shelfmark-agent.md)
 - [Home Automation](./operations/home-automation.md)
 - [Dashboard (Dashy)](./operations/dashboard.md)
 - [UPS (APC NMC3)](./operations/ups.md)
