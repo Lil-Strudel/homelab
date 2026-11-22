@@ -162,7 +162,7 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
         elif $ct == "audiobook" and ($sizes | length) >= 2 and .size_bytes < 0.67 * $ref then ["smaller than other copies"]
         elif $ct == "audiobook" and ($sizes | length) >= 3 and .size_bytes > 3 * $median then ["much bigger than other copies"]
         else [] end))
-  | sort_by((.problems | length > 0), .r, (if .protocol == "torrent" then 1 else 0 end), -(.seeders // 0))
+  | sort_by((.problems | length > 0), .r, (if .protocol == "torrent" then 1 else 0 end), -(.seeders // 0), -(.extra.downloads // 0))
   | .[:10][]
   | [.i, (.fmt // "?"), .protocol, (.seeders // "-"), (.size // "?"),
      (if (.problems | length) == 0 then "OK" else (.problems | join("; ")) end), .title] | @tsv

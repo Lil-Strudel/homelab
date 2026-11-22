@@ -21,7 +21,7 @@ is [Storage (ZFS)](./zfs.md). Versions of the pieces Renovate tracks through a c
 | Recyclarr | — (CronJob) | Syncs TRaSH quality profiles, custom formats and naming daily |
 | qBittorrent | `qbittorrent.lilstrudel.io` | Torrents, only through Mullvad |
 | SABnzbd | `sabnzbd.lilstrudel.io` | Usenet, off the VPN |
-| Byparr | — (in-cluster) | Cloudflare solver for Prowlarr, Shelfmark and Suwayomi (FlareSolverr API) |
+| Byparr | — (in-cluster) | Cloudflare solver for Prowlarr and Suwayomi (FlareSolverr API) |
 | qbit_manage | `qbit-manage.lilstrudel.io` | Torrent tagging, share limits, orphan cleanup |
 | Cleanuparr | `cleanuparr.lilstrudel.io` | Removes stalled, fake and malicious downloads from the arr queues |
 | Kavita | `kavita.lilstrudel.io` | Manga, webtoons and ebooks |
@@ -111,9 +111,7 @@ pod's life. Four layers keep torrent traffic in the tunnel:
 
 SABnzbd, Prowlarr and Shelfmark's direct downloads stay off the VPN. Usenet and direct
 downloads run over TLS to one server and upload nothing, unlike a torrent swarm, and indexers
-are better reached from the home address than from a shared VPN exit. Shelfmark could not use
-the tunnel anyway: its own WireGuard needs root, and behind gluetun's proxy the Cloudflare
-clearance Byparr solves from the home address would not match the address downloading.
+are better reached from the home address than from a shared VPN exit.
 
 **Mullvad has no port forwarding**, so qBittorrent cannot accept incoming peers. That is
 fine for public trackers. On private trackers, where ratio depends on being connectable,
@@ -248,8 +246,11 @@ Do this once, in order, after the first reconcile.
     and SABnzbd. Books land in `/data/media/books`, audiobooks in `/data/media/audiobooks`.
     Direct download (Anna's Archive, ebooks only) is turned on by env in the same deployment,
     with the mirror pinned in `AA_MIRROR_URLS`. Anna's Archive domains move, so when its
-    searches start failing, check Shelfmark's README for the current one. Searches go through
-    Byparr; downloads are slow and wait in a queue unless `AA_DONATOR_KEY` is set.
+    searches start failing, check Shelfmark's README for the current one. Shelfmark runs the
+    standard image, not `-lite`, for its built-in browser: Anna's Archive sits behind
+    DDoS-Guard, which Byparr cannot clear, and the browser needs the 3Gi limit and the
+    in-memory `/dev/shm`. Downloads are slow and wait in a queue unless `AA_DONATOR_KEY` is
+    set; the key does not get searches past DDoS-Guard.
     Book file organization is set by env in `shelfmark/deployment.yaml`: *Rename and
     Organize* with the path template `{Author}/{Series/}{Title} ({Year})`, because Kavita
     ignores files at the root of a library and wants each series in its own folder.
