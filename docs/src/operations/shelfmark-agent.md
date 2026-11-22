@@ -109,7 +109,9 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
   | ([$b.title] + (if ($split | length) == 2 and ($split[0] | words | length) > 0 and ($split[0] | words | allin($b.series_name // "" | words))
                    then [$split[1]] else [] end) | map(phrase) | map(select(length > 0))) as $phrases
   | ("(?:^|[-–—:()\\[\\]{}|,/~+]\\s*" + ([$authors[][] | "|\\b\(.)\\s+"] | join("")) + ")") as $before
-  | "(?=\\s*[-–—()\\[\\]{}|,/~+]|\\s*$|\\s+(?:by|epub|mobi|azw3|ebook|retail|unabridged|audiobook|m4b|mp3|\\d+ ?kbps|(?:19|20)\\d\\d)\\b)" as $after
+  | ("(?=\\s*[-–—()\\[\\]{}|,/~+]|\\s*$|\\s*:\\s*(?:book|bk|vol|volume)\\b"
+      + "|\\s+(?:by|epub|mobi|azw3|ebook|retail|unabridged|audiobook|m4b|mp3|\\d+ ?kbps|(?:19|20)\\d\\d)\\b"
+      + ([$authors[][] | "|\\s+(?:and |& )?\(.)\\b"] | join("")) + ")") as $after
   | ([$b.title, ($b.series_name // ""), ($b.authors | join(" "))] | join(" ") | words) as $ours
   | ["edition","deluxe","illustrated","anniversary","annotated","novel","special","collector","collectors","unabridged","book","volume","vol","part"] as $generic
   | ([$search[0].books[]? | select(.provider_id != $b.provider_id) | {t: .title, w: (.title | words | map(select(stop | not)))}
@@ -150,6 +152,9 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
              then ["several books"] else [] end)
           + [$badwords[] | select(inlist($hay) and (inlist($ours) | not)) | "bad copy: \(.)"]
           + (if any($foreign[]; inlist($hay) and (inlist($ours) | not)) then ["other language"] else [] end)
+          + (if $ct == "ebook" and ((.extra.files // 0) | tonumber? // 0) > 3 then ["several books (\(.extra.files) files)"] else [] end)
+          + (if (.extra.publisher // "" | tostring | ascii_downcase | test("royalroad|wattpad|archiveofourown|fanfiction|scribblehub"))
+             then ["bad copy: web serial"] else [] end)
         )})
   | ([.[] | select((.problems | length) == 0) | .size_bytes | select(. != null and . > 0)] | sort) as $sizes
   | (if ($sizes | length) > 0 then $sizes[($sizes | length) / 2 | floor] else null end) as $median
@@ -182,8 +187,9 @@ The `check` column says what is wrong with a release:
 | `author not in name` | The release name does not contain the author's full name |
 | `looks like <other title>` | The release is probably a different book with a similar name |
 | `series #N, want #M` | The release is a different book of the same series |
-| `several books` | A collection or box set, not one book |
+| `several books` | A collection or box set, not one book, or an ebook download with more than 3 files |
 | `bad copy: <word>` | A sample, summary, abridged or dramatized version, graphic novel, comic, film, or bad scan |
+| `bad copy: web serial` | The original web-serial version (Royal Road, Wattpad, fan fiction sites), not the published book |
 | `other language` | The release name says it is in another language |
 | `too small` / `small for an audiobook` / `smaller than other copies` | Probably a sample, an ebook mislabelled as an audiobook, or a low-quality copy |
 | `too big for one ebook` / `much bigger than other copies` | Probably several books, or not a book at all |
