@@ -19,7 +19,7 @@ spec:
         - matchExpressions:
             - key: app
               operator: In
-              values: [prowlarr, shelfmark, suwayomi]
+              values: [prowlarr, suwayomi]
       toPorts:
         - ports:
             - port: "8191"
