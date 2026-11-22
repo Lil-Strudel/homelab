@@ -29,7 +29,7 @@ These environment variables must already be set:
 Test them:
 
 ```bash
-curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" | jq -e 'has("error") | not' >/dev/null && echo OK
+curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" | jq -e 'has("queued")' >/dev/null && echo OK
 ```
 
 If this does not print `OK`, stop and tell the user that Shelfmark is unreachable or the
@@ -96,75 +96,97 @@ If that printed an error, look it up in **Errors** below. Otherwise check the ca
 
 ```bash
 jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-search.json '
-  def words: ascii_downcase | gsub("[^a-z0-9]+"; " ") | split(" ")
-    | map(select(length > 0 and (IN("the","a","an","of","and","to","in","on","for","by") | not)));
+  def norm: ascii_downcase | gsub("&amp;"; "&") | gsub("\\\\?[\\x27’`]"; "") | gsub("[._\\s]+"; " ");
+  def words: norm | gsub("[^a-z0-9]+"; " ") | split(" ") | map(select(length > 0));
+  def stop: IN("the","a","an","of","and","to","in","on","for","by");
   def inlist($l): . as $x | any($l[]; . == $x);
   def allin($l): all(.[]; inlist($l));
+  def phrase: words | . as $w | [range(0; length) as $k | $w[$k]
+    | if $k == ($w | length) - 1 then . elif stop then "(?:\(.)[^a-z0-9]+)?" else "\(.)[^a-z0-9]+" end] | join("");
   .book as $b
-  | ([$b.title] + ($b.title | split(":")) | map(words) | map(select(length > 0))) as $titles
+  | ($b.authors | map(words | map(select(length >= 3))) | map(select(length > 0))) as $authors
+  | ($b.title | split(":")) as $split
+  | ([$b.title] + (if ($split | length) == 2 and ($split[0] | words | length) > 0 and ($split[0] | words | allin($b.series_name // "" | words))
+                   then [$split[1]] else [] end) | map(phrase) | map(select(length > 0))) as $phrases
+  | ("(?:^|[-–—:()\\[\\]{}|,/~+]\\s*" + ([$authors[][] | "|\\b\(.)\\s+"] | join("")) + ")") as $before
+  | "(?=\\s*[-–—()\\[\\]{}|,/~+]|\\s*$|\\s+(?:by|epub|mobi|azw3|ebook|retail|unabridged|audiobook|m4b|mp3|\\d+ ?kbps|(?:19|20)\\d\\d)\\b)" as $after
   | ([$b.title, ($b.series_name // ""), ($b.authors | join(" "))] | join(" ") | words) as $ours
-  | ($b.authors | map(words | map(select(inlist(["jr","sr","ii","iii"]) | not)) | last) | map(select(. != null))) as $surnames
   | ["edition","deluxe","illustrated","anniversary","annotated","novel","special","collector","collectors","unabridged","book","volume","vol","part"] as $generic
-  | ([$search[0].books[]? | select(.provider_id != $b.provider_id) | {t: .title, w: (.title | words)}
+  | ([$search[0].books[]? | select(.provider_id != $b.provider_id) | {t: .title, w: (.title | words | map(select(stop | not)))}
       | select(any(.w[]; (inlist($ours) or inlist($generic)) | not))]) as $similar
-  | ["collection","omnibus","boxset","box","boxed","trilogy","duology","anthology","compendium"] as $packwords
+  | ["collection","coleccion","omnibus","boxset","box","boxed","bundle","books","tomos","integrale","trilogy","duology","anthology","compendium"] as $packwords
   | ["sample","excerpt","preview","teaser","summary","sparknotes","cliffsnotes","workbook","guide","analysis",
      "abridged","condensed","dramatized","dramatised","dramatization","dramatisation","radio","bbc","cast",
-     "graphic","comic","comics","manga","adaptation","ocr","scan","scanned"] as $badwords
-  | ([.releases[].size_bytes | select(. != null and . > 0)] | sort) as $sizes
-  | (if ($sizes | length) > 0 then $sizes[($sizes | length) / 2 | floor] else null end) as $median
-  | (if $median then ([$sizes[] | select(. <= 2.5 * $median)] | max) else null end) as $ref
+     "graphic","graphicaudio","comic","comics","manga","adaptation","dcp","webp","ocr","scan","scanned",
+     "720p","1080p","2160p","x264","x265","hevc","bluray","webrip","season"] as $badwords
+  | {"en":["english","eng"],"de":["german","deutsch","ger"],"fr":["french","francais","vf"],
+     "es":["spanish","espanol","espa","castellano","spa"],"it":["italian","italiano","ita"],"nl":["dutch","nederlands"],
+     "pt":["portuguese","portugues"],"ru":["russian"],"pl":["polish","polski"],"ca":["catalan","catala","catal"]} as $langs
+  | ([$langs | to_entries[] | select(.key != $lang) | .value[]]) as $foreign
   | (if $ct == "audiobook" then {"m4b":0,"mp3":1,"m4a":2} else {"epub":0,"azw3":1,"mobi":2} end) as $rank
   | [.releases | to_entries[] | .value + {i: .key}]
-  | map(. + {r: (if .format == null then 5 else $rank[.format | ascii_downcase] end)})
+  | map(. + {fmt: (.format // ([.title | ascii_downcase | scan("\\b(epub|azw3|mobi|pdf|m4b|mp3|m4a|cbz|cbr|djvu|fb2)\\b")] | first | .[0]?))})
+  | map(. + {r: (if .fmt == null then 5 else $rank[.fmt | ascii_downcase] end)})
   | map(select(.r != null))
-  | map(select(.protocol == "nzb" or (.seeders // 0) >= 1))
+  | map(select(.protocol != "torrent" or (.seeders // 0) >= 1))
   | map(select(.language == null or .language == $lang))
   | map(
-      ([.title, (.extra.book_title // "" | tostring), (.extra.author // "" | tostring)] | join(" ") | words) as $hay
-      | (.title | ascii_downcase) as $raw
-      | ([$raw | scan("(?:#|\\bbook ?|\\bbk\\.? ?|\\bvol(?:ume)?\\.? ?)(\\d+)") | .[0] | tonumber]) as $nums
+      ([.title, (.extra.book_title // "" | tostring), (.extra.author // "" | tostring)] | join(" ")) as $text
+      | ([.title, (.extra.book_title // "" | tostring)]) as $names
+      | ($text | words) as $hay
+      | ($text | norm) as $raw
+      | ([$raw | scan("(?:#|\\bbook ?|\\bbk ?|\\bvol(?:ume)? ?)(\\d+)") | .[0] | tonumber]
+         + (if $b.series_name then [$raw | scan(($b.series_name | phrase) + " (\\d{1,2})\\b") | .[0] | tonumber] else [] end)) as $nums
       | . + {problems: (
-          (if any($titles[]; allin($hay)) then [] else ["title not in name"] end)
-          + (if any($surnames[]; inlist($hay)) then [] else ["author not in name"] end)
+          (if any($phrases[] as $p | $names[] | norm | test($before + $p + $after); .)
+             then [] else ["title not in name"] end)
+          + (if ($authors | length) == 0 or any($authors[]; allin($hay)) then [] else ["author not in name"] end)
           + [$similar[] | select(.w | allin($hay)) | "looks like \(.t)"]
           + (if $b.series_position != null and ($nums | length) > 0
                 and (any($nums[]; . == ($b.series_position | floor)) | not)
              then ["series #\($nums | map(tostring) | join(",")), want #\($b.series_position | if . == floor then floor else . end)"] else [] end)
-          + (if ($raw | test("(\\bbooks?|\\bvols?|\\bvolumes?|#) ?\\d+ ?(-|to|&|and) ?\\d+|complete (series|collection)"))
+          + (if ($raw | test("(\\bbooks?|\\bvols?|\\bvolumes?|#) ?\\d+ ?(-|to|&|and) ?\\d+|complete (series|collection|saga|set)"))
                 or any($packwords[]; inlist($hay) and (inlist($ours) | not))
              then ["several books"] else [] end)
           + [$badwords[] | select(inlist($hay) and (inlist($ours) | not)) | "bad copy: \(.)"]
-          + (if .size_bytes == null then []
-             elif $ct == "audiobook" and .size_bytes < 20000000 then ["too small"]
-             elif $ct == "audiobook" and $ref != null and ($sizes | length) >= 2 and .size_bytes < 0.67 * $ref then ["smaller than other copies"]
-             elif $ct == "ebook" and .size_bytes < 100000 then ["too small"]
-             else [] end)
-          + (if .size_bytes != null and $median != null and ($sizes | length) >= 3 and .size_bytes > 3 * $median
-             then ["much bigger than other copies"] else [] end)
+          + (if any($foreign[]; inlist($hay) and (inlist($ours) | not)) then ["other language"] else [] end)
         )})
-  | sort_by((.problems | length > 0), .r, (if .protocol == "nzb" then 0 else 1 end), -(.seeders // 0))
+  | ([.[] | select((.problems | length) == 0) | .size_bytes | select(. != null and . > 0)] | sort) as $sizes
+  | (if ($sizes | length) > 0 then $sizes[($sizes | length) / 2 | floor] else null end) as $median
+  | (if $median then ([$sizes[] | select(. <= 2.5 * $median)] | max) else null end) as $ref
+  | map(.problems += (
+        if .size_bytes == null then []
+        elif $ct == "ebook" and .size_bytes < 100000 then ["too small"]
+        elif $ct == "ebook" and .size_bytes > 100000000 then ["too big for one ebook"]
+        elif $ct == "audiobook" and .size_bytes < 100000000 then ["small for an audiobook"]
+        elif $ct == "audiobook" and ($sizes | length) >= 2 and .size_bytes < 0.67 * $ref then ["smaller than other copies"]
+        elif $ct == "audiobook" and ($sizes | length) >= 3 and .size_bytes > 3 * $median then ["much bigger than other copies"]
+        else [] end))
+  | sort_by((.problems | length > 0), .r, (if .protocol == "torrent" then 1 else 0 end), -(.seeders // 0))
   | .[:10][]
-  | [.i, (.format // "?"), .protocol, (.seeders // "-"), (.size // "?"),
+  | [.i, (.fmt // "?"), .protocol, (.seeders // "-"), (.size // "?"),
      (if (.problems | length) == 0 then "OK" else (.problems | join("; ")) end), .title] | @tsv
 ' /tmp/shelfmark-releases.json
 ```
 
 Each line is: `index  format  protocol  seeders  size  check  release-name`. Bad formats,
-dead torrents and other languages are already removed. The best lines come first.
+dead torrents and releases tagged with another language are already removed. The best
+lines come first.
 
 The `check` column says what is wrong with a release:
 
 | Check | Means |
 | --- | --- |
 | `OK` | Nothing wrong was found |
-| `title not in name` / `author not in name` | The release name does not mention this book or its author |
+| `title not in name` | The release name does not contain this book's title on its own, so it is probably a different book ("Princess of Dune" is not "Dune") |
+| `author not in name` | The release name does not contain the author's full name |
 | `looks like <other title>` | The release is probably a different book with a similar name |
 | `series #N, want #M` | The release is a different book of the same series |
 | `several books` | A collection or box set, not one book |
-| `bad copy: <word>` | A sample, summary, abridged or dramatized version, graphic novel, or bad scan |
-| `too small` / `smaller than other copies` | Probably a sample or a low-quality copy |
-| `much bigger than other copies` | Probably several books in one download |
+| `bad copy: <word>` | A sample, summary, abridged or dramatized version, graphic novel, comic, film, or bad scan |
+| `other language` | The release name says it is in another language |
+| `too small` / `small for an audiobook` / `smaller than other copies` | Probably a sample, an ebook mislabelled as an audiobook, or a low-quality copy |
+| `too big for one ebook` / `much bigger than other copies` | Probably several books, or not a book at all |
 
 Choose the **first line whose check is exactly `OK`**. Also read its release name: if it
 clearly names a different book, skip it and take the next `OK` line.
@@ -213,7 +235,7 @@ The last line printed is the result:
 | Result | What to do |
 | --- | --- |
 | `OK` | The files look right. Go to step 4. |
-| `UNCHECKED` | This kind of download cannot be looked inside (usenet). Go to step 4. |
+| `UNCHECKED` | This kind of download cannot be looked inside (usenet, magnet-link torrents, direct download). Go to step 4. |
 | anything else | Do not download it. Go back to the list from step 2, choose the next `OK` line, and do step 3 again. |
 
 The request copies the title, author, year and series from the book. Shelfmark uses them
@@ -225,10 +247,12 @@ never send a release on its own.
 First check that this book is not already in the queue:
 
 ```bash
-curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" | jq -r '.[][] | .title'
+curl -sS -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/status" \
+  | jq -r '[.queued, .resolving, .locating, .downloading, .complete][] | .[]? | .title'
 ```
 
-If the book's title is listed, do not queue it again. Otherwise:
+If the book's title is listed, it is already downloading or done: do not queue it again.
+Failed downloads are not listed, so retrying with another release is allowed. Otherwise:
 
 ```bash
 curl -sS -X POST -H "X-Api-Key: $SHELFMARK_API_KEY" -H "Content-Type: application/json" \
