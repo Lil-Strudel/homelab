@@ -237,7 +237,10 @@ Do this once, in order, after the first reconcile.
     in `mangas/Manual/<Series>/`, inside the same root. A second root folder would break
     scanning: Kavita aborts the whole library scan when any root is empty, and the Suwayomi
     root is empty until something downloads. Create an API key and put it in the `komf`
-    secret (see [Secrets](#secrets)).
+    secret (see [Secrets](#secrets)). Komf only updates the Manga library:
+    `metadataLibraryFilter` in `komf/configmap.yaml` holds its library ID, `1`. Left empty
+    it updates every library, and it matched books to manga and webtoons of the same name,
+    replacing their covers and summaries.
 12. **Audiobookshelf.** Libraries on `/data/media/audiobooks` and a Podcast library on
     `/data/media/podcasts`.
 13. **Suwayomi.** Log in with the `suwayomi` secret. The Keiyoushi extension store is

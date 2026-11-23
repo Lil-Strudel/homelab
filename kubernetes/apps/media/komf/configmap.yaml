@@ -11,6 +11,7 @@ data:
     kavita:
       eventListener:
         enabled: true
+        metadataLibraryFilter: ["1"]
       metadataUpdate:
         default:
           libraryType: MANGA
