@@ -109,6 +109,8 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
   def stop: IN("the","a","an","of","and","to","in","on","for","by");
   def inlist($l): . as $x | any($l[]; . == $x);
   def allin($l): all(.[]; inlist($l));
+  def tagged($w): test("(?:^|[-–—:()\\[\\]{}|,/~+]\\s*)\($w)\\b|\\b\($w)(?=\\s*(?:$|[-–—()\\[\\]{}|,/~+]|\\d"
+    + "|(?:edition|version|ebook|epub|mobi|azw3|pdf|retail|translation|language|audiobook|m4b|mp3|unabridged)\\b))");
   def phrase: words | . as $w | [range(0; length) as $k | $w[$k]
     | if $k == ($w | length) - 1 then . elif stop then "(?:\(.)[^a-z0-9]+)?" else "\(.)[^a-z0-9]+" end] | join("");
   .book as $b
@@ -162,7 +164,8 @@ jq -r --arg ct "$CT" --arg lang "$WANT_LANG" --slurpfile search /tmp/shelfmark-s
                 or any($packwords[]; inlist($hay) and (inlist($ours) | not))
              then ["several books"] else [] end)
           + [$badwords[] | select(inlist($hay) and (inlist($ours) | not)) | "bad copy: \(.)"]
-          + (if any($foreign[]; inlist($hay) and (inlist($ours) | not)) then ["other language"] else [] end)
+          + (if any($foreign[] as $w | select($w | inlist($ours) | not) | $names[] | norm | tagged($w); .)
+             then ["other language"] else [] end)
           + (if $ct == "ebook" and ((.extra.files // 0) | tonumber? // 0) > 3 then ["several books (\(.extra.files) files)"] else [] end)
           + (if (.extra.publisher // "" | tostring | ascii_downcase | test("royalroad|wattpad|archiveofourown|fanfiction|scribblehub"))
              then ["bad copy: web serial"] else [] end)
@@ -201,7 +204,7 @@ The `check` column says what is wrong with a release:
 | `several books` | A collection or box set, not one book, or an ebook download with more than 3 files |
 | `bad copy: <word>` | A sample, summary, abridged or dramatized version, graphic novel, comic, film, or bad scan |
 | `bad copy: web serial` | The original web-serial version (Royal Road, Wattpad, fan fiction sites), not the published book |
-| `other language` | The release name says it is in another language |
+| `other language` | The release name is tagged with another language, like `(German Edition)` or `SWEDISH.RETAIL` |
 | `too small` / `small for an audiobook` / `smaller than other copies` | Probably a sample, an ebook mislabelled as an audiobook, or a low-quality copy |
 | `too big for one ebook` / `much bigger than other copies` | Probably several books, or not a book at all |
 
@@ -293,6 +296,7 @@ between checks).
 | State | What to do |
 | --- | --- |
 | `queued`, `resolving`, `locating`, `downloading` | Still working. Check again in 30 seconds. |
+| `downloading`, the message says `0 seeds` and progress is still 0 after 10 minutes | The torrent is stuck: the seeder count in step 2 comes from the indexer and is often out of date. Cancel it (see **Rules**), then do what the `error` row says, and prefer a line whose protocol is not `torrent`. |
 | `complete` | Go to step 6. |
 | `error` | Read the message. Go back to the list from step 2, choose the next `OK` line, and do steps 3 to 5 again. After 3 failed releases, give up on this book and report the messages. |
 | `cancelled` | Someone cancelled it. Do not retry. Report it. |
@@ -387,7 +391,8 @@ the last line of the error.
   `/api/settings`, `/api/admin`, or anything else.
 - Change files in the library only with step 7's command, and only the book you just
   downloaded. In Kavita, only run the scan under **When you are finished**.
-- Cancel only when you queued the wrong book, or the user asks you to:
+- Cancel only when you queued the wrong book, a torrent is stuck at 0 seeds (step 5), or
+  the user asks you to:
   `curl -sS -X DELETE -H "X-Api-Key: $SHELFMARK_API_KEY" "$SHELFMARK_URL/api/download/$(jq -rn --arg id "$ID" '$id|@uri')/cancel"`
 
 ## Errors
